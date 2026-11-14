@@ -12,7 +12,7 @@ import type {
   MinecraftSaveSummary,
   MinecraftSoundsDto,
   OptimizeResultDto,
-  GradleEnvStatus,
+  VanillaEnvStatus,
   LayoutMode,
   RunningSessionDto,
   SavedServer,
@@ -122,16 +122,16 @@ const previewState: BootstrapDto = {
     gpu_backend: "Dx12",
     gpu_device_type: "Discrete",
   },
-  gradle: {
-    gradle_dir: "C:\\basalt\\client-gradle",
-    runs_dir: "C:\\basalt\\client-gradle\\run",
-    saves_dir: "C:\\basalt\\client-gradle\\run\\saves",
-    gradlew_ready: true,
-    mod_jar_built: true,
+  vanilla: {
+    vanilla_dir: "C:\\basalt\\vanilla",
+    runs_dir: "C:\\basalt\\run",
+    saves_dir: "C:\\basalt\\run\\saves",
+    client_ready: true,
+    assets_ready: true,
     java_ready: true,
     java_home: "C:\\Program Files\\Eclipse Adoptium\\jdk-21",
     java_version_label: "Java 21.0.11",
-    java_hint: "Compatible system Java 21+ JDK installation detected.",
+    java_hint: "Compatible system Java 21+ runtime detected.",
   },
   skin_rgba: makeSampleSkinRgba(),
   skin_is_slim: true,
@@ -173,11 +173,11 @@ export async function getBootstrapState(): Promise<BootstrapDto> {
   }
   const snapshot = structuredClone(previewState);
   if (new URLSearchParams(window.location.search).get("java") === "missing") {
-    snapshot.gradle.java_ready = false;
-    snapshot.gradle.java_home = null;
-    snapshot.gradle.java_version_label = "Java 21 JDK not found";
-    snapshot.gradle.java_hint =
-      "No Java 21 JDK was detected on this PC. Click Install Java 21 below to set up a portable runtime without administrator rights.";
+    snapshot.vanilla.java_ready = false;
+    snapshot.vanilla.java_home = null;
+    snapshot.vanilla.java_version_label = "Java 21 runtime not found";
+    snapshot.vanilla.java_hint =
+      "No Java 21 runtime was detected on this PC. Click Install Java 21 below to set up a portable runtime without administrator rights.";
   }
   return snapshot;
 }
@@ -359,12 +359,12 @@ export async function probeLocalServerCmd(
   );
 }
 
-export async function prepareGradleClient(): Promise<RunningSessionDto> {
+export async function prepareVanillaClient(): Promise<RunningSessionDto> {
   if (isTauriRuntime()) {
-    return invoke<RunningSessionDto>("prepare_gradle_client");
+    return invoke<RunningSessionDto>("prepare_vanilla_client");
   }
   throw new Error(
-    "Gradle Fabric 1.21.4 prebuild can only run in the desktop application (basalt.exe)."
+    "Vanilla 1.21.4 file preparation can only run in the desktop application (basalt.exe)."
   );
 }
 
@@ -377,11 +377,11 @@ export async function installJava21(): Promise<RunningSessionDto> {
   );
 }
 
-export async function recheckJava21(): Promise<GradleEnvStatus> {
+export async function recheckJava21(): Promise<VanillaEnvStatus> {
   if (isTauriRuntime()) {
-    return invoke<GradleEnvStatus>("recheck_java_21");
+    return invoke<VanillaEnvStatus>("recheck_java_21");
   }
-  return structuredClone(previewState.gradle);
+  return structuredClone(previewState.vanilla);
 }
 
 export async function openJavaDownloadPage(): Promise<void> {
@@ -466,7 +466,7 @@ export async function launchClient(input: {
     return invoke<RunningSessionDto>("launch_client", { input });
   }
   throw new Error(
-    "Gradle Minecraft 1.21.4 client can only be launched from the desktop application (basalt.exe)."
+    "Minecraft 1.21.4 Vanilla client can only be launched from the desktop application (basalt.exe)."
   );
 }
 

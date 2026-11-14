@@ -11,6 +11,26 @@ pub fn fov_degrees_to_options_value(degrees: f32) -> f32 {
 /// Writes Basalt's hardware-tuned graphics parameters into Minecraft `run/options.txt`
 /// while preserving unrelated user lines (keybinds, sound levels, language, packs).
 pub fn sync_minecraft_options(run_dir: &Path, gfx: &GraphicsSettings) -> Result<(), String> {
+    sync_minecraft_options_with_pack(run_dir, gfx, None)
+}
+
+fn merge_resource_packs(raw: &str, pack_id: &str) -> String {
+    let mut packs: Vec<String> = serde_json::from_str(raw.trim()).unwrap_or_default();
+    packs.retain(|entry| entry != pack_id);
+    if !packs.iter().any(|entry| entry == "vanilla") {
+        packs.insert(0, "vanilla".to_string());
+    }
+    packs.push(pack_id.to_string());
+    serde_json::to_string(&packs).unwrap_or_else(|_| format!("[\"vanilla\",\"{pack_id}\"]"))
+}
+
+/// Syncs graphics options and optionally guarantees `skin_pack_id` (for example
+/// `"file/basalt_skin.zip"`) is enabled in `resourcePacks`.
+pub fn sync_minecraft_options_with_pack(
+    run_dir: &Path,
+    gfx: &GraphicsSettings,
+    skin_pack_id: Option<&str>,
+) -> Result<(), String> {
     fs::create_dir_all(run_dir)
         .map_err(|e| format!("Failed to create Minecraft run directory: {e}"))?;
 
@@ -37,6 +57,7 @@ pub fn sync_minecraft_options(run_dir: &Path, gfx: &GraphicsSettings) -> Result<
     ];
 
     let mut applied = [false; 9];
+    let mut wrote_resource_packs = false;
     let mut lines: Vec<String> = Vec::new();
 
     for raw_line in existing.lines() {
@@ -44,14 +65,23 @@ pub fn sync_minecraft_options(run_dir: &Path, gfx: &GraphicsSettings) -> Result<
         if trimmed.is_empty() {
             continue;
         }
-        if let Some((key, _)) = trimmed.split_once(':')
-            && let Some(idx) = managed.iter().position(|(k, _)| *k == key)
-        {
-            if !applied[idx] {
-                lines.push(format!("{}:{}", managed[idx].0, managed[idx].1));
-                applied[idx] = true;
+        if let Some((key, val)) = trimmed.split_once(':') {
+            if let Some(pack_id) = skin_pack_id
+                && key == "resourcePacks"
+            {
+                if !wrote_resource_packs {
+                    lines.push(format!("resourcePacks:{}", merge_resource_packs(val, pack_id)));
+                    wrote_resource_packs = true;
+                }
+                continue;
             }
-            continue;
+            if let Some(idx) = managed.iter().position(|(k, _)| *k == key) {
+                if !applied[idx] {
+                    lines.push(format!("{}:{}", managed[idx].0, managed[idx].1));
+                    applied[idx] = true;
+                }
+                continue;
+            }
         }
         lines.push(trimmed.to_string());
     }
@@ -60,6 +90,14 @@ pub fn sync_minecraft_options(run_dir: &Path, gfx: &GraphicsSettings) -> Result<
         if !applied[idx] {
             lines.push(format!("{key}:{val}"));
         }
+    }
+    if let Some(pack_id) = skin_pack_id
+        && !wrote_resource_packs
+    {
+        lines.push(format!(
+            "resourcePacks:{}",
+            merge_resource_packs("[\"vanilla\"]", pack_id)
+        ));
     }
 
     let mut output = lines.join("\n");

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Basalt - Minecraft 1.21.4 Gradle Client</title>
+  <title>Basalt - Minecraft 1.21.4 Vanilla Launcher</title>
   <link
     rel="icon"
     type="image/svg+xml"
@@ -125,7 +125,7 @@
         </svg>
         <div class="brand-copy">
           <span class="brand-name">BASALT</span>
-          <span class="brand-sub">GRADLE 1.21.4</span>
+          <span class="brand-sub">VANILLA 1.21.4</span>
         </div>
       </div>
 
@@ -158,7 +158,7 @@
       <div class="rail-footer">
         <div class="rail-status" id="rail-status-row" data-state="ready">
           <span class="status-led" aria-hidden="true"></span>
-          <span id="rail-status-text" data-i18n="rail.statusReady">Gradle Fabric ready</span>
+          <span id="rail-status-text" data-i18n="rail.statusReady">Vanilla 1.21.4 ready</span>
         </div>
         <div class="rail-quick-actions rail-quick-actions-3">
           <button class="btn-subtle btn-rail-mini" type="button" id="btn-rail-theme" title="Switch color theme" aria-label="Switch color theme" data-i18n-title="rail.themeBtn" data-i18n-aria="rail.themeBtn">
@@ -232,7 +232,7 @@
               <h1 id="play-heading" data-i18n="play.heading">Launch Minecraft</h1>
             </div>
             <p class="view-lead" data-i18n="play.lead">
-              Run the real Minecraft Java 1.21.4 client via Fabric Loom Gradle with calibrated settings and a local skin.
+              Run the official Minecraft Java 1.21.4 Vanilla client directly with hardware-calibrated settings and a local skin pack.
             </p>
           </div>
 
@@ -244,11 +244,11 @@
                 <div class="console-hero-info">
                   <div class="console-badge-row">
                     <span class="console-kicker" id="deck-hero-kicker">SINGLEPLAYER · 1.21.4</span>
-                    <span class="console-proto-badge tabular" id="deck-hero-tag">Fabric Loom · Protocol 769</span>
+                    <span class="console-proto-badge tabular" id="deck-hero-tag">Vanilla · Protocol 769</span>
                   </div>
                   <h2 class="console-hero-title" id="deck-hero-title">Minecraft 1.21.4</h2>
                   <p class="console-hero-sub" id="deck-hero-sub">
-                    Launch the real Fabric 1.21.4 client with one press using your selected world and local PNG skin.
+                    Launch the official Vanilla 1.21.4 client directly with one press using your selected world and local PNG skin.
                   </p>
                   <div class="console-spec-pills" id="deck-hero-specs"></div>
                   <div class="console-hero-actions">
@@ -260,7 +260,7 @@
                       <span id="deck-secondary-label">Manage saves</span>
                     </button>
                     <button class="btn-subtle console-btn-act" type="button" id="btn-deck-prepare">
-                      <span data-i18n="play.prepareBtn">Gradle Prebuild</span>
+                      <span data-i18n="play.prepareBtn">Verify / Pre-download</span>
                     </button>
                   </div>
                   <p class="console-status-line tabular" id="deck-status-line">
@@ -301,7 +301,7 @@
             <div class="play-hero" id="world-stage">
               <div class="stratum-visual">
                 <svg id="stratum-svg" viewBox="0 0 480 220" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
-                <div class="stratum-overlay-tag tabular" id="stage-biome-tag">FABRIC 1.21.4 · GRADLE</div>
+                <div class="stratum-overlay-tag tabular" id="stage-biome-tag">VANILLA 1.21.4 · DIRECT</div>
                 <div class="stratum-scene-footer">
                   <div>
                     <span class="field-kicker" data-i18n="play.targetKicker">LAUNCH TARGET</span>
@@ -315,13 +315,13 @@
 
               <aside class="launch-deck" aria-label="Launch controls" data-i18n-aria="play.controlsAria">
                 <div class="launch-version-header">
-                  <span class="field-kicker" data-i18n="play.clientKicker">TARGET CLIENT · FABRIC LOOM</span>
+                  <span class="field-kicker" data-i18n="play.clientKicker">TARGET CLIENT · PURE VANILLA</span>
                   <div class="launch-version-row">
                     <span class="version-hero tabular">1.21.4</span>
                     <span class="proto-badge tabular" data-i18n="play.protoBadge">Protocol 769</span>
                   </div>
                   <p class="version-summary" data-i18n="play.versionSummary">
-                    Launches Gradle runClient with hardware-synced options.txt and your selected local skin.
+                    Launches official Vanilla 1.21.4 directly via java.exe with hardware-synced options.txt and your local skin pack.
                   </p>
                 </div>
 
@@ -374,9 +374,9 @@
                   </button>
                   <div class="launch-prepare-row">
                     <button class="btn-link-subtle" type="button" id="btn-prepare-gradle" data-i18n="play.prepareBtn">
-                      Gradle Prebuild
+                      Verify / Pre-download
                     </button>
-                    <span class="inline-status" id="prepare-status-hint" data-i18n="play.prepareHintWait">Optional: compile Gradle cache before launch</span>
+                    <span class="inline-status" id="prepare-status-hint" data-i18n="play.prepareHintWait">Optional: download Vanilla 1.21.4 assets before launch</span>
                   </div>
                   <div class="action-feedback" id="launch-feedback" aria-live="polite" hidden></div>
                   <pre class="gradle-log-box tabular" id="gradle-log-box" hidden></pre>
@@ -394,7 +394,7 @@
                   <div class="kv-row"><dt class="kv-key" data-i18n="play.specJdk">Java Runtime</dt><dd class="kv-val tabular" id="play-spec-jdk">-</dd></div>
                   <div class="kv-row"><dt class="kv-key" data-i18n="play.specRam">JVM Memory &amp; GC</dt><dd class="kv-val tabular" id="play-spec-ram">-</dd></div>
                   <div class="kv-row"><dt class="kv-key" data-i18n="play.specChunks">Render Distance</dt><dd class="kv-val tabular" id="play-spec-chunks">-</dd></div>
-                  <div class="kv-row"><dt class="kv-key" data-i18n="play.specMod">Basalt Mod JAR</dt><dd class="kv-val" id="play-spec-mod">-</dd></div>
+                  <div class="kv-row"><dt class="kv-key" data-i18n="play.specMod">Vanilla 1.21.4 Cache</dt><dd class="kv-val" id="play-spec-mod">-</dd></div>
                 </dl>
               </section>
 
@@ -720,7 +720,7 @@
                     </select>
                   </div>
                   <p class="muted-copy skin-note-compact" data-i18n="skin.noteCompact">
-                    64×64 and legacy 64×32 PNG skins are applied directly via the Basalt Fabric Mixin.
+                    64×64 and legacy 64×32 PNG skins plus Slim / Classic arms are packaged cleanly as a Vanilla resource pack on launch.
                   </p>
                   <div class="skin-btn-row">
                     <button class="btn-primary btn-sm" type="button" id="btn-pick-skin">
@@ -783,7 +783,7 @@
         <section class="view" id="view-system" data-view="system" aria-labelledby="system-heading" hidden>
           <div class="view-head">
             <div>
-              <p class="eyebrow" data-i18n="system.eyebrow">04 / HARDWARE, GRADLE &amp; LOCAL NET</p>
+              <p class="eyebrow" data-i18n="system.eyebrow">04 / HARDWARE, VANILLA &amp; LOCAL NET</p>
               <h1 id="system-heading" data-i18n="system.heading">System &amp; network</h1>
             </div>
             <button class="btn-primary btn-sm" type="button" id="btn-auto-optimize" data-i18n="system.autoOptimizeBtn">
@@ -883,10 +883,6 @@
                     <label for="gfx-ao" data-i18n="system.ao">Smooth lighting (AO)</label>
                     <input class="switch" type="checkbox" id="gfx-ao" />
                   </div>
-                  <div class="setting-toggle">
-                    <label for="gfx-fps-hud" data-i18n="system.fpsHud">Basalt FPS HUD</label>
-                    <input class="switch" type="checkbox" id="gfx-fps-hud" />
-                  </div>
                 </div>
 
                 <div class="form-actions tight-top">
@@ -898,13 +894,13 @@
 
             <div class="panel-section">
               <div class="section-head">
-                <h2 data-i18n="system.gradleTitle">Gradle &amp; Fabric 1.21.4 runtime</h2>
+                <h2 data-i18n="system.gradleTitle">Vanilla 1.21.4 runtime</h2>
                 <span class="tabular" id="gradle-status-tag">-</span>
               </div>
               <dl class="hw-table">
                 <div><dt data-i18n="system.javaRuntime">Java Runtime</dt><dd class="tabular" id="gradle-java-label">-</dd></div>
-                <div><dt data-i18n="system.modJar">Mod JAR</dt><dd id="gradle-jar-status">-</dd></div>
-                <div><dt data-i18n="system.workDir">Working Directory</dt><dd class="tabular mono-wrap" id="gradle-dir-label">-</dd></div>
+                <div><dt data-i18n="system.modJar">Vanilla Files</dt><dd id="gradle-jar-status">-</dd></div>
+                <div><dt data-i18n="system.workDir">Vanilla Cache Directory</dt><dd class="tabular mono-wrap" id="gradle-dir-label">-</dd></div>
                 <div><dt data-i18n="system.savesDir">Saves Directory (saves)</dt><dd class="tabular mono-wrap" id="gradle-saves-dir">-</dd></div>
               </dl>
               <div class="form-actions tight-top" id="system-java-actions">

@@ -19,13 +19,8 @@ use basalt::config::{
     AccentTone, AppConfig, AppPaths, CornerStyle, GraphicsSettings, LayoutMode, SavedServer,
     SkinModel, ThemeMode, UiLanguage, normalize_hex_color,
 };
-use basalt::gradle::{
-    GradleEnvStatus, LaunchEnvConfig, build_launch_env, compute_file_sha256_hex,
-    discover_java21_home_with_runtime, inspect_gradle_environment_with_runtime,
-    resolve_gradle_user_home, resolve_or_extract_gradle_workspace, summarize_process_failure,
-};
 use basalt::hardware::HardwareProfile;
-use basalt::options_txt::sync_minecraft_options;
+use basalt::options_txt::{sync_minecraft_options, sync_minecraft_options_with_pack};
 use basalt::protocol::{
     LocalHandshakeResult, ServerPingInfo, ping_server_1_21_4, probe_local_dev_login_1_21_4,
 };
@@ -33,6 +28,13 @@ use basalt::saves::{MinecraftSaveSummary, delete_save as remove_save_dir, list_s
 use basalt::sounds::{
     MinecraftSoundsDto, default_local_asset_roots, fetch_missing_minecraft_sounds,
     load_local_minecraft_sounds,
+};
+use basalt::vanilla::{
+    BASALT_SKIN_PACK_NAME, VanillaEnvStatus, VanillaLaunchConfig, compute_file_sha256_hex,
+    discover_java21_home_with_runtime, ensure_vanilla_1_21_4_ready,
+    inspect_vanilla_environment_with_runtime, migrate_legacy_client_gradle_saves,
+    resolve_vanilla_dir, spawn_vanilla_client, summarize_process_failure,
+    write_basalt_skin_resource_pack,
 };
 
 #[derive(Debug, Clone, Serialize)]
@@ -47,7 +49,7 @@ struct BootstrapDto {
     config: AppConfig,
     saves: Vec<MinecraftSaveSummary>,
     hardware: HardwareProfile,
-    gradle: GradleEnvStatus,
+    vanilla: VanillaEnvStatus,
     skin_rgba: Vec<u8>,
     skin_is_slim: bool,
     running_session: Option<RunningSessionDto>,
@@ -87,7 +89,7 @@ struct SessionEndedPayload {
     exit_code: Option<i32>,
     error: Option<String>,
     saves: Vec<MinecraftSaveSummary>,
-    gradle: GradleEnvStatus,
+    vanilla: VanillaEnvStatus,
 }
 
 #[derive(Debug, Deserialize)]
@@ -119,8 +121,8 @@ struct LaunchInput {
 
 struct AppState {
     paths: AppPaths,
-    gradle_dir: PathBuf,
-    gradle_user_home: Option<PathBuf>,
+    vanilla_dir: PathBuf,
+    run_dir: PathBuf,
     config: Mutex<AppConfig>,
     hardware: Mutex<HardwareProfile>,
     hardware_notice: Mutex<Option<String>>,
@@ -133,12 +135,15 @@ impl AppState {
         let paths = AppPaths::resolve();
         paths.ensure_dirs()?;
 
-        let gradle_dir = resolve_or_extract_gradle_workspace(&paths.root_dir)?;
-        let gradle_user_home = resolve_gradle_user_home(&paths.root_dir);
-        if let Some(ref gh) = gradle_user_home {
-            fs::create_dir_all(gh)
-                .map_err(|e| format!("Failed to create Gradle cache directory: {e}"))?;
-        }
+        let vanilla_dir = resolve_vanilla_dir(&paths.root_dir);
+        fs::create_dir_all(&vanilla_dir)
+            .map_err(|e| format!("Failed to create Vanilla cache directory: {e}"))?;
+        let run_dir = paths.root_dir.join("run");
+        let saves_dir = run_dir.join("saves");
+        fs::create_dir_all(&saves_dir)
+            .map_err(|e| format!("Failed to create Minecraft saves directory: {e}"))?;
+        migrate_legacy_client_gradle_saves(&paths.root_dir, &saves_dir);
+
         let mut config = AppConfig::load(&paths.config_file);
         let hardware = HardwareProfile::detect_headless();
         let mut hardware_notice = None;
@@ -164,8 +169,8 @@ impl AppState {
 
         Ok(Self {
             paths,
-            gradle_dir,
-            gradle_user_home,
+            vanilla_dir,
+            run_dir,
             config: Mutex::new(config),
             hardware: Mutex::new(hardware),
             hardware_notice: Mutex::new(hardware_notice),
@@ -175,11 +180,11 @@ impl AppState {
     }
 
     fn saves_dir(&self) -> PathBuf {
-        self.gradle_dir.join("run").join("saves")
+        self.run_dir.join("saves")
     }
 
     fn run_dir(&self) -> PathBuf {
-        self.gradle_dir.join("run")
+        self.run_dir.clone()
     }
 }
 
@@ -232,72 +237,44 @@ fn load_active_skin_image(skin_file: Option<&Path>) -> image::RgbaImage {
     generate_default_skin()
 }
 
-fn ensure_launch_skin_file(paths: &AppPaths, skin_file: Option<&PathBuf>) -> Option<PathBuf> {
-    if let Some(custom) = skin_file
-        && custom.is_file()
+fn load_active_skin_png_bytes(skin_file: Option<&Path>) -> Vec<u8> {
+    if let Some(path) = skin_file
+        && let Ok(img) = load_skin_from_file(path)
     {
-        return Some(custom.clone());
+        let mut out = Vec::new();
+        if img
+            .write_to(&mut std::io::Cursor::new(&mut out), image::ImageFormat::Png)
+            .is_ok()
+        {
+            return out;
+        }
     }
-    let default_path = paths.skins_dir.join("default_skin.png");
-    let _ = fs::create_dir_all(&paths.skins_dir);
-    let _ = fs::write(&default_path, default_skin_png_bytes());
-    default_path.is_file().then_some(default_path)
+    default_skin_png_bytes().to_vec()
 }
 
-fn spawn_gradle_command(
-    gradle_dir: &Path,
-    gradle_user_home: Option<&Path>,
-    task: &str,
-    env_vars: &[(String, String)],
-) -> Result<Child, String> {
-    let mut cmd = if cfg!(windows) {
-        let mut c = Command::new("cmd.exe");
-        c.args(["/C", "gradlew.bat", task, "--no-daemon", "--console=plain"]);
-        #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt;
-            const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-            c.creation_flags(CREATE_NO_WINDOW);
-        }
-        c
-    } else {
-        let mut c = Command::new("./gradlew");
-        c.args([task, "--no-daemon", "--console=plain"]);
-        c
-    };
-
-    cmd.current_dir(gradle_dir)
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-
-    for key in [
-        "BASALT_USERNAME",
-        "BASALT_UUID",
-        "BASALT_JVM_XMX",
-        "BASALT_JVM_GC",
-        "BASALT_SHOW_FPS_HUD",
-        "BASALT_SKIN_PATH",
-        "BASALT_SKIN_MODEL",
-        "BASALT_QUICK_PLAY_SP",
-        "BASALT_QUICK_PLAY_MP",
-        "_JAVA_OPTIONS",
-        "JAVA_TOOL_OPTIONS",
-        "JAVA_OPTS",
-        "GRADLE_OPTS",
-    ] {
-        cmd.env_remove(key);
-    }
-
-    for (k, v) in env_vars {
-        cmd.env(k, v);
-    }
-    if let Some(g_home) = gradle_user_home {
-        cmd.env("GRADLE_USER_HOME", g_home);
-    }
-
-    cmd.spawn()
-        .map_err(|e| format!("Failed to start Gradle process: {e}"))
+fn emit_session_ended(
+    app: &tauri::AppHandle,
+    kind: String,
+    exit_code: Option<i32>,
+    error: Option<String>,
+    vanilla_dir: &Path,
+    run_dir: &Path,
+    saves_dir: &Path,
+    runtime_dir: &Path,
+) {
+    let saves = scan_saves(saves_dir).unwrap_or_default();
+    let vanilla =
+        inspect_vanilla_environment_with_runtime(vanilla_dir, run_dir, Some(runtime_dir));
+    let _ = app.emit(
+        "basalt://session-ended",
+        SessionEndedPayload {
+            kind,
+            exit_code,
+            error,
+            saves,
+            vanilla,
+        },
+    );
 }
 
 fn spawn_log_reader<R: std::io::Read + Send + 'static>(
@@ -340,93 +317,68 @@ fn spawn_log_reader<R: std::io::Read + Send + 'static>(
     })
 }
 
-fn monitor_child_process(
-    app: tauri::AppHandle,
+fn monitor_vanilla_child_blocking(
+    app: &tauri::AppHandle,
     mut child: Child,
-    kind: String,
-    running_arc: Arc<Mutex<Option<RunningSessionDto>>>,
-    gradle_dir: PathBuf,
-    saves_dir: PathBuf,
-    runtime_dir: PathBuf,
-    log_file: PathBuf,
-) {
-    thread::spawn(move || {
-        let tail = Arc::new(Mutex::new(VecDeque::<String>::with_capacity(240)));
-        if let Some(parent) = log_file.parent() {
-            let _ = fs::create_dir_all(parent);
-        }
-        let log_created = File::create(&log_file).ok().map(BufWriter::new);
-        let log_available = log_created.is_some();
-        let file_writer = Arc::new(Mutex::new(log_created));
+    log_file: &Path,
+) -> (Option<i32>, Option<String>) {
+    let tail = Arc::new(Mutex::new(VecDeque::<String>::with_capacity(240)));
+    if let Some(parent) = log_file.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    let log_created = File::create(log_file).ok().map(BufWriter::new);
+    let log_available = log_created.is_some();
+    let file_writer = Arc::new(Mutex::new(log_created));
 
-        let out_handle = spawn_log_reader(
-            child.stdout.take(),
-            false,
-            app.clone(),
-            Arc::clone(&tail),
-            Arc::clone(&file_writer),
-        );
-        let err_handle = spawn_log_reader(
-            child.stderr.take(),
-            true,
-            app.clone(),
-            Arc::clone(&tail),
-            Arc::clone(&file_writer),
-        );
+    let out_handle = spawn_log_reader(
+        child.stdout.take(),
+        false,
+        app.clone(),
+        Arc::clone(&tail),
+        Arc::clone(&file_writer),
+    );
+    let err_handle = spawn_log_reader(
+        child.stderr.take(),
+        true,
+        app.clone(),
+        Arc::clone(&tail),
+        Arc::clone(&file_writer),
+    );
 
-        let status_res = child.wait();
-        if let Some(h) = out_handle {
-            let _ = h.join();
-        }
-        if let Some(h) = err_handle {
-            let _ = h.join();
-        }
-        if let Ok(mut guard) = file_writer.lock()
-            && let Some(mut w) = guard.take()
-        {
-            let _ = w.flush();
-        }
+    let status_res = child.wait();
+    if let Some(h) = out_handle {
+        let _ = h.join();
+    }
+    if let Some(h) = err_handle {
+        let _ = h.join();
+    }
+    if let Ok(mut guard) = file_writer.lock()
+        && let Some(mut w) = guard.take()
+    {
+        let _ = w.flush();
+    }
 
-        if let Ok(mut guard) = running_arc.lock() {
-            *guard = None;
-        }
-
-        let saves = scan_saves(&saves_dir).unwrap_or_default();
-        let gradle = inspect_gradle_environment_with_runtime(&gradle_dir, Some(&runtime_dir));
-
-        let (exit_code, error) = match status_res {
-            Ok(status) => {
-                let code = status.code();
-                if status.success() {
-                    (code, None)
-                } else {
-                    let captured: Vec<String> = tail
-                        .lock()
-                        .ok()
-                        .map(|buf| buf.iter().cloned().collect())
-                        .unwrap_or_default();
-                    let msg = summarize_process_failure(
-                        &captured,
-                        code,
-                        log_available.then_some(log_file.as_path()),
-                    );
-                    (code, Some(msg))
-                }
+    match status_res {
+        Ok(status) => {
+            let code = status.code();
+            if status.success() {
+                (code, None)
+            } else {
+                let captured: Vec<String> = tail
+                    .lock()
+                    .ok()
+                    .map(|buf| buf.iter().cloned().collect())
+                    .unwrap_or_default();
+                let msg = summarize_process_failure(
+                    &captured,
+                    code,
+                    log_available.then_some(log_file),
+                );
+                (code, Some(msg))
             }
-            Err(e) => (None, Some(format!("Process monitor error: {e}"))),
-        };
-
-        let _ = app.emit(
-            "basalt://session-ended",
-            SessionEndedPayload {
-                kind,
-                exit_code,
-                error,
-                saves,
-                gradle,
-            },
-        );
-    });
+        }
+        Err(e) => (None, Some(format!("Process monitor error: {e}"))),
+    }
 }
 
 #[tauri::command]
@@ -453,7 +405,11 @@ fn get_bootstrap_state(state: tauri::State<AppState>) -> Result<BootstrapDto, St
         .clone();
 
     let saves = scan_saves(&state.saves_dir())?;
-    let gradle = inspect_gradle_environment_with_runtime(&state.gradle_dir, Some(&state.paths.runtime_dir));
+    let vanilla = inspect_vanilla_environment_with_runtime(
+        &state.vanilla_dir,
+        &state.run_dir,
+        Some(&state.paths.runtime_dir),
+    );
     let skin_img = load_active_skin_image(config.skin_file.as_deref());
     let skin_is_slim = resolve_skin_is_slim(config.skin_model, &skin_img);
 
@@ -461,7 +417,7 @@ fn get_bootstrap_state(state: tauri::State<AppState>) -> Result<BootstrapDto, St
         config,
         saves,
         hardware,
-        gradle,
+        vanilla,
         skin_rgba: skin_img.into_raw(),
         skin_is_slim,
         running_session,
@@ -500,7 +456,7 @@ fn delete_save(
             .map_err(|_| "Failed to unlock session state".to_string())?;
         if running.is_some() {
             return Err(
-                "Cannot delete a world while Minecraft or Gradle is running; close the game first.".to_string(),
+                "Cannot delete a world while Minecraft or setup is running; wait or close the game first.".to_string(),
             );
         }
     }
@@ -632,7 +588,7 @@ fn load_minecraft_sounds(
     state: tauri::State<AppState>,
 ) -> Result<MinecraftSoundsDto, String> {
     let sounds_dir = state.paths.root_dir.join("sounds");
-    let roots = default_local_asset_roots(Some(&state.gradle_dir));
+    let roots = default_local_asset_roots(Some(&state.vanilla_dir));
     let dto = load_local_minecraft_sounds(&sounds_dir, &roots);
     if !dto.missing_keys.is_empty() {
         spawn_missing_sounds_fetch(
@@ -855,9 +811,10 @@ async fn probe_local_server_cmd(
 }
 
 #[tauri::command]
-fn recheck_java_21(state: tauri::State<AppState>) -> Result<GradleEnvStatus, String> {
-    Ok(inspect_gradle_environment_with_runtime(
-        &state.gradle_dir,
+fn recheck_java_21(state: tauri::State<AppState>) -> Result<VanillaEnvStatus, String> {
+    Ok(inspect_vanilla_environment_with_runtime(
+        &state.vanilla_dir,
+        &state.run_dir,
         Some(&state.paths.runtime_dir),
     ))
 }
@@ -1026,6 +983,26 @@ fn install_java21_blocking(app: &tauri::AppHandle, runtime_dir: &Path) -> Result
     Ok(())
 }
 
+fn begin_running_session(
+    running_arc: &Mutex<Option<RunningSessionDto>>,
+    session: RunningSessionDto,
+) -> Result<(), String> {
+    let mut running = running_arc
+        .lock()
+        .map_err(|_| "Failed to unlock session state".to_string())?;
+    if running.is_some() {
+        return Err("Another operation (Minecraft or setup) is currently running.".to_string());
+    }
+    *running = Some(session);
+    Ok(())
+}
+
+fn finish_running_session(running_arc: &Mutex<Option<RunningSessionDto>>) {
+    if let Ok(mut guard) = running_arc.lock() {
+        *guard = None;
+    }
+}
+
 #[tauri::command]
 fn install_java_21(
     app: tauri::AppHandle,
@@ -1039,58 +1016,35 @@ fn install_java_21(
 
     #[cfg(windows)]
     {
-        {
-            let running = state
-                .running
-                .lock()
-                .map_err(|_| "Failed to unlock session state".to_string())?;
-            if running.is_some() {
-                return Err(
-                    "Another operation (Minecraft, Gradle, or Java setup) is currently running."
-                        .to_string(),
-                );
-            }
-        }
-
         let session = RunningSessionDto {
             pid: std::process::id(),
             kind: "java-install".to_string(),
             label: "Eclipse Temurin Java 21 Setup".to_string(),
         };
-
-        {
-            let mut running = state
-                .running
-                .lock()
-                .map_err(|_| "Failed to unlock session state".to_string())?;
-            *running = Some(session.clone());
-        }
+        begin_running_session(&state.running, session.clone())?;
 
         let running_arc = Arc::clone(&state.running);
-        let gradle_dir = state.gradle_dir.clone();
+        let vanilla_dir = state.vanilla_dir.clone();
+        let run_dir = state.run_dir.clone();
         let saves_dir = state.saves_dir();
         let runtime_dir = state.paths.runtime_dir.clone();
 
         thread::spawn(move || {
             let result = install_java21_blocking(&app, &runtime_dir);
-            if let Ok(mut guard) = running_arc.lock() {
-                *guard = None;
-            }
-            let saves = scan_saves(&saves_dir).unwrap_or_default();
-            let gradle = inspect_gradle_environment_with_runtime(&gradle_dir, Some(&runtime_dir));
+            finish_running_session(&running_arc);
             let (exit_code, error) = match result {
                 Ok(()) => (Some(0), None),
                 Err(msg) => (Some(1), Some(msg)),
             };
-            let _ = app.emit(
-                "basalt://session-ended",
-                SessionEndedPayload {
-                    kind: "java-install".to_string(),
-                    exit_code,
-                    error,
-                    saves,
-                    gradle,
-                },
+            emit_session_ended(
+                &app,
+                "java-install".to_string(),
+                exit_code,
+                error,
+                &vanilla_dir,
+                &run_dir,
+                &saves_dir,
+                &runtime_dir,
             );
         });
 
@@ -1099,57 +1053,49 @@ fn install_java_21(
 }
 
 #[tauri::command]
-fn prepare_gradle_client(
+fn prepare_vanilla_client(
     app: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<RunningSessionDto, String> {
-    {
-        let running = state
-            .running
-            .lock()
-            .map_err(|_| "Failed to unlock session state".to_string())?;
-        if running.is_some() {
-            return Err("A Gradle or Minecraft process is already running.".to_string());
-        }
-    }
-
-    let (java_home, _) = discover_java21_home_with_runtime(&state.paths.runtime_dir).ok_or_else(|| {
-        "Java 21 JDK was not found. Use 'Install Java 21' on the Play screen to set up a portable runtime."
-            .to_string()
-    })?;
-
-    let env_vars = vec![("JAVA_HOME".to_string(), java_home.to_string_lossy().into_owned())];
-    let child = spawn_gradle_command(
-        &state.gradle_dir,
-        state.gradle_user_home.as_deref(),
-        "build",
-        &env_vars,
-    )?;
-
     let session = RunningSessionDto {
-        pid: child.id(),
+        pid: std::process::id(),
         kind: "prepare".to_string(),
-        label: "Gradle Fabric 1.21.4 Prebuild".to_string(),
+        label: "Vanilla 1.21.4 Verification & Assets".to_string(),
     };
+    begin_running_session(&state.running, session.clone())?;
 
-    {
-        let mut running = state
-            .running
-            .lock()
-            .map_err(|_| "Failed to unlock session state".to_string())?;
-        *running = Some(session.clone());
-    }
+    let running_arc = Arc::clone(&state.running);
+    let vanilla_dir = state.vanilla_dir.clone();
+    let run_dir = state.run_dir.clone();
+    let saves_dir = state.saves_dir();
+    let runtime_dir = state.paths.runtime_dir.clone();
 
-    monitor_child_process(
-        app,
-        child,
-        "prepare".to_string(),
-        Arc::clone(&state.running),
-        state.gradle_dir.clone(),
-        state.saves_dir(),
-        state.paths.runtime_dir.clone(),
-        state.paths.root_dir.join("logs").join("last-launch.log"),
-    );
+    thread::spawn(move || {
+        let res = ensure_vanilla_1_21_4_ready(&vanilla_dir, |line, is_err| {
+            let _ = app.emit(
+                "basalt://launch-log",
+                LaunchLogPayload {
+                    line: line.to_string(),
+                    is_err,
+                },
+            );
+        });
+        finish_running_session(&running_arc);
+        let (exit_code, error) = match res {
+            Ok(_) => (Some(0), None),
+            Err(msg) => (Some(1), Some(msg)),
+        };
+        emit_session_ended(
+            &app,
+            "prepare".to_string(),
+            exit_code,
+            error,
+            &vanilla_dir,
+            &run_dir,
+            &saves_dir,
+            &runtime_dir,
+        );
+    });
 
     Ok(session)
 }
@@ -1166,12 +1112,12 @@ fn launch_client(
             .lock()
             .map_err(|_| "Failed to unlock session state".to_string())?;
         if running.is_some() {
-            return Err("Minecraft or Gradle is already running.".to_string());
+            return Err("Minecraft or setup is already running.".to_string());
         }
     }
 
     let (java_home, _) = discover_java21_home_with_runtime(&state.paths.runtime_dir).ok_or_else(|| {
-        "Java 21 JDK was not found. Use 'Install Java 21' on the Play screen to install it."
+        "Java 21 runtime was not found. Use 'Install Java 21' on the Play screen to install it."
             .to_string()
     })?;
 
@@ -1215,7 +1161,7 @@ fn launch_client(
             }
             "title" => (
                 config.clone(),
-                "Minecraft 1.21.4 (Fabric Gradle)".to_string(),
+                "Minecraft 1.21.4 (Vanilla)".to_string(),
                 None,
                 None,
             ),
@@ -1223,56 +1169,82 @@ fn launch_client(
         }
     };
 
-    sync_minecraft_options(&state.run_dir(), &config_snapshot.graphics)?;
-
     let skin_img = load_active_skin_image(config_snapshot.skin_file.as_deref());
     let skin_is_slim = resolve_skin_is_slim(config_snapshot.skin_model, &skin_img);
-    let skin_path = ensure_launch_skin_file(&state.paths, config_snapshot.skin_file.as_ref());
-
-    let env_cfg = LaunchEnvConfig {
-        username: config_snapshot.username.clone(),
-        jvm_ram_mb: config_snapshot.graphics.jvm_ram_mb,
-        jvm_gc: config_snapshot.graphics.jvm_gc,
-        show_fps_hud: config_snapshot.graphics.show_fps_hud,
-        skin_path,
+    let skin_png_bytes = load_active_skin_png_bytes(config_snapshot.skin_file.as_deref());
+    let player_uuid = write_basalt_skin_resource_pack(
+        &state.run_dir,
+        &config_snapshot.username,
+        &skin_png_bytes,
         skin_is_slim,
-        quick_play_singleplayer: quick_sp,
-        quick_play_multiplayer: quick_mp,
-        java_home: Some(java_home),
-    };
-
-    let env_vars = build_launch_env(&env_cfg);
-    let child = spawn_gradle_command(
-        &state.gradle_dir,
-        state.gradle_user_home.as_deref(),
-        "runClient",
-        &env_vars,
     )?;
 
+    let pack_entry = format!("file/{BASALT_SKIN_PACK_NAME}");
+    sync_minecraft_options_with_pack(&state.run_dir, &config_snapshot.graphics, Some(&pack_entry))?;
+
     let session = RunningSessionDto {
-        pid: child.id(),
+        pid: std::process::id(),
         kind: "launch".to_string(),
         label,
     };
+    begin_running_session(&state.running, session.clone())?;
 
-    {
-        let mut running = state
-            .running
-            .lock()
-            .map_err(|_| "Failed to unlock session state".to_string())?;
-        *running = Some(session.clone());
-    }
+    let launch_cfg = VanillaLaunchConfig {
+        username: config_snapshot.username,
+        player_uuid,
+        graphics: config_snapshot.graphics,
+        quick_play_singleplayer: quick_sp,
+        quick_play_multiplayer: quick_mp,
+        java_home,
+    };
 
-    monitor_child_process(
-        app,
-        child,
-        "launch".to_string(),
-        Arc::clone(&state.running),
-        state.gradle_dir.clone(),
-        state.saves_dir(),
-        state.paths.runtime_dir.clone(),
-        state.paths.root_dir.join("logs").join("last-launch.log"),
-    );
+    let running_arc = Arc::clone(&state.running);
+    let vanilla_dir = state.vanilla_dir.clone();
+    let run_dir = state.run_dir.clone();
+    let saves_dir = state.saves_dir();
+    let runtime_dir = state.paths.runtime_dir.clone();
+    let log_file = state.paths.root_dir.join("logs").join("last-launch.log");
+
+    thread::spawn(move || {
+        let log_emit = |line: &str, is_err: bool| {
+            let _ = app.emit(
+                "basalt://launch-log",
+                LaunchLogPayload {
+                    line: line.to_string(),
+                    is_err,
+                },
+            );
+        };
+
+        let (exit_code, error) = match ensure_vanilla_1_21_4_ready(&vanilla_dir, log_emit) {
+            Err(err) => (Some(1), Some(err)),
+            Ok(manifest) => {
+                match spawn_vanilla_client(&vanilla_dir, &run_dir, &manifest, &launch_cfg) {
+                    Err(err) => (Some(1), Some(err)),
+                    Ok(child) => {
+                        if let Ok(mut guard) = running_arc.lock()
+                            && let Some(ref mut active) = *guard
+                        {
+                            active.pid = child.id();
+                        }
+                        monitor_vanilla_child_blocking(&app, child, &log_file)
+                    }
+                }
+            }
+        };
+
+        finish_running_session(&running_arc);
+        emit_session_ended(
+            &app,
+            "launch".to_string(),
+            exit_code,
+            error,
+            &vanilla_dir,
+            &run_dir,
+            &saves_dir,
+            &runtime_dir,
+        );
+    });
 
     Ok(session)
 }
@@ -1364,7 +1336,7 @@ fn main() {
             remove_server,
             ping_server_cmd,
             probe_local_server_cmd,
-            prepare_gradle_client,
+            prepare_vanilla_client,
             launch_client,
             install_java_21,
             recheck_java_21,
@@ -1372,7 +1344,7 @@ fn main() {
         ])
         .setup(|app| {
             if let Some(win) = app.get_webview_window("main") {
-                let _ = win.set_title("Basalt - Minecraft 1.21.4 Gradle Client");
+                let _ = win.set_title("Basalt - Minecraft 1.21.4 Vanilla Launcher");
             }
             Ok(())
         })

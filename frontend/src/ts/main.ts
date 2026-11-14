@@ -23,7 +23,7 @@ import type {
   AccentTone,
   BootstrapDto,
   CornerStyle,
-  GradleEnvStatus,
+  VanillaEnvStatus,
   GraphicsSettings,
   LaunchMode,
   LayoutMode,
@@ -501,7 +501,7 @@ function renderTopbarAndSession(): void {
     recheckJavaBtn.disabled = false;
     sysInstallJavaBtn.disabled = false;
     sysRecheckJavaBtn.disabled = false;
-    if (!state.gradle.java_ready) {
+    if (!state.vanilla.java_ready) {
       railStatusRow.setAttribute("data-state", "warning");
       railStatusText.textContent = tr(lang, "rail.statusJavaMissing");
       pill.setAttribute("data-state", "warning");
@@ -511,13 +511,11 @@ function renderTopbarAndSession(): void {
       openMcBtn.disabled = true;
       launchLabel.textContent = tr(lang, "btn.installJavaFirst");
     } else {
+      const cacheReady = state.vanilla.client_ready && state.vanilla.assets_ready;
       railStatusRow.setAttribute("data-state", "ready");
       railStatusText.textContent = tr(lang, "rail.statusReady");
       pill.setAttribute("data-state", "idle");
-      pill.textContent = tr(
-        lang,
-        state.gradle.mod_jar_built ? "pill.ready" : "pill.awaitFirstBuild"
-      );
+      pill.textContent = tr(lang, cacheReady ? "pill.ready" : "pill.awaitFirstBuild");
       launchBtn.disabled = false;
       prepareBtn.disabled = false;
       openMcBtn.disabled = false;
@@ -532,7 +530,8 @@ function renderTopbarAndSession(): void {
 function renderPlayView(): void {
   if (!state) return;
   const lang = getEffectiveLanguage();
-  const { config, saves, hardware, gradle } = state;
+  const { config, saves, hardware, vanilla } = state;
+  const cacheReady = vanilla.client_ready && vanilla.assets_ready;
 
   const selectedSave = saves.find((s) => s.id === config.last_save_id) ?? null;
   const activeSaveId = selectedSave ? selectedSave.id : null;
@@ -567,21 +566,21 @@ function renderPlayView(): void {
   }
   select.value = activeSaveId ?? "";
 
-  byId<HTMLElement>("play-spec-jdk").textContent = gradle.java_ready
+  byId<HTMLElement>("play-spec-jdk").textContent = vanilla.java_ready
     ? "Java 21"
     : tr(lang, "play.specJdkMissing");
   byId<HTMLElement>("play-spec-ram").textContent = `${config.graphics.jvm_ram_mb} MB (${config.graphics.jvm_gc})`;
   byId<HTMLElement>("play-spec-chunks").textContent = `${config.graphics.render_distance} chunk`;
   byId<HTMLElement>("play-spec-mod").textContent = tr(
     lang,
-    gradle.mod_jar_built ? "play.specModReady" : "play.specModAuto"
+    cacheReady ? "play.specModReady" : "play.specModAuto"
   );
 
   const javaPanel = byId<HTMLDivElement>("java-setup-panel");
-  if (!gradle.java_ready) {
+  if (!vanilla.java_ready) {
     javaPanel.hidden = false;
     byId<HTMLParagraphElement>("java-setup-desc").textContent =
-      lang === "En" ? gradle.java_hint : tr(lang, "play.javaSetupDesc");
+      lang === "En" ? vanilla.java_hint : tr(lang, "play.javaSetupDesc");
   } else {
     javaPanel.hidden = true;
   }
@@ -597,7 +596,7 @@ function renderPlayView(): void {
 
   byId<HTMLSpanElement>("prepare-status-hint").textContent = tr(
     lang,
-    gradle.mod_jar_built ? "play.prepareHintReady" : "play.prepareHintWait"
+    cacheReady ? "play.prepareHintReady" : "play.prepareHintWait"
   );
 
   if (getEffectiveLayout() === "DeckMode") {
@@ -608,14 +607,15 @@ function renderPlayView(): void {
 function buildDeckCards(): DeckCard[] {
   if (!state) return [];
   const lang = getEffectiveLanguage();
-  const { config, saves, hardware, gradle } = state;
+  const { config, saves, hardware, vanilla } = state;
+  const cacheReady = vanilla.client_ready && vanilla.assets_ready;
   const cards: DeckCard[] = [
     {
       id: "main-menu",
       kind: "launch",
       kicker: tr(lang, "deck.cardMainKicker"),
       title: tr(lang, "play.mainMenuTitle"),
-      meta: tr(lang, gradle.mod_jar_built ? "deck.cardMainMetaReady" : "deck.cardMainMetaAuto"),
+      meta: tr(lang, cacheReady ? "deck.cardMainMetaReady" : "deck.cardMainMetaAuto"),
       sub: tr(lang, "deck.cardMainSub", {
         user: config.username,
         preset: config.graphics.preset,
@@ -741,7 +741,7 @@ function appendHeroSpec(dl: HTMLElement, term: string, val: string): void {
 function renderConsoleHero(card: DeckCard): void {
   if (!state) return;
   const lang = getEffectiveLanguage();
-  const { config, gradle, hardware, running_session, skin_rgba, skin_is_slim } = state;
+  const { config, vanilla, hardware, running_session, skin_rgba, skin_is_slim } = state;
 
   const heroSvg = document.getElementById("deck-hero-svg");
   if (heroSvg instanceof SVGSVGElement) {
@@ -760,7 +760,7 @@ function renderConsoleHero(card: DeckCard): void {
   appendHeroSpec(
     specsEl,
     "JDK",
-    gradle.java_ready ? "Java 21" : tr(lang, "play.specJdkMissing")
+    vanilla.java_ready ? "Java 21" : tr(lang, "play.specJdkMissing")
   );
   appendHeroSpec(specsEl, "JVM RAM", `${config.graphics.jvm_ram_mb} MB`);
   appendHeroSpec(
@@ -778,7 +778,7 @@ function renderConsoleHero(card: DeckCard): void {
 
   const primaryBtn = byId<HTMLButtonElement>("btn-deck-primary");
   const primaryLabel = byId<HTMLSpanElement>("deck-primary-label");
-  const needsJava = !gradle.java_ready && Boolean(card.launchMode);
+  const needsJava = !vanilla.java_ready && Boolean(card.launchMode);
   primaryLabel.textContent = needsJava ? tr(lang, "deck.installJavaBtn") : card.primaryLabel;
   primaryBtn.disabled = running_session !== null && Boolean(card.launchMode);
 
@@ -787,7 +787,7 @@ function renderConsoleHero(card: DeckCard): void {
   secondaryBtn.disabled = Boolean(card.secondaryDisabled);
 
   byId<HTMLButtonElement>("btn-deck-prepare").disabled =
-    running_session !== null || !gradle.java_ready;
+    running_session !== null || !vanilla.java_ready;
 
   const statusLine = byId<HTMLElement>("deck-status-line");
   if (running_session) {
@@ -795,7 +795,7 @@ function renderConsoleHero(card: DeckCard): void {
       label: running_session.label,
       pid: running_session.pid,
     });
-  } else if (!gradle.java_ready) {
+  } else if (!vanilla.java_ready) {
     statusLine.textContent = tr(lang, "deck.statusMissingJava");
   } else if (config.last_save_id) {
     statusLine.textContent = tr(lang, "deck.statusReadyWorld", {
@@ -859,7 +859,7 @@ function handleDeckPrimaryAction(card: DeckCard): void {
   if (!state) return;
   unlockAudioContext();
   if (card.launchMode) {
-    if (!state.gradle.java_ready) {
+    if (!state.vanilla.java_ready) {
       playMcSound("click");
       void handleInstallJava21();
       return;
@@ -1011,7 +1011,7 @@ function toggleUiSound(desired?: boolean): void {
 function renderWorldsView(): void {
   if (!state) return;
   const lang = getEffectiveLanguage();
-  const { saves, config, gradle } = state;
+  const { saves, config, vanilla } = state;
 
   byId<HTMLSpanElement>("worlds-count-label").textContent = tr(lang, "worlds.countLabel", {
     count: saves.length,
@@ -1023,7 +1023,7 @@ function renderWorldsView(): void {
   if (saves.length === 0) {
     setBanner(
       banner,
-      tr(lang, "worlds.emptyBanner", { dir: gradle.saves_dir }),
+      tr(lang, "worlds.emptyBanner", { dir: vanilla.saves_dir }),
       "neutral"
     );
     return;
@@ -1154,31 +1154,31 @@ function renderProfileView(): void {
   }
 }
 
-function renderGradleStatus(gradle: GradleEnvStatus): void {
+function renderVanillaStatus(vanilla: VanillaEnvStatus): void {
   const lang = getEffectiveLanguage();
-  const ready = gradle.gradlew_ready && gradle.java_ready;
+  const ready = vanilla.java_ready && vanilla.client_ready && vanilla.assets_ready;
   byId<HTMLSpanElement>("gradle-status-tag").textContent = tr(
     lang,
-    !gradle.java_ready
+    !vanilla.java_ready
       ? "system.tagMissingJava"
       : ready
-      ? gradle.mod_jar_built
-        ? "system.tagReady"
-        : "system.tagJavaReady"
-      : "system.tagMissingComp"
+      ? "system.tagReady"
+      : "system.tagJavaReady"
   );
-  byId<HTMLElement>("gradle-java-label").textContent = gradle.java_ready
-    ? gradle.java_version_label
+  byId<HTMLElement>("gradle-java-label").textContent = vanilla.java_ready
+    ? vanilla.java_version_label
     : lang === "En"
-    ? gradle.java_version_label
+    ? vanilla.java_version_label
     : tr(lang, "play.specJdkMissing");
   byId<HTMLElement>("gradle-jar-status").textContent = tr(
     lang,
-    gradle.mod_jar_built ? "system.modJarBuilt" : "system.modJarAuto"
+    vanilla.client_ready && vanilla.assets_ready
+      ? "system.modJarBuilt"
+      : "system.modJarAuto"
   );
-  byId<HTMLElement>("gradle-dir-label").textContent = gradle.gradle_dir;
-  byId<HTMLElement>("gradle-saves-dir").textContent = gradle.saves_dir;
-  byId<HTMLButtonElement>("btn-system-install-java").hidden = gradle.java_ready;
+  byId<HTMLElement>("gradle-dir-label").textContent = vanilla.vanilla_dir;
+  byId<HTMLElement>("gradle-saves-dir").textContent = vanilla.saves_dir;
+  byId<HTMLButtonElement>("btn-system-install-java").hidden = vanilla.java_ready;
 }
 
 function renderServersList(): void {
@@ -1291,7 +1291,7 @@ function renderServersList(): void {
 function renderSystemView(): void {
   if (!state) return;
   const lang = getEffectiveLanguage();
-  const { hardware, config, gradle, hardware_notice } = state;
+  const { hardware, config, vanilla, hardware_notice } = state;
 
   setBanner(byId<HTMLDivElement>("hardware-optimize-notice"), hardware_notice, "neutral");
 
@@ -1327,9 +1327,8 @@ function renderSystemView(): void {
   byId<HTMLInputElement>("gfx-vsync").checked = gfx.vsync;
   byId<HTMLInputElement>("gfx-fancy").checked = gfx.fancy_graphics;
   byId<HTMLInputElement>("gfx-ao").checked = gfx.smooth_lighting;
-  byId<HTMLInputElement>("gfx-fps-hud").checked = gfx.show_fps_hud;
 
-  renderGradleStatus(gradle);
+  renderVanillaStatus(vanilla);
   renderServersList();
 }
 
@@ -1389,13 +1388,13 @@ async function commitUsernameFromPlay(): Promise<boolean> {
   return true;
 }
 
-async function handlePrepareGradle(): Promise<void> {
+async function handlePrepareVanilla(): Promise<void> {
   if (!state) return;
   logLines = [];
   const feedback = byId<HTMLDivElement>("launch-feedback");
   setBanner(feedback, null);
   try {
-    const session = await ipc.prepareGradleClient();
+    const session = await ipc.prepareVanillaClient();
     state.running_session = session;
     renderTopbarAndSession();
     renderPlayView();
@@ -1430,7 +1429,7 @@ async function handleRecheckJava21(): Promise<void> {
   if (!state) return;
   try {
     const status = await ipc.recheckJava21();
-    state.gradle = status;
+    state.vanilla = status;
     renderTopbarAndSession();
     renderPlayView();
     renderSystemView();
@@ -1516,7 +1515,7 @@ async function handleRefreshSaves(): Promise<void> {
 function openDeleteDialog(save: MinecraftSaveSummary, trigger: HTMLElement): void {
   pendingDeleteSaveId = save.id;
   lastDialogTrigger = trigger;
-  const savesRoot = state?.gradle.saves_dir ?? "run/saves";
+  const savesRoot = state?.vanilla.saves_dir ?? "run/saves";
   byId<HTMLParagraphElement>("delete-dialog-desc").textContent = tr(
     getEffectiveLanguage(),
     "worlds.deleteDesc",
@@ -1746,7 +1745,7 @@ async function handleSaveGraphics(e: SubmitEvent): Promise<void> {
     fancy_graphics: byId<HTMLInputElement>("gfx-fancy").checked,
     jvm_ram_mb: Number(byId<HTMLSelectElement>("gfx-jvm-ram").value) || 2048,
     jvm_gc: byId<HTMLSelectElement>("gfx-jvm-gc").value === "ZGC" ? "ZGC" : "G1GC",
-    show_fps_hud: byId<HTMLInputElement>("gfx-fps-hud").checked,
+    show_fps_hud: state.config.graphics.show_fps_hud,
     auto_configured: false,
   };
 
@@ -2248,7 +2247,7 @@ function wireEvents(): void {
 
   byId<HTMLButtonElement>("btn-deck-prepare").addEventListener("click", () => {
     unlockAudioContext();
-    void handlePrepareGradle();
+    void handlePrepareVanilla();
   });
 
   byId<HTMLButtonElement>("btn-deck-prev").addEventListener("click", () => {
@@ -2283,7 +2282,7 @@ function wireEvents(): void {
   });
 
   byId<HTMLButtonElement>("btn-prepare-gradle").addEventListener("click", () => {
-    void handlePrepareGradle();
+    void handlePrepareVanilla();
   });
 
   byId<HTMLButtonElement>("btn-install-java").addEventListener("click", () => {
@@ -2511,7 +2510,7 @@ async function init(): Promise<void> {
     if (!state) return;
     state.running_session = null;
     state.saves = payload.saves;
-    state.gradle = payload.gradle;
+    state.vanilla = payload.vanilla;
     renderTopbarAndSession();
     renderPlayView();
     renderWorldsView();
@@ -2529,9 +2528,9 @@ async function init(): Promise<void> {
       setBanner(feedback, msg, "error");
       showToast(msg, "error");
     } else if (payload.kind === "java-install") {
-      if (payload.gradle.java_ready) {
+      if (payload.vanilla.java_ready) {
         playMcSound("launch");
-        const msg = tr(lang, "ok.javaInstalled", { ver: payload.gradle.java_version_label });
+        const msg = tr(lang, "ok.javaInstalled", { ver: payload.vanilla.java_version_label });
         setBanner(feedback, msg, "success");
         showToast(msg, "success");
       } else {

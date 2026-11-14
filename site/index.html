@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Basalt · Minecraft 1.21.4 Native Desktop Launcher</title>
-  <meta name="description" content="Single-binary Windows Minecraft 1.21.4 Fabric launcher that calibrates JVM memory and render settings to your hardware, with 10 mineral themes, Console Mode, and automatic Java 21 setup." />
+  <meta name="description" content="Single-binary Windows Minecraft 1.21.4 Vanilla launcher that calibrates JVM memory and render settings to your hardware, with 10 mineral themes, Console Mode, and automatic Java 21 setup." />
   <link
     rel="icon"
     type="image/svg+xml"
@@ -1949,7 +1949,7 @@
         <div>
           <p class="hero-meta-line">
             <span class="mineral-dot" aria-hidden="true"></span>
-            <span>Minecraft 1.21.4 · Fabric 0.20.1 · Windows 10/11</span>
+            <span>Minecraft 1.21.4 · Vanilla · Windows 10/11</span>
           </p>
           <h1 data-i18n="hero.h1">Click launch, not settings.</h1>
           <p class="hero-lead" data-i18n="hero.lead">
@@ -1965,7 +1965,7 @@
           <dl class="hero-facts">
             <div class="fact-item">
               <dt data-i18n="hero.factSizeLabel">Package Size</dt>
-              <dd id="hero-fact-size">13.34 MB · Single EXE</dd>
+              <dd id="hero-fact-size">13.58 MB · Single EXE</dd>
             </div>
             <div class="fact-item">
               <dt data-i18n="hero.factThemeLabel">Visual System</dt>
@@ -2018,7 +2018,7 @@
                 </button>
                 <div class="mock-nav-foot">
                   <canvas id="mock-head-canvas" class="skin-canvas" width="24" height="24" aria-hidden="true"></canvas>
-                  <span>Fabric 0.20.1</span>
+                  <span>Vanilla 1.21.4</span>
                 </div>
               </nav>
 
@@ -2195,8 +2195,8 @@
               <span data-i18n="perf.f2Body">Typography and controls scale cleanly with the window size so every desktop panel fits comfortably at standard resolutions without visual clutter.</span>
             </li>
             <li>
-              <strong data-i18n="perf.f3Title">Optional Lightweight FPS HUD</strong>
-              <span data-i18n="perf.f3Body">Toggle a compact top-left frame counter and active player badge inside Minecraft 1.21.4 with one switch.</span>
+              <strong data-i18n="perf.f3Title">Pure Official Vanilla Runtime</strong>
+              <span data-i18n="perf.f3Body">Downloads and SHA-1 verifies official Minecraft 1.21.4 client files cleanly, launching straight through java.exe with zero mod-loader overhead.</span>
             </li>
           </ul>
 
@@ -2388,7 +2388,7 @@
             </div>
             <div>
               <span data-i18n="dl.mSize">Size</span>
-              <strong id="download-meta-size">13.34 MB</strong>
+              <strong id="download-meta-size">13.58 MB</strong>
             </div>
             <div>
               <span data-i18n="dl.mReq">Target</span>
@@ -2411,7 +2411,7 @@
               <span data-i18n="dl.shaLabel">SHA-256 Checksum</span>
               <button type="button" class="mini-pill-btn" id="copy-sha-btn" data-i18n="dl.copySha">Copy Hash</button>
             </div>
-            <p class="hash-code" id="sha-value">7ac3541b37f4b7f09f03dcff037ea526e138a2105f2a1fd4f2f2757539d68023</p>
+            <p class="hash-code" id="sha-value">a3ff90d28fe84ebdcdfc4c0ce516d3124c00c78917eb062e387cdcaba7aa93a0</p>
             <div class="spec-line">
               <span data-i18n="dl.psLabel">PowerShell Verification Command</span>
               <button type="button" class="mini-pill-btn" id="copy-ps-btn" data-i18n="dl.copyPs">Copy Command</button>
@@ -2438,9 +2438,9 @@
               </p>
             </details>
             <details class="faq-item">
-              <summary><span data-i18n="faq.q3">How are local skins and the FPS HUD passed to Minecraft?</span><svg class="ico faq-chev" aria-hidden="true"><use href="#ico-chev" /></svg></summary>
+              <summary><span data-i18n="faq.q3">How are local skins passed cleanly into Vanilla Minecraft?</span><svg class="ico faq-chev" aria-hidden="true"><use href="#ico-chev" /></svg></summary>
               <p data-i18n-html="faq.a3">
-                Any <code>64x64</code> or <code>64x32</code> PNG skin imported into Basalt and your chosen <code>Slim (3 px)</code> or <code>Classic (4 px)</code> arm model are injected directly by the bundled Fabric <code>1.21.4</code> Mixin mod, alongside the toggleable in-game FPS HUD overlay.
+                Any <code>64x64</code> or <code>64x32</code> PNG skin imported into Basalt and your selected <code>Slim (3 px)</code> or <code>Classic (4 px)</code> arm model are packaged into a local <code>basalt_skin.zip</code> resource pack with a matching UUID, loaded natively by Vanilla <code>1.21.4</code> without mods.
               </p>
             </details>
             <details class="faq-item">
@@ -2458,7 +2458,7 @@
   <footer class="site-footer">
     <div class="wrap footer-inner">
       <div data-i18n-html="footer.project">
-        <strong>Basalt</strong> · Open-Source Minecraft 1.21.4 Fabric Launcher for Windows (MIT License) · <a href="https://github.com/MarkesrBetter/Basalt" target="_blank" rel="noopener noreferrer">GitHub Repository</a>
+        <strong>Basalt</strong> · Open-Source Minecraft 1.21.4 Vanilla Launcher for Windows (MIT License) · <a href="https://github.com/MarkesrBetter/Basalt" target="_blank" rel="noopener noreferrer">GitHub Repository</a>
       </div>
       <div class="footer-legal" data-i18n="footer.legal">
         Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft. Official game binaries and assets are never embedded in the executable; they are cached locally from upstream endpoints on first launch.
@@ -2471,8 +2471,8 @@
       "use strict";
 
       const DEFAULT_GITHUB_REPO = "MarkesrBetter/Basalt";
-      const EXE_SHA256 = "7ac3541b37f4b7f09f03dcff037ea526e138a2105f2a1fd4f2f2757539d68023";
-      const EXE_SIZE_DISPLAY = "13.34 MB";
+      const EXE_SHA256 = "a3ff90d28fe84ebdcdfc4c0ce516d3124c00c78917eb062e387cdcaba7aa93a0";
+      const EXE_SIZE_DISPLAY = "13.58 MB";
       const SKIN_DATA_URL =
         "data:image/png;base64,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";
 
@@ -2527,7 +2527,7 @@
       const I18N = {
         en: {
           metaTitle: "Basalt · Minecraft 1.21.4 Native Desktop Launcher",
-          metaDesc: "Single-binary Windows Minecraft 1.21.4 Fabric launcher that calibrates JVM memory and render settings to your hardware, with 10 mineral themes, Console Mode, and automatic Java 21 setup.",
+          metaDesc: "Single-binary Windows Minecraft 1.21.4 Vanilla launcher that calibrates JVM memory and render settings to your hardware, with 10 mineral themes, Console Mode, and automatic Java 21 setup.",
           text: {
             "skip": "Skip to content",
             "nav.perf": "Speed & FPS",
@@ -2583,8 +2583,8 @@
             "perf.f1Body": "Passes native Quick Play arguments to jump straight into your saved world or local development server, skipping extra menu steps.",
             "perf.f2Title": "Proportional Viewport Scaling",
             "perf.f2Body": "Typography and controls scale cleanly with the window size so every desktop panel fits comfortably at standard resolutions without visual clutter.",
-            "perf.f3Title": "Optional Lightweight FPS HUD",
-            "perf.f3Body": "Toggle a compact top-left frame counter and active player badge inside Minecraft 1.21.4 with one switch.",
+            "perf.f3Title": "Pure Official Vanilla Runtime",
+            "perf.f3Body": "Downloads and SHA-1 verifies official Minecraft 1.21.4 client files cleanly, launching straight through java.exe with zero mod-loader overhead.",
             "java.title": "Zero Manual Java 21 Hunting",
             "java.body": "Setting up a fresh Windows machine stays self-contained. If Java 21 is absent, Basalt fetches Eclipse Temurin 21, verifies its SHA-256 digest in pure Rust, and installs it locally without admin prompts.",
             "java.s1": "1. Runtime Check (>= 21)",
@@ -2639,7 +2639,7 @@
             "faq.q1": "How does Basalt launch the game if Java 21 is missing?",
             "faq.a1": "If no Java 21 or newer JDK is found on the PC, click Auto-Install Java 21 inside the app. Basalt downloads Eclipse Temurin 21 via Windows built-in curl.exe, verifies the SHA-256 checksum, and extracts it into its local data folder without admin elevation.",
             "faq.q2": "Why might Windows SmartScreen or antivirus flag a fresh binary?",
-            "faq.q3": "How are local skins and the FPS HUD passed to Minecraft?",
+            "faq.q3": "How are local skins passed cleanly into Vanilla Minecraft?",
             "faq.q4": "Which worlds and servers are supported?",
             "footer.legal": "Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft. Official game binaries and assets are never embedded in the executable; they are cached locally from upstream endpoints on first launch."
           },
@@ -2648,9 +2648,9 @@
             "console.kNav": "<kbd class=\"kbd-pill\">Left / Right</kbd> Navigate",
             "console.kSel": "<kbd class=\"kbd-pill\">A / Enter</kbd> Select",
             "faq.a2": "Newly released open-source <code>.exe</code> binaries without a paid EV code-signing certificate can trigger unfamiliar-publisher prompts during their first days online. You can inspect the public source code, GitHub Releases asset, and verify the exact SHA-256 digest above before running.",
-            "faq.a3": "Any <code>64x64</code> or <code>64x32</code> PNG skin imported into Basalt and your chosen <code>Slim (3 px)</code> or <code>Classic (4 px)</code> arm model are injected directly by the bundled Fabric <code>1.21.4</code> Mixin mod, alongside the toggleable in-game FPS HUD overlay.",
+            "faq.a3": "Any <code>64x64</code> or <code>64x32</code> PNG skin imported into Basalt and your selected <code>Slim (3 px)</code> or <code>Classic (4 px)</code> arm model are packaged into a local <code>basalt_skin.zip</code> resource pack with a matching UUID, loaded natively by Vanilla <code>1.21.4</code> without mods.",
             "faq.a4": "Basalt supports singleplayer worlds under local saves and offline-mode (<code>online-mode=false</code>) development servers. Official Microsoft account authentication is never bypassed.",
-            "footer.project": "<strong>Basalt</strong> · Open-Source Minecraft 1.21.4 Fabric Launcher for Windows (MIT License) · <a href=\"https://github.com/MarkesrBetter/Basalt\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub Repository</a>"
+            "footer.project": "<strong>Basalt</strong> · Open-Source Minecraft 1.21.4 Vanilla Launcher for Windows (MIT License) · <a href=\"https://github.com/MarkesrBetter/Basalt\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub Repository</a>"
           },
           aria: {
             "nav.aria": "Page sections",
@@ -2715,7 +2715,7 @@
           tabs: {
             play: ["Active Profile : Quick Play", "Minecraft 1.21.4", "Hardware profile synced. Launches directly into your world in one click."],
             perf: ["Calibration : Automatic", "G1GC / ZGC Profile", "Balances options.txt render and JVM flags to match installed RAM."],
-            skin: ["Appearance : Local PNG", "Slim & Classic Skins", "Injects your selected PNG skin texture directly into the Fabric client."]
+            skin: ["Appearance : Local PNG", "Slim & Classic Skins", "Packages your selected PNG texture into a Vanilla 1.21.4 resource pack."]
           },
           dyn: {
             heroFactSize: EXE_SIZE_DISPLAY + " · Single EXE",
@@ -2734,7 +2734,7 @@
             launchSteps: [
               "Live Showcase : Checking Java 21 runtime...",
               "Live Showcase : Writing options.txt and skin config...",
-              "Live Showcase : Fabric 1.21.4 window ready to start."
+              "Live Showcase : Vanilla 1.21.4 window ready to start."
             ],
             winMinimized: "Basalt window minimized.",
             winClosed: "Preview window closed.",
@@ -2749,7 +2749,7 @@
 
         tr: {
           metaTitle: "Basalt · Minecraft 1.21.4 Yerli Masaüstü Başlatıcısı",
-          metaDesc: "Donanımına göre otomatik FPS ve bellek ayarı yapan, 10 mineral temalı ve Konsol Modlu tek dosyalı Windows Minecraft 1.21.4 Fabric başlatıcısı.",
+          metaDesc: "Donanımına göre otomatik FPS ve bellek ayarı yapan, 10 mineral temalı ve Konsol Modlu tek dosyalı Windows Minecraft 1.21.4 Vanilla başlatıcısı.",
           text: {
             "skip": "İçeriğe atla",
             "nav.perf": "Hız ve FPS",
@@ -2805,8 +2805,8 @@
             "perf.f1Body": "Quick Play parametreleriyle ana menüye uğramadan seçtiğin kayıtlı dünyaya veya yerel test sunucuna başlar.",
             "perf.f2Title": "Kaydırma Çubuksuz Orantılı Ekran",
             "perf.f2Body": "Pencereyi büyütüp küçülttükçe yazı ve kontroller ekrana göre ölçeklenir; standart çözünürlüklerde sekmeler tek bakışta sığar.",
-            "perf.f3Title": "İsteğe Bağlı Hafif FPS Göstergesi",
-            "perf.f3Body": "Oyun içinde sol üst köşede anlık FPS ve oyuncu adını gösteren katmanı tek tıkla açıp kapatabilirsin.",
+            "perf.f3Title": "Saf Resmi Vanilla Çalıştırıcı",
+            "perf.f3Body": "Resmi Minecraft 1.21.4 istemci dosyalarını SHA-1 doğrulamasıyla indirir ve mod yükleyici katmanı olmadan doğrudan java.exe ile açar.",
             "java.title": "Eksik Java 21 Derdini Ortadan Kaldırır",
             "java.body": "Yeni veya sıfır Windows bilgisayarlarda Java aramak zorunda kalmazsın. Sistemde Java 21 yoksa Basalt, Eclipse Temurin 21 paketini SHA-256 doğrulamasıyla yerel klasöre kurar.",
             "java.s1": "1. Sürüm Kontrolü (>= 21)",
@@ -2861,7 +2861,7 @@
             "faq.q1": "Java 21 bilgisayarımda yoksa oyunu nasıl açıyor?",
             "faq.a1": "Sistemde Java 21 veya üzeri bulunamazsa uygulama içinden Java 21 Kur düğmesine tıklaman yeterlidir. Basalt, Windows'un yerleşik curl.exe aracıyla Adoptium Temurin 21 paketini indirir, SHA-256 ile doğrular ve yönetici izni olmadan yerel klasöre kurar.",
             "faq.q2": "Windows SmartScreen veya antivirüs uyarısı neden görünebilir?",
-            "faq.q3": "Özel skin ve FPS HUD ayarlarım oyuna nasıl yansır?",
+            "faq.q3": "Yerel skin dosyaları Vanilla Minecraft'a nasıl aktarılır?",
             "faq.q4": "Hangi oyun modları ve sunucular destekleniyor?",
             "footer.legal": "Resmi bir Minecraft ürünü değildir. Mojang veya Microsoft tarafından onaylanmamış ve bunlarla ilişkili değildir. Resmi oyun varlıkları uygulama ikilisine gömülmez; kullanıcı bilgisayarında resmi kaynaklardan önbelleklenir."
           },
@@ -2870,9 +2870,9 @@
             "console.kNav": "<kbd class=\"kbd-pill\">Sol / Sağ</kbd> Gez",
             "console.kSel": "<kbd class=\"kbd-pill\">A / Enter</kbd> Seç",
             "faq.a2": "Yeni yayınlanan ve ücretli kod imzalama sertifikası taşımayan bağımsız açık kaynak <code>.exe</code> dosyaları ilk günlerde Windows SmartScreen tarafından tanınmayabilir. Açık kaynak kod, GitHub Releases dağıtımı ve sayfadaki SHA-256 doğrulama koduyla dosyanın değişmediğini kontrol edebilirsin.",
-            "faq.a3": "Basalt içinden yüklediğin <code>64x64</code> veya <code>64x32</code> PNG skinler ve seçtiğin <code>Slim (3 px)</code> / <code>Classic (4 px)</code> kol modeli doğrudan Minecraft <code>1.21.4</code> Fabric istemci moduna aktarılır. Sol üstteki anlık FPS HUD katmanını da açıp kapatabilirsin.",
+            "faq.a3": "Basalt'a eklediğin <code>64x64</code> veya <code>64x32</code> PNG skinler ve seçtiğin <code>Slim (3 px)</code> / <code>Classic (4 px)</code> kol modeli, uyumlu UUID ile otomatik oluşturulan yerel <code>basalt_skin.zip</code> kaynak paketi üzerinden modsuz saf Vanilla <code>1.21.4</code> içine yüklenir.",
             "faq.a4": "Basalt; yerel tek oyunculu kayıtlar ve yerel <code>online-mode=false</code> geliştirme sunucuları için tasarlanmıştır. Microsoft çevrimiçi hesap doğrulamasını atlatmaz.",
-            "footer.project": "<strong>Basalt</strong> · Windows için Açık Kaynak Minecraft 1.21.4 Fabric Başlatıcısı (MIT Lisansı) · <a href=\"https://github.com/MarkesrBetter/Basalt\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub Deposu</a>"
+            "footer.project": "<strong>Basalt</strong> · Windows için Açık Kaynak Minecraft 1.21.4 Vanilla Başlatıcısı (MIT Lisansı) · <a href=\"https://github.com/MarkesrBetter/Basalt\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub Deposu</a>"
           },
           aria: {
             "nav.aria": "Sayfa bölümleri",
@@ -2956,7 +2956,7 @@
             launchSteps: [
               "Vitrin Önizlemesi : Java 21 ortamı kontrol ediliyor...",
               "Vitrin Önizlemesi : options.txt ve skin parametreleri yazılıyor...",
-              "Vitrin Önizlemesi : Fabric 1.21.4 penceresi başlatmaya hazır."
+              "Vitrin Önizlemesi : Vanilla 1.21.4 penceresi başlatmaya hazır."
             ],
             winMinimized: "Basalt penceresi simge durumuna küçültüldü.",
             winClosed: "Vitrin penceresi kapatıldı.",
@@ -2971,7 +2971,7 @@
 
         de: {
           metaTitle: "Basalt · Minecraft 1.21.4 Nativer Desktop-Launcher",
-          metaDesc: "Eigenständige Windows-Datei für Minecraft 1.21.4 Fabric mit automatischer JVM- und Sichtweiten-Kalibrierung, 10 Mineralthemen, Konsolenmodus und Java-21-Setup.",
+          metaDesc: "Eigenständige Windows-Datei für Minecraft 1.21.4 Vanilla mit automatischer JVM- und Sichtweiten-Kalibrierung, 10 Mineralthemen, Konsolenmodus und Java-21-Setup.",
           text: {
             "skip": "Zum Inhalt springen",
             "nav.perf": "Tempo & FPS",
@@ -3027,8 +3027,8 @@
             "perf.f1Body": "Übergibt native Quick-Play-Parameter, um ohne Umweg ins Hauptmenü direkt in die gewählte Welt oder einen lokalen Entwicklungsserver zu laden.",
             "perf.f2Title": "Proportionale Fensterskalierung",
             "perf.f2Body": "Schriften und Steuerelemente skalieren ruhig mit der Fenstergröße, sodass alle Ansichten auf üblichen Bildschirmen übersichtlich passen.",
-            "perf.f3Title": "Optionales leichtes FPS-HUD",
-            "perf.f3Body": "Aktiviere bei Bedarf ein dezentes Bildraten- und Spieler-Overlay oben links direkt im Minecraft-1.21.4-Client.",
+            "perf.f3Title": "Reine offizielle Vanilla-Laufzeit",
+            "perf.f3Body": "Lädt und prüft offizielle Minecraft-1.21.4-Dateien per SHA-1 und startet ohne Mod-Loader direkt über java.exe.",
             "java.title": "Kein manuelles Java-21-Suchen",
             "java.body": "Auch auf frisch eingerichteten Windows-PCs bleibt alles eigenständig. Fehlt Java 21, lädt Basalt Eclipse Temurin 21, prüft die SHA-256-Prüfsumme in reinem Rust und entpackt lokal ohne Adminrechte.",
             "java.s1": "1. Versionsprüfung (>= 21)",
@@ -3083,7 +3083,7 @@
             "faq.q1": "Wie startet Basalt das Spiel, wenn Java 21 fehlt?",
             "faq.a1": "Wird kein JDK 21 oder neuer erkannt, genügt ein Klick auf Java 21 automatisch installieren. Basalt lädt Eclipse Temurin 21 per Windows-eigenem curl.exe, prüft SHA-256 und richtet es ohne Adminrechte lokal ein.",
             "faq.q2": "Warum warnen Windows SmartScreen oder Virenscanner bei neuen EXE-Dateien?",
-            "faq.q3": "Wie gelangen eigene Skins und das FPS-HUD ins Spiel?",
+            "faq.q3": "Wie gelangen eigene Skins ohne Mods ins Vanilla-Spiel?",
             "faq.q4": "Welche Welten und Server werden unterstützt?",
             "footer.legal": "Kein offizielles Minecraft-Produkt. Nicht von Mojang oder Microsoft genehmigt oder damit verbunden. Offizielle Spieldateien werden nicht in der Anwendung ausgeliefert, sondern erst beim Start lokal geladen."
           },
@@ -3092,9 +3092,9 @@
             "console.kNav": "<kbd class=\"kbd-pill\">Links / Rechts</kbd> Navigieren",
             "console.kSel": "<kbd class=\"kbd-pill\">A / Enter</kbd> Wählen",
             "faq.a2": "Frisch erstellte Open-Source-<code>.exe</code>-Dateien ohne kostenpflichtiges EV-Zertifikat lösen in den ersten Tagen oft allgemeine SmartScreen-Hinweise aus. Quelltext, GitHub Releases und der obige SHA-256-Hash erlauben eine vollständige Prüfung.",
-            "faq.a3": "Importierte <code>64x64</code>- oder <code>64x32</code>-PNG-Skins sowie das gewählte <code>Slim (3 px)</code>- oder <code>Classic (4 px)</code>-Armmodell werden zusammen mit dem zuschaltbaren FPS-HUD direkt über das mitgelieferte Fabric-<code>1.21.4</code>-Mixin eingebunden.",
+            "faq.a3": "Importierte <code>64x64</code>- oder <code>64x32</code>-PNG-Skins sowie das gewählte <code>Slim (3 px)</code>- oder <code>Classic (4 px)</code>-Armmodell werden mit passender UUID in das lokale Ressourcenpaket <code>basalt_skin.zip</code> gepackt und direkt von Vanilla <code>1.21.4</code> geladen.",
             "faq.a4": "Basalt unterstützt lokale Einzelspieler-Welten sowie Offline-Entwicklungsserver (<code>online-mode=false</code>). Offizielle Microsoft-Kontoanmeldungen werden niemals umgangen.",
-            "footer.project": "<strong>Basalt</strong> · Open-Source Minecraft 1.21.4 Fabric Launcher für Windows (MIT-Lizenz) · <a href=\"https://github.com/MarkesrBetter/Basalt\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub-Repository</a>"
+            "footer.project": "<strong>Basalt</strong> · Open-Source Minecraft 1.21.4 Vanilla Launcher für Windows (MIT-Lizenz) · <a href=\"https://github.com/MarkesrBetter/Basalt\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub-Repository</a>"
           },
           aria: {
             "nav.aria": "Seitenbereiche",
@@ -3159,7 +3159,7 @@
           tabs: {
             play: ["Aktives Profil : Schnellstart", "Minecraft 1.21.4", "Hardwareprofil bereit. Startet per Klick direkt in deine Welt."],
             perf: ["Kalibrierung : Automatisch", "G1GC / ZGC Profil", "Passt options.txt-Sichtweite und JVM-Speicher an deinen RAM an."],
-            skin: ["Aussehen : Lokales PNG", "Slim & Classic Skins", "Bindet deine gewählte PNG-Textur direkt in den Fabric-Client ein."]
+            skin: ["Aussehen : Lokales PNG", "Slim & Classic Skins", "Packt deine gewählte PNG-Textur in ein Vanilla-1.21.4-Ressourcenpaket."]
           },
           dyn: {
             heroFactSize: EXE_SIZE_DISPLAY + " · Einzelne EXE",
@@ -3178,7 +3178,7 @@
             launchSteps: [
               "Live-Vorschau : Prüfe Java-21-Umgebung...",
               "Live-Vorschau : Schreibe options.txt und Skin-Daten...",
-              "Live-Vorschau : Fabric 1.21.4 Fenster startbereit."
+              "Live-Vorschau : Vanilla 1.21.4 Fenster startbereit."
             ],
             winMinimized: "Basalt-Fenster minimiert.",
             winClosed: "Vorschaufenster geschlossen.",

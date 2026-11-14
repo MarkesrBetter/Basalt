@@ -8,18 +8,20 @@ use basalt::config::{
     AccentTone, AppConfig, CornerStyle, GraphicsSettings, JvmGcMode, LayoutMode, SkinModel,
     ThemeMode, UiLanguage, normalize_hex_color,
 };
-use basalt::gradle::{
-    LaunchEnvConfig, build_launch_env, discover_java21_home, ensure_embedded_gradle_workspace,
-    evaluate_jdk_candidates, is_valid_gradle_workspace, resolve_or_extract_gradle_workspace,
-};
 use basalt::hardware::{GpuTier, HardwareProfile};
-use basalt::options_txt::{fov_degrees_to_options_value, sync_minecraft_options};
+use basalt::options_txt::{
+    fov_degrees_to_options_value, sync_minecraft_options, sync_minecraft_options_with_pack,
+};
 use basalt::protocol::{
     LocalHandshakeResult, MINECRAFT_1_21_4_PROTOCOL, PacketBuffer, local_player_uuid_dashed,
     ping_server_1_21_4, probe_local_dev_login_1_21_4, read_framed_packet, write_framed_packet,
 };
 use basalt::saves::{delete_save, list_saves, resolve_save_dir};
 use basalt::sounds::{encode_base64, load_local_minecraft_sounds};
+use basalt::vanilla::{
+    BASALT_SKIN_PACK_NAME, discover_java21_home, evaluate_jdk_candidates, is_ascii_path,
+    migrate_legacy_client_gradle_saves, resolve_vanilla_dir,
+};
 use image::{ImageBuffer, Rgba};
 
 #[test]
@@ -48,7 +50,7 @@ fn protocol_769_slp_and_encryption_guard() {
 
             let mut resp = PacketBuffer::new();
             resp.write_string(
-                r#"{"version":{"name":"1.21.4","protocol":769},"players":{"max":10,"online":2},"description":{"text":"Basalt Gradle Local"}}"#,
+                r#"{"version":{"name":"1.21.4","protocol":769},"players":{"max":10,"online":2},"description":{"text":"Basalt Vanilla Local"}}"#,
             );
             write_framed_packet(&mut stream, 0x00, &resp.data, None).unwrap();
             let (ping_id, mut ping_body) = read_framed_packet(&mut stream, None).unwrap();
@@ -68,7 +70,7 @@ fn protocol_769_slp_and_encryption_guard() {
     let info = ping_server_1_21_4(&addr.to_string()).unwrap();
     assert_eq!(info.protocol_version, 769);
     assert_eq!(info.online_players, 2);
-    assert_eq!(info.description, "Basalt Gradle Local");
+    assert_eq!(info.description, "Basalt Vanilla Local");
 
     let login = probe_local_dev_login_1_21_4(&addr.to_string(), "BasaltTester").unwrap();
     assert!(matches!(login, LocalHandshakeResult::RequiresOfficialAuth));
@@ -133,6 +135,17 @@ fn options_txt_sync_preserves_custom_lines() {
     assert!(written.contains("maxFps:180\n"));
     assert!(written.contains("enableVsync:false\n"));
     assert!((fov_degrees_to_options_value(90.0) - 0.5).abs() < 1e-4);
+
+    // Ensure sync_minecraft_options_with_pack enables basalt_skin.zip while preserving user packs
+    fs::write(
+        tmp_dir.join("options.txt"),
+        "lang:tr_tr\nresourcePacks:[\"vanilla\",\"programmer_art\"]\n",
+    )
+    .unwrap();
+    let pack_entry = format!("file/{BASALT_SKIN_PACK_NAME}");
+    sync_minecraft_options_with_pack(&tmp_dir, &gfx, Some(&pack_entry)).unwrap();
+    let packed = fs::read_to_string(tmp_dir.join("options.txt")).unwrap();
+    assert!(packed.contains("resourcePacks:[\"vanilla\",\"programmer_art\",\"file/basalt_skin.zip\"]\n"));
 
     let _ = fs::remove_dir_all(&tmp_dir);
 }
@@ -243,39 +256,29 @@ fn hardware_and_launch_env_builder() {
     }
     assert!(normalize_hex_color("not-hex").is_none());
 
-    let env = build_launch_env(&LaunchEnvConfig {
-        username: "BasaltPlayer".into(),
-        jvm_ram_mb: 4096,
-        jvm_gc: JvmGcMode::G1GC,
-        show_fps_hud: true,
-        skin_path: Some(PathBuf::from("C:\\tmp\\skin.png")),
-        skin_is_slim: true,
-        quick_play_singleplayer: Some("TestSave".into()),
-        quick_play_multiplayer: None,
-        java_home: None,
-    });
-    assert!(env.iter().any(|(k, v)| k == "BASALT_USERNAME" && v == "BasaltPlayer"));
-    assert!(env.iter().any(|(k, v)| k == "BASALT_UUID" && *v == local_player_uuid_dashed("BasaltPlayer")));
-    assert!(env.iter().any(|(k, v)| k == "BASALT_JVM_XMX" && v == "4096"));
-    assert!(env.iter().any(|(k, v)| k == "BASALT_SKIN_MODEL" && v == "slim"));
-    assert!(env.iter().any(|(k, v)| k == "BASALT_QUICK_PLAY_SP" && v == "TestSave"));
-
     let detected_hw = HardwareProfile::detect_headless();
     assert!(detected_hw.logical_cores >= 1);
-
-    let gradle_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("client-gradle");
-    assert!(is_valid_gradle_workspace(&gradle_path));
     assert!(discover_java21_home().is_some());
+    assert!(!local_player_uuid_dashed("BasaltPlayer").is_empty());
 
-    let extract_root = std::env::temp_dir().join("basalt_embedded_gradle_test");
+    let extract_root = std::env::temp_dir().join(format!("basalt_vanilla_env_test_{}", std::process::id()));
     let _ = fs::remove_dir_all(&extract_root);
-    let extracted = ensure_embedded_gradle_workspace(&extract_root.join("client-gradle")).unwrap();
-    assert!(is_valid_gradle_workspace(&extracted));
-    assert!(extracted.join("src/client/resources/assets/basalt/skins/default.png").is_file());
-    fs::create_dir_all(extracted.join("run/saves/KeepMe")).unwrap();
-    let again = resolve_or_extract_gradle_workspace(&extract_root).unwrap();
-    assert_eq!(again, extracted);
-    assert!(again.join("run/saves/KeepMe").is_dir());
+    let legacy_world = extract_root.join("client-gradle/run/saves/OldWorld");
+    fs::create_dir_all(&legacy_world).unwrap();
+    fs::write(legacy_world.join("level.dat"), b"dummy-nbt").unwrap();
+    let target_saves = extract_root.join("run/saves");
+    fs::create_dir_all(&target_saves).unwrap();
+    migrate_legacy_client_gradle_saves(&extract_root, &target_saves);
+    assert!(target_saves.join("OldWorld/level.dat").is_file());
+
+    let resolved_vanilla = resolve_vanilla_dir(PathBuf::from("C:\\Users\\rab\u{0131}abetl\\AppData\\Local\\Basalt").as_path());
+    assert!(is_ascii_path(&resolved_vanilla));
+    if let Some(parent_fp) = resolved_vanilla.parent()
+        && resolved_vanilla.ends_with("vanilla")
+        && parent_fp.file_name().is_some()
+    {
+        let _ = fs::remove_dir_all(parent_fp);
+    }
 
     let jdk17_dir = extract_root.join("mock_jdk17");
     let jdk21_dir = extract_root.join("mock_jdk21");

@@ -89,12 +89,12 @@ export interface HardwareProfile {
   gpu_device_type: GpuTier;
 }
 
-export interface GradleEnvStatus {
-  gradle_dir: string;
+export interface VanillaEnvStatus {
+  vanilla_dir: string;
   runs_dir: string;
   saves_dir: string;
-  gradlew_ready: boolean;
-  mod_jar_built: boolean;
+  client_ready: boolean;
+  assets_ready: boolean;
   java_ready: boolean;
   java_home: string | null;
   java_version_label: string;
@@ -118,7 +118,7 @@ export interface BootstrapDto {
   config: AppConfig;
   saves: MinecraftSaveSummary[];
   hardware: HardwareProfile;
-  gradle: GradleEnvStatus;
+  vanilla: VanillaEnvStatus;
   skin_rgba: number[];
   skin_is_slim: boolean;
   running_session: RunningSessionDto | null;
@@ -171,5 +171,5 @@ export interface SessionEndedPayload {
   exit_code: number | null;
   error: string | null;
   saves: MinecraftSaveSummary[];
-  gradle: GradleEnvStatus;
+  vanilla: VanillaEnvStatus;
 }

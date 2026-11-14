@@ -91,14 +91,15 @@ fn is_valid_ogg(bytes: &[u8]) -> bool {
     bytes.len() > 32 && bytes.starts_with(b"OggS")
 }
 
-pub fn default_local_asset_roots(gradle_dir: Option<&Path>) -> Vec<PathBuf> {
+pub fn default_local_asset_roots(vanilla_dir: Option<&Path>) -> Vec<PathBuf> {
     let mut roots = Vec::new();
-    if let Some(g) = gradle_dir {
-        roots.push(g.join(".gradle").join("loom-cache").join("assets"));
+    if let Some(v) = vanilla_dir {
+        roots.push(v.join("assets"));
     }
     let app_paths = crate::config::AppPaths::resolve();
-    if let Some(gh) = crate::gradle::resolve_gradle_user_home(&app_paths.root_dir) {
-        roots.push(gh.join("caches").join("fabric-loom").join("assets"));
+    roots.push(crate::vanilla::resolve_vanilla_dir(&app_paths.root_dir).join("assets"));
+    if let Some(appdata) = std::env::var_os("APPDATA") {
+        roots.push(PathBuf::from(appdata).join(".minecraft").join("assets"));
     }
     if let Some(profile) = std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME")) {
         roots.push(
@@ -108,9 +109,6 @@ pub fn default_local_asset_roots(gradle_dir: Option<&Path>) -> Vec<PathBuf> {
                 .join("fabric-loom")
                 .join("assets"),
         );
-    }
-    if let Some(appdata) = std::env::var_os("APPDATA") {
-        roots.push(PathBuf::from(appdata).join(".minecraft").join("assets"));
     }
     roots
 }

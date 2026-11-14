@@ -6,7 +6,7 @@ resolver = "2"
 name = "basalt"
 version = "0.1.0"
 edition = "2024"
-description = "Basalt native Rust core powering Gradle Fabric 1.21.4 Minecraft launcher, hardware tuning, skin validation, and SLP diagnostics"
+description = "Basalt native Rust core powering direct Vanilla 1.21.4 Minecraft launching, hardware tuning, skin pack generation, and SLP diagnostics"
 
 [dependencies]
 # Hardware GPU detection (headless adapter enumeration only)

@@ -1,6 +1,6 @@
 /*
  * Genuine Mojang Minecraft 1.21.4 OGG Vorbis sound playback via Tauri cache + Web Audio / Blob pool.
- * Audio bytes are sourced directly from local Gradle Loom / Minecraft asset caches or Mojang CDN into app data.
+ * Audio bytes are sourced directly from local Vanilla / Minecraft asset caches or Mojang CDN into app data.
  */
 
 import * as ipc from "./ipc";
