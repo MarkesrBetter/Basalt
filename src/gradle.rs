@@ -48,6 +48,152 @@ fn strip_verbatim_prefix(path: PathBuf) -> PathBuf {
     path
 }
 
+/// Returns true when every character in the path is strict 7-bit US-ASCII.
+///
+/// Fabric Loom 1.15 disables `@argFiles` whenever either the project directory
+/// or `GRADLE_USER_HOME` contains non-ASCII characters (for example Turkish `ı`),
+/// forcing Gradle `JavaExec` into a manifest pathing JAR that breaks Knot isolation.
+pub fn is_ascii_path(path: &Path) -> bool {
+    path.to_str().is_some_and(|s| s.is_ascii())
+}
+
+fn ascii_fingerprint_12(seed: &Path) -> String {
+    let normalized = seed.to_string_lossy().to_ascii_lowercase();
+    compute_sha256_hex(std::io::Cursor::new(normalized.as_bytes()))
+        .map(|h| h[..12].to_string())
+        .unwrap_or_else(|_| "default".to_string())
+}
+
+fn ascii_root_candidates(fingerprint: &str) -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    #[cfg(windows)]
+    {
+        for key in ["PUBLIC", "ProgramData", "ALLUSERSPROFILE"] {
+            if let Some(val) = std::env::var_os(key) {
+                let raw = val.to_string_lossy().trim().to_string();
+                if !raw.is_empty() {
+                    out.push(PathBuf::from(raw).join("Basalt").join(fingerprint));
+                }
+            }
+        }
+        let sys_drive = std::env::var("SystemDrive").unwrap_or_else(|_| "C:".to_string());
+        let clean_drive = sys_drive.trim().trim_end_matches(['\\', '/']);
+        if !clean_drive.is_empty() {
+            out.push(PathBuf::from(format!("{clean_drive}\\Basalt\\{fingerprint}")));
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        out.push(std::env::temp_dir().join(format!("basalt-{fingerprint}")));
+        out.push(PathBuf::from(format!("/tmp/basalt-{fingerprint}")));
+    }
+    out
+}
+
+fn is_writable_ascii_dir(dir: &Path) -> bool {
+    if !is_ascii_path(dir) || fs::create_dir_all(dir).is_err() {
+        return false;
+    }
+    let resolved = fs::canonicalize(dir).map(strip_verbatim_prefix);
+    let Ok(canonical) = resolved else {
+        return false;
+    };
+    if !is_ascii_path(&canonical) {
+        return false;
+    }
+    let probe = canonical.join(format!(".basalt-probe-{}", std::process::id()));
+    if fs::write(&probe, b"ok").is_err() {
+        return false;
+    }
+    let _ = fs::remove_file(&probe);
+    true
+}
+
+fn pick_writable_ascii_base_dir(candidates: &[PathBuf]) -> Option<PathBuf> {
+    for candidate in candidates {
+        if is_writable_ascii_dir(candidate) {
+            return fs::canonicalize(candidate)
+                .map(strip_verbatim_prefix)
+                .ok()
+                .filter(|p| is_ascii_path(p));
+        }
+    }
+    None
+}
+
+/// Returns an ASCII-safe base directory for Gradle/JDK runtime assets when
+/// `seed_dir` contains non-ASCII characters (for example in `%LOCALAPPDATA%` or `%USERPROFILE%`).
+pub fn resolve_ascii_safe_base_dir(seed_dir: &Path) -> Option<PathBuf> {
+    if is_ascii_path(seed_dir) {
+        return Some(seed_dir.to_path_buf());
+    }
+    let fp = ascii_fingerprint_12(seed_dir);
+    let candidates = ascii_root_candidates(&fp);
+    pick_writable_ascii_base_dir(&candidates)
+}
+
+pub fn resolve_ascii_safe_runtime_dir(app_root_dir: &Path) -> PathBuf {
+    if is_ascii_path(app_root_dir) {
+        app_root_dir.join("runtime")
+    } else if let Some(base) = resolve_ascii_safe_base_dir(app_root_dir) {
+        base.join("runtime")
+    } else {
+        app_root_dir.join("runtime")
+    }
+}
+
+fn resolve_gradle_user_home_with(
+    app_root_dir: &Path,
+    env_gradle_home: Option<&Path>,
+    user_home: Option<&Path>,
+    fallback_candidates: &[PathBuf],
+) -> Option<PathBuf> {
+    if let Some(explicit) = env_gradle_home
+        && !explicit.as_os_str().is_empty()
+    {
+        if is_ascii_path(explicit) {
+            return Some(explicit.to_path_buf());
+        }
+        return pick_writable_ascii_base_dir(fallback_candidates).map(|b| b.join("gradle-home"));
+    }
+
+    let user_home_is_ascii = user_home.is_some_and(is_ascii_path);
+    if user_home_is_ascii && is_ascii_path(app_root_dir) {
+        return None;
+    }
+
+    pick_writable_ascii_base_dir(fallback_candidates).map(|b| b.join("gradle-home"))
+}
+
+/// Resolves an ASCII-safe `GRADLE_USER_HOME` override whenever the active
+/// `GRADLE_USER_HOME`, `%USERPROFILE%`, or `app_root_dir` contains non-ASCII characters.
+pub fn resolve_gradle_user_home(app_root_dir: &Path) -> Option<PathBuf> {
+    let env_gradle = std::env::var_os("GRADLE_USER_HOME")
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from);
+    let user_home = std::env::var_os("USERPROFILE")
+        .or_else(|| std::env::var_os("HOME"))
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from);
+    let seed = if !is_ascii_path(app_root_dir) {
+        app_root_dir.to_path_buf()
+    } else if let Some(ref uh) = user_home {
+        uh.clone()
+    } else if let Some(ref eg) = env_gradle {
+        eg.clone()
+    } else {
+        app_root_dir.to_path_buf()
+    };
+    let fp = ascii_fingerprint_12(&seed);
+    let candidates = ascii_root_candidates(&fp);
+    resolve_gradle_user_home_with(
+        app_root_dir,
+        env_gradle.as_deref(),
+        user_home.as_deref(),
+        &candidates,
+    )
+}
+
 pub fn ensure_embedded_gradle_workspace(target_dir: &Path) -> Result<PathBuf, String> {
     fs::create_dir_all(target_dir)
         .map_err(|e| format!("Failed to create Gradle working directory: {e}"))?;
@@ -76,14 +222,22 @@ pub fn ensure_embedded_gradle_workspace(target_dir: &Path) -> Result<PathBuf, St
 pub fn resolve_or_extract_gradle_workspace(app_root_dir: &Path) -> Result<PathBuf, String> {
     if let Ok(raw) = std::env::var("BASALT_GRADLE_DIR") {
         let candidate = PathBuf::from(raw.trim());
-        if is_valid_gradle_workspace(&candidate) {
+        if is_valid_gradle_workspace(&candidate) && is_ascii_path(&candidate) {
             return fs::canonicalize(&candidate)
                 .map(strip_verbatim_prefix)
                 .map_err(|e| format!("Failed to resolve Gradle working directory: {e}"));
         }
     }
 
-    ensure_embedded_gradle_workspace(&app_root_dir.join("client-gradle"))
+    let preferred = app_root_dir.join("client-gradle");
+    let target = if is_ascii_path(&preferred) {
+        preferred
+    } else {
+        resolve_ascii_safe_base_dir(app_root_dir)
+            .map(|b| b.join("client-gradle"))
+            .unwrap_or(preferred)
+    };
+    ensure_embedded_gradle_workspace(&target)
 }
 
 pub fn resolve_gradle_workspace() -> Result<PathBuf, String> {
@@ -621,9 +775,13 @@ pub fn summarize_process_failure(
 #[cfg(test)]
 mod sha256_tests {
     use std::fs;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
-    use super::{compute_sha256_hex, evaluate_jdk_candidates, summarize_process_failure};
+    use super::{
+        compute_sha256_hex, evaluate_jdk_candidates, is_ascii_path,
+        resolve_gradle_user_home_with, resolve_or_extract_gradle_workspace,
+        is_valid_gradle_workspace, summarize_process_failure,
+    };
 
     #[test]
     fn matches_fips_180_4_vectors() {
@@ -683,6 +841,62 @@ mod sha256_tests {
         assert_eq!(disc.java21.unwrap().1, "21.0.5");
         let disc_26_only = evaluate_jdk_candidates(&[j26]);
         assert!(disc_26_only.java21.is_none());
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn redirects_non_ascii_workspace_and_gradle_user_home_cleanly() {
+        let ascii_root = Path::new("C:\\Users\\Markesr\\AppData\\Local\\Basalt");
+        let uni_root = Path::new("C:\\Users\\rab\u{0131}abetl\\AppData\\Local\\Basalt");
+        assert!(is_ascii_path(ascii_root));
+        assert!(!is_ascii_path(uni_root));
+
+        let tmp = std::env::temp_dir().join(format!("basalt_ascii_fallback_test_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&tmp);
+        let fallback_a = tmp.join("pub_base");
+        let bad_candidate = tmp.join("rab\u{0131}abetl_bad");
+        let candidates = vec![bad_candidate, fallback_a.clone()];
+
+        // Pure ASCII environment keeps native paths (no override needed)
+        assert_eq!(
+            resolve_gradle_user_home_with(
+                ascii_root,
+                None,
+                Some(Path::new("C:\\Users\\Markesr")),
+                &candidates,
+            ),
+            None
+        );
+
+        // Explicit ASCII GRADLE_USER_HOME is preserved
+        let custom_ascii = PathBuf::from("D:\\GradleCache");
+        assert_eq!(
+            resolve_gradle_user_home_with(
+                uni_root,
+                Some(&custom_ascii),
+                Some(Path::new("C:\\Users\\rab\u{0131}abetl")),
+                &candidates,
+            ),
+            Some(custom_ascii)
+        );
+
+        // Turkish 'ı' in USERPROFILE skips non-ASCII candidates and picks writable ASCII base
+        let resolved_gh = resolve_gradle_user_home_with(
+            uni_root,
+            None,
+            Some(Path::new("C:\\Users\\rab\u{0131}abetl")),
+            &candidates,
+        )
+        .expect("should pick writable ASCII gradle-home");
+        assert!(is_ascii_path(&resolved_gh));
+        assert!(resolved_gh.ends_with("pub_base\\gradle-home") || resolved_gh.ends_with("pub_base/gradle-home"));
+
+        let extracted = resolve_or_extract_gradle_workspace(uni_root).expect("should extract to ASCII base");
+        assert!(is_ascii_path(&extracted));
+        assert!(is_valid_gradle_workspace(&extracted));
+        if let Some(parent_fp) = extracted.parent() {
+            let _ = fs::remove_dir_all(parent_fp);
+        }
         let _ = fs::remove_dir_all(&tmp);
     }
 }

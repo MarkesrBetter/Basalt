@@ -96,6 +96,10 @@ pub fn default_local_asset_roots(gradle_dir: Option<&Path>) -> Vec<PathBuf> {
     if let Some(g) = gradle_dir {
         roots.push(g.join(".gradle").join("loom-cache").join("assets"));
     }
+    let app_paths = crate::config::AppPaths::resolve();
+    if let Some(gh) = crate::gradle::resolve_gradle_user_home(&app_paths.root_dir) {
+        roots.push(gh.join("caches").join("fabric-loom").join("assets"));
+    }
     if let Some(profile) = std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME")) {
         roots.push(
             PathBuf::from(profile)

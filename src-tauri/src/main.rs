@@ -22,7 +22,7 @@ use basalt::config::{
 use basalt::gradle::{
     GradleEnvStatus, LaunchEnvConfig, build_launch_env, compute_file_sha256_hex,
     discover_java21_home_with_runtime, inspect_gradle_environment_with_runtime,
-    resolve_or_extract_gradle_workspace, summarize_process_failure,
+    resolve_gradle_user_home, resolve_or_extract_gradle_workspace, summarize_process_failure,
 };
 use basalt::hardware::HardwareProfile;
 use basalt::options_txt::sync_minecraft_options;
@@ -120,6 +120,7 @@ struct LaunchInput {
 struct AppState {
     paths: AppPaths,
     gradle_dir: PathBuf,
+    gradle_user_home: Option<PathBuf>,
     config: Mutex<AppConfig>,
     hardware: Mutex<HardwareProfile>,
     hardware_notice: Mutex<Option<String>>,
@@ -133,6 +134,11 @@ impl AppState {
         paths.ensure_dirs()?;
 
         let gradle_dir = resolve_or_extract_gradle_workspace(&paths.root_dir)?;
+        let gradle_user_home = resolve_gradle_user_home(&paths.root_dir);
+        if let Some(ref gh) = gradle_user_home {
+            fs::create_dir_all(gh)
+                .map_err(|e| format!("Failed to create Gradle cache directory: {e}"))?;
+        }
         let mut config = AppConfig::load(&paths.config_file);
         let hardware = HardwareProfile::detect_headless();
         let mut hardware_notice = None;
@@ -159,6 +165,7 @@ impl AppState {
         Ok(Self {
             paths,
             gradle_dir,
+            gradle_user_home,
             config: Mutex::new(config),
             hardware: Mutex::new(hardware),
             hardware_notice: Mutex::new(hardware_notice),
@@ -239,6 +246,7 @@ fn ensure_launch_skin_file(paths: &AppPaths, skin_file: Option<&PathBuf>) -> Opt
 
 fn spawn_gradle_command(
     gradle_dir: &Path,
+    gradle_user_home: Option<&Path>,
     task: &str,
     env_vars: &[(String, String)],
 ) -> Result<Child, String> {
@@ -283,6 +291,9 @@ fn spawn_gradle_command(
 
     for (k, v) in env_vars {
         cmd.env(k, v);
+    }
+    if let Some(g_home) = gradle_user_home {
+        cmd.env("GRADLE_USER_HOME", g_home);
     }
 
     cmd.spawn()
@@ -1108,7 +1119,12 @@ fn prepare_gradle_client(
     })?;
 
     let env_vars = vec![("JAVA_HOME".to_string(), java_home.to_string_lossy().into_owned())];
-    let child = spawn_gradle_command(&state.gradle_dir, "build", &env_vars)?;
+    let child = spawn_gradle_command(
+        &state.gradle_dir,
+        state.gradle_user_home.as_deref(),
+        "build",
+        &env_vars,
+    )?;
 
     let session = RunningSessionDto {
         pid: child.id(),
@@ -1226,7 +1242,12 @@ fn launch_client(
     };
 
     let env_vars = build_launch_env(&env_cfg);
-    let child = spawn_gradle_command(&state.gradle_dir, "runClient", &env_vars)?;
+    let child = spawn_gradle_command(
+        &state.gradle_dir,
+        state.gradle_user_home.as_deref(),
+        "runClient",
+        &env_vars,
+    )?;
 
     let session = RunningSessionDto {
         pid: child.id(),

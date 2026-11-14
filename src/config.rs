@@ -204,7 +204,7 @@ impl AppPaths {
         };
         let config_file = root_dir.join("config.toml");
         let skins_dir = root_dir.join("skins");
-        let runtime_dir = root_dir.join("runtime");
+        let runtime_dir = crate::gradle::resolve_ascii_safe_runtime_dir(&root_dir);
         Self {
             root_dir,
             config_file,
