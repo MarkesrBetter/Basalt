@@ -1183,6 +1183,10 @@ function renderVanillaStatus(vanilla: VanillaEnvStatus): void {
   byId<HTMLElement>("gradle-dir-label").textContent = vanilla.vanilla_dir;
   byId<HTMLElement>("gradle-saves-dir").textContent = vanilla.saves_dir;
   byId<HTMLButtonElement>("btn-system-install-java").hidden = vanilla.java_ready;
+  const hwDrawer = document.getElementById("hardware-runtime-drawer");
+  if (hwDrawer instanceof HTMLDetailsElement && !vanilla.java_ready) {
+    hwDrawer.open = true;
+  }
 }
 
 function renderServersList(): void {

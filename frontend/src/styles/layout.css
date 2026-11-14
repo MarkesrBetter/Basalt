@@ -1389,3 +1389,137 @@ body.compact .world-row {
     padding: 0.55rem 0.95rem;
   }
 }
+
+/* ==========================================================================
+   Calm Desktop Declutter & Focused Hierarchy
+   Eliminates duplicate branding, redundant breadcrumbs/badges, and visual noise.
+   ========================================================================== */
+
+:root:not([data-layout="topbar"]):not([data-layout="deck"]) .rail > .brand {
+  display: none;
+}
+
+.rail-label,
+.nav-index,
+.rail-quick-actions-3,
+.rail-build,
+.breadcrumbs .crumb-root,
+.breadcrumbs .crumb-sep,
+#engine-status-pill,
+.view-head .eyebrow,
+.view-head .view-lead,
+#view-play > .view-head,
+#stage-biome-tag,
+.stratum-scene-footer .field-kicker,
+.launch-version-header .field-kicker,
+.launch-version-header .version-summary,
+#prepare-status-hint,
+.play-under-grid > .flat-section:nth-child(2),
+.play-under-grid > .flat-section:first-child > .section-head {
+  display: none !important;
+}
+
+.rail {
+  padding-top: 0.85rem;
+}
+
+.rail-footer {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 0.65rem;
+}
+
+.topbar {
+  height: 2.95rem;
+  padding: 0 1.45rem;
+  background: transparent;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+#topbar-crumb {
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+main {
+  padding: 1.25rem 1.45rem;
+}
+
+#view-play .play-workbench {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.95rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  width: 100%;
+  flex: 1 1 auto;
+}
+
+#view-play .play-hero {
+  min-height: 22.5rem;
+  grid-template-columns: minmax(0, 1.25fr) minmax(20rem, 25rem);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-surface);
+}
+
+#view-play .launch-deck {
+  justify-content: center;
+  gap: 1.05rem;
+  padding: 1.45rem 1.55rem;
+}
+
+#view-play .launch-version-header {
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+#view-play .play-under-grid {
+  display: block;
+}
+
+#view-play .play-under-grid > .flat-section:first-child {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+#play-client-specs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+#play-client-specs .kv-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.18rem;
+  padding: 0.62rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+}
+
+#play-client-specs .kv-key {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-subtle);
+}
+
+#play-client-specs .kv-val {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+@media (max-width: 860px) {
+  #play-client-specs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

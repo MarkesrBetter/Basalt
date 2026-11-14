@@ -1844,3 +1844,58 @@ dialog p {
     flex-basis: 14rem;
   }
 }
+
+/* ---------- Collapsible Settings Drawers (Profile & System) ---------- */
+
+.settings-drawer {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-alt);
+  overflow: hidden;
+}
+
+.settings-drawer-summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.68rem 0.88rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.settings-drawer-summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-drawer-summary:hover {
+  background: var(--bg-hover);
+}
+
+.drawer-chevron {
+  transition: transform 150ms ease;
+  color: var(--text-muted);
+}
+
+.settings-drawer[open] .drawer-chevron {
+  transform: rotate(90deg);
+  color: var(--accent-fg);
+}
+
+.settings-drawer-body {
+  padding: 0.85rem 0.88rem 0.95rem;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.launch-prepare-row {
+  justify-content: center;
+}

@@ -165,10 +165,10 @@ export const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     "nav.profile": "Profile & Skin",
     "nav.system": "System & Net",
 
-    "view.play": "01 · Play",
-    "view.worlds": "02 · Saves",
-    "view.profile": "03 · Profile & Skin",
-    "view.system": "04 · System & Network",
+    "view.play": "Play",
+    "view.worlds": "Saved Worlds",
+    "view.profile": "Profile & Skin",
+    "view.system": "Settings & Servers",
 
     "rail.statusReady": "Vanilla 1.21.4 ready",
     "rail.statusJavaMissing": "Java 21 missing",
@@ -329,6 +329,7 @@ export const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     "profile.savedBadge": "Saved",
     "profile.savedToast": "Offline username saved.",
     "profile.appearanceTitle": "Appearance & layout",
+    "profile.drawerTitle": "Theme, Color & Layout Options",
     "profile.layoutLabel": "Layout preset",
     "profile.layoutSidebar": "Left Rail",
     "profile.layoutTopbar": "Top Strip",
@@ -412,6 +413,7 @@ export const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     "system.autoOptToast": "Hardware profile applied and options.txt synced.",
 
     "system.gradleTitle": "Vanilla 1.21.4 runtime",
+    "system.drawerTitle": "Hardware & Runtime Diagnostics",
     "system.tagMissingJava": "JAVA 21 MISSING",
     "system.tagReady": "READY",
     "system.tagJavaReady": "JAVA 21 READY",
@@ -482,10 +484,10 @@ export const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     "nav.profile": "Profil ve Skin",
     "nav.system": "Sistem ve Ağ",
 
-    "view.play": "01 · Oyna",
-    "view.worlds": "02 · Kayıtlar",
-    "view.profile": "03 · Profil ve Skin",
-    "view.system": "04 · Sistem ve Ağ",
+    "view.play": "Oyna",
+    "view.worlds": "Kayıtlı Dünyalar",
+    "view.profile": "Profil ve Skin",
+    "view.system": "Ayarlar ve Sunucular",
 
     "rail.statusReady": "Vanilla 1.21.4 hazır",
     "rail.statusJavaMissing": "Java 21 eksik",
@@ -646,6 +648,7 @@ export const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     "profile.savedBadge": "Kaydedildi",
     "profile.savedToast": "Çevrimdışı kullanıcı adı kaydedildi.",
     "profile.appearanceTitle": "Görünüş ve arayüz düzeni",
+    "profile.drawerTitle": "Tema, Renk ve Yerleşim Seçenekleri",
     "profile.layoutLabel": "Yerleşim görünüşü",
     "profile.layoutSidebar": "Sol Ray",
     "profile.layoutTopbar": "Üst Şerit",
@@ -729,6 +732,7 @@ export const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     "system.autoOptToast": "Donanım profili uygulandı ve options.txt eşitlendi.",
 
     "system.gradleTitle": "Vanilla 1.21.4 ortamı",
+    "system.drawerTitle": "Donanım ve Çalışma Zamanı Ayrıntıları",
     "system.tagMissingJava": "JAVA 21 EKSİK",
     "system.tagReady": "HAZIR",
     "system.tagJavaReady": "JAVA 21 HAZIR",
@@ -799,10 +803,10 @@ export const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     "nav.profile": "Profil & Skin",
     "nav.system": "System & Netz",
 
-    "view.play": "01 · Spielen",
-    "view.worlds": "02 · Welten",
-    "view.profile": "03 · Profil & Skin",
-    "view.system": "04 · System & Netzwerk",
+    "view.play": "Spielen",
+    "view.worlds": "Gespeicherte Welten",
+    "view.profile": "Profil & Skin",
+    "view.system": "Einstellungen & Server",
 
     "rail.statusReady": "Vanilla 1.21.4 bereit",
     "rail.statusJavaMissing": "Java 21 fehlt",
@@ -963,6 +967,7 @@ export const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     "profile.savedBadge": "Gespeichert",
     "profile.savedToast": "Offline-Benutzername gespeichert.",
     "profile.appearanceTitle": "Darstellung & Layout",
+    "profile.drawerTitle": "Thema-, Farb- & Layout-Optionen",
     "profile.layoutLabel": "Layout-Vorlage",
     "profile.layoutSidebar": "Linksleiste",
     "profile.layoutTopbar": "Kopfzeile",
@@ -1046,6 +1051,7 @@ export const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     "system.autoOptToast": "Hardware-Profil angewendet und options.txt abgeglichen.",
 
     "system.gradleTitle": "Vanilla-1.21.4-Laufzeit",
+    "system.drawerTitle": "Hardware- & Laufzeitdetails",
     "system.tagMissingJava": "JAVA 21 FEHLT",
     "system.tagReady": "BEREIT",
     "system.tagJavaReady": "JAVA 21 BEREIT",

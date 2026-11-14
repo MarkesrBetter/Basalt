@@ -197,7 +197,7 @@
         <div class="breadcrumbs">
           <span class="crumb-root">BASALT</span>
           <svg class="ico small crumb-sep" aria-hidden="true"><use href="#ico-chevron" /></svg>
-          <strong id="topbar-crumb">01 · Play</strong>
+          <strong id="topbar-crumb">Play</strong>
         </div>
 
         <div class="topbar-meta">
@@ -475,216 +475,268 @@
                 </div>
               </form>
 
-              <div class="section-head spaced-top-sm">
-                <h2 data-i18n="profile.appearanceTitle">Appearance &amp; layout</h2>
-                <span>WCAG 2.2 AA</span>
-              </div>
-              <div class="appearance-studio" id="appearance-studio">
-                <div class="appearance-block">
-                  <div class="appearance-group-label" data-i18n="profile.layoutLabel">Layout preset</div>
-                  <div class="appearance-grid-layouts" role="group" aria-label="Layout preset" data-i18n-aria="profile.layoutLabel">
-                    <button class="choice-tile" type="button" data-layout-choice="Sidebar" aria-pressed="true">
-                      <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
-                        <rect x="2" y="2" width="22" height="40" rx="1" fill="var(--bg-rail)" stroke="var(--border-subtle)" />
-                        <rect x="5" y="12" width="16" height="4" rx="1" fill="var(--accent)" />
-                        <rect x="5" y="19" width="14" height="3" rx="1" fill="var(--text-subtle)" opacity="0.55" />
-                        <rect x="28" y="2" width="66" height="8" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
-                        <rect x="28" y="13" width="38" height="29" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
-                        <rect x="69" y="13" width="25" height="29" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
-                      </svg>
-                      <span class="choice-tile-title" data-i18n="profile.layoutSidebar">Left Rail</span>
-                    </button>
-                    <button class="choice-tile" type="button" data-layout-choice="Topbar" aria-pressed="false">
-                      <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
-                        <rect x="2" y="2" width="92" height="10" rx="1" fill="var(--bg-rail)" stroke="var(--border-subtle)" />
-                        <rect x="18" y="5" width="14" height="4" rx="1" fill="var(--accent)" />
-                        <rect x="35" y="5" width="12" height="4" rx="1" fill="var(--text-subtle)" opacity="0.55" />
-                        <rect x="2" y="15" width="54" height="27" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
-                        <rect x="59" y="15" width="35" height="27" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
-                      </svg>
-                      <span class="choice-tile-title" data-i18n="profile.layoutTopbar">Top Strip</span>
-                    </button>
-                    <button class="choice-tile" type="button" data-layout-choice="CompactDeck" aria-pressed="false">
-                      <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
-                        <rect x="12" y="4" width="72" height="36" rx="2" fill="var(--bg-rail)" stroke="var(--border-control)" />
-                        <rect x="14" y="6" width="68" height="7" rx="1" fill="var(--bg-surface-alt)" />
-                        <rect x="17" y="8" width="11" height="3" rx="1" fill="var(--accent)" />
-                        <rect x="15" y="16" width="38" height="21" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
-                        <rect x="56" y="16" width="25" height="21" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
-                      </svg>
-                      <span class="choice-tile-title" data-i18n="profile.layoutCompact">Compact Focus</span>
-                    </button>
-                    <button class="choice-tile" type="button" data-layout-choice="RightRail" aria-pressed="false">
-                      <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
-                        <rect x="72" y="2" width="22" height="40" rx="1" fill="var(--bg-rail)" stroke="var(--border-subtle)" />
-                        <rect x="75" y="12" width="16" height="4" rx="1" fill="var(--accent)" />
-                        <rect x="75" y="19" width="14" height="3" rx="1" fill="var(--text-subtle)" opacity="0.55" />
-                        <rect x="2" y="2" width="66" height="8" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
-                        <rect x="2" y="13" width="25" height="29" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
-                        <rect x="30" y="13" width="38" height="29" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
-                      </svg>
-                      <span class="choice-tile-title" data-i18n="profile.layoutRight">Right Rail</span>
-                    </button>
-                    <button class="choice-tile" type="button" data-layout-choice="MinimalRail" aria-pressed="false">
-                      <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
-                        <rect x="2" y="2" width="11" height="40" rx="1" fill="var(--bg-rail)" stroke="var(--border-subtle)" />
-                        <rect x="4" y="10" width="7" height="5" rx="1" fill="var(--accent)" />
-                        <rect x="4" y="18" width="7" height="4" rx="1" fill="var(--text-subtle)" opacity="0.55" />
-                        <rect x="17" y="2" width="77" height="8" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
-                        <rect x="17" y="13" width="45" height="29" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
-                        <rect x="65" y="13" width="29" height="29" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
-                      </svg>
-                      <span class="choice-tile-title" data-i18n="profile.layoutMinimal">Minimal Dock</span>
-                    </button>
-                    <button class="choice-tile" type="button" data-layout-choice="DeckMode" aria-pressed="false">
-                      <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
-                        <rect x="2" y="2" width="92" height="9" rx="1" fill="var(--bg-surface)" stroke="var(--border-control)" />
-                        <rect x="24" y="5" width="14" height="3" rx="1" fill="var(--accent)" />
-                        <rect x="41" y="5" width="14" height="3" rx="1" fill="var(--text-subtle)" opacity="0.55" />
-                        <rect x="2" y="14" width="54" height="20" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
-                        <rect x="59" y="14" width="35" height="20" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
-                        <rect x="2" y="36" width="92" height="6" rx="1" fill="var(--bg-rail)" stroke="var(--border-subtle)" />
-                      </svg>
-                      <span class="choice-tile-title" data-i18n="profile.layoutDeck">Fullscreen Console</span>
-                    </button>
+              <div class="settings-rows compact-settings-rows spaced-top-sm">
+                <div class="setting-line">
+                  <div>
+                    <span class="appearance-group-label" data-i18n="pref.language">Language</span>
+                  </div>
+                  <div class="corner-seg" role="group" aria-label="Language" data-i18n-aria="pref.language">
+                    <button class="seg-btn active" type="button" data-lang-choice="En" aria-pressed="true">English</button>
+                    <button class="seg-btn" type="button" data-lang-choice="Tr" aria-pressed="false">Türkçe</button>
+                    <button class="seg-btn" type="button" data-lang-choice="De" aria-pressed="false">Deutsch</button>
                   </div>
                 </div>
-
-                <div class="appearance-block">
-                  <div class="appearance-group-label" data-i18n="profile.themeLabel">Color &amp; surface theme (10 Biomes / Minerals)</div>
-                  <div class="appearance-grid-themes" role="group" aria-label="Color and surface theme" data-i18n-aria="profile.themeLabel">
-                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Dark" aria-pressed="true">
-                      <div class="theme-swatch-bar" aria-hidden="true">
-                        <span class="sw-dark-canvas"></span>
-                        <span class="sw-dark-rail"></span>
-                        <span class="sw-dark-surface"></span>
-                        <span class="sw-dark-accent"></span>
-                      </div>
-                      <span class="choice-tile-title" data-i18n="profile.themeDark">Obsidian Violet</span>
-                    </button>
-                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Ember" aria-pressed="false">
-                      <div class="theme-swatch-bar" aria-hidden="true">
-                        <span class="sw-ember-canvas"></span>
-                        <span class="sw-ember-rail"></span>
-                        <span class="sw-ember-surface"></span>
-                        <span class="sw-ember-accent"></span>
-                      </div>
-                      <span class="choice-tile-title" data-i18n="profile.themeEmber">Charcoal Copper</span>
-                    </button>
-                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Light" aria-pressed="false">
-                      <div class="theme-swatch-bar" aria-hidden="true">
-                        <span class="sw-light-canvas"></span>
-                        <span class="sw-light-rail"></span>
-                        <span class="sw-light-surface"></span>
-                        <span class="sw-light-accent"></span>
-                      </div>
-                      <span class="choice-tile-title" data-i18n="profile.themeLight">Limestone</span>
-                    </button>
-                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Spruce" aria-pressed="false">
-                      <div class="theme-swatch-bar" aria-hidden="true">
-                        <span class="sw-spruce-canvas"></span>
-                        <span class="sw-spruce-rail"></span>
-                        <span class="sw-spruce-surface"></span>
-                        <span class="sw-spruce-accent"></span>
-                      </div>
-                      <span class="choice-tile-title" data-i18n="profile.themeSpruce">Spruce Emerald</span>
-                    </button>
-                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Cobalt" aria-pressed="false">
-                      <div class="theme-swatch-bar" aria-hidden="true">
-                        <span class="sw-cobalt-canvas"></span>
-                        <span class="sw-cobalt-rail"></span>
-                        <span class="sw-cobalt-surface"></span>
-                        <span class="sw-cobalt-accent"></span>
-                      </div>
-                      <span class="choice-tile-title" data-i18n="profile.themeCobalt">Deep Lapis</span>
-                    </button>
-                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Nether" aria-pressed="false">
-                      <div class="theme-swatch-bar" aria-hidden="true">
-                        <span class="sw-nether-canvas"></span>
-                        <span class="sw-nether-rail"></span>
-                        <span class="sw-nether-surface"></span>
-                        <span class="sw-nether-accent"></span>
-                      </div>
-                      <span class="choice-tile-title" data-i18n="profile.themeNether">Crimson Basalt</span>
-                    </button>
-                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Frost" aria-pressed="false">
-                      <div class="theme-swatch-bar" aria-hidden="true">
-                        <span class="sw-frost-canvas"></span>
-                        <span class="sw-frost-rail"></span>
-                        <span class="sw-frost-surface"></span>
-                        <span class="sw-frost-accent"></span>
-                      </div>
-                      <span class="choice-tile-title" data-i18n="profile.themeFrost">Glacier Frost</span>
-                    </button>
-                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Sculk" aria-pressed="false">
-                      <div class="theme-swatch-bar" aria-hidden="true">
-                        <span class="sw-sculk-canvas"></span>
-                        <span class="sw-sculk-rail"></span>
-                        <span class="sw-sculk-surface"></span>
-                        <span class="sw-sculk-accent"></span>
-                      </div>
-                      <span class="choice-tile-title" data-i18n="profile.themeSculk">Ancient City</span>
-                    </button>
-                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="End" aria-pressed="false">
-                      <div class="theme-swatch-bar" aria-hidden="true">
-                        <span class="sw-end-canvas"></span>
-                        <span class="sw-end-rail"></span>
-                        <span class="sw-end-surface"></span>
-                        <span class="sw-end-accent"></span>
-                      </div>
-                      <span class="choice-tile-title" data-i18n="profile.themeEnd">End Stone</span>
-                    </button>
-                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Cherry" aria-pressed="false">
-                      <div class="theme-swatch-bar" aria-hidden="true">
-                        <span class="sw-cherry-canvas"></span>
-                        <span class="sw-cherry-rail"></span>
-                        <span class="sw-cherry-surface"></span>
-                        <span class="sw-cherry-accent"></span>
-                      </div>
-                      <span class="choice-tile-title" data-i18n="profile.themeCherry">Cherry Blossom</span>
-                    </button>
+                <div class="setting-line">
+                  <div>
+                    <label for="pref-sounds" data-i18n="pref.sounds">Desktop UI sound effects</label>
                   </div>
+                  <input class="switch" type="checkbox" id="pref-sounds" title="Console mode enables UI sound feedback automatically." data-i18n-title="pref.soundsHint" />
                 </div>
-
-                <div class="appearance-block">
-                  <div class="appearance-group-label" data-i18n="profile.accentLabel">Accent color</div>
-                  <div class="accent-strip" role="group" aria-label="Accent color" data-i18n-aria="profile.accentLabel">
-                    <button class="accent-chip" type="button" data-accent-choice="Auto" aria-pressed="true">
-                      <span class="accent-dot dot-auto" aria-hidden="true"></span>
-                      <span data-accent-label="Auto">Match Theme</span>
-                    </button>
-                    <button class="accent-chip" type="button" data-accent-choice="Copper" aria-pressed="false">
-                      <span class="accent-dot dot-copper" aria-hidden="true"></span>
-                      <span data-accent-label="Copper">Copper</span>
-                    </button>
-                    <button class="accent-chip" type="button" data-accent-choice="Emerald" aria-pressed="false">
-                      <span class="accent-dot dot-emerald" aria-hidden="true"></span>
-                      <span data-accent-label="Emerald">Emerald</span>
-                    </button>
-                    <button class="accent-chip" type="button" data-accent-choice="Cyan" aria-pressed="false">
-                      <span class="accent-dot dot-cyan" aria-hidden="true"></span>
-                      <span data-accent-label="Cyan">Diamond</span>
-                    </button>
-                    <button class="accent-chip" type="button" data-accent-choice="Amber" aria-pressed="false">
-                      <span class="accent-dot dot-amber" aria-hidden="true"></span>
-                      <span data-accent-label="Amber">Amber</span>
-                    </button>
-                    <button class="accent-chip" type="button" data-accent-choice="Crimson" aria-pressed="false">
-                      <span class="accent-dot dot-crimson" aria-hidden="true"></span>
-                      <span data-accent-label="Crimson">Redstone</span>
-                    </button>
-                    <button class="accent-chip" type="button" data-accent-choice="Amethyst" aria-pressed="false">
-                      <span class="accent-dot dot-amethyst" aria-hidden="true"></span>
-                      <span data-accent-label="Amethyst">Amethyst</span>
-                    </button>
-                    <label class="accent-custom-chip" id="pref-custom-chip" title="Choose custom color" data-i18n-title="profile.customTitle">
-                      <input type="color" id="pref-custom-accent" value="#a47cff" aria-label="Choose custom color" data-i18n-aria="profile.customTitle" />
-                      <span data-accent-label="Custom">Custom</span>
-                      <span class="tabular" id="pref-custom-hex-label">#a47cff</span>
-                    </label>
+                <div class="setting-line">
+                  <div>
+                    <label for="pref-reduced-motion" data-i18n="pref.reducedMotion">Reduce animations</label>
                   </div>
+                  <input class="switch" type="checkbox" id="pref-reduced-motion" />
                 </div>
               </div>
+
+              <details class="settings-drawer spaced-top-sm" id="appearance-drawer">
+                <summary class="settings-drawer-summary">
+                  <span data-i18n="profile.drawerTitle">Theme, Color &amp; Layout Options</span>
+                  <svg class="ico small drawer-chevron" aria-hidden="true"><use href="#ico-chevron" /></svg>
+                </summary>
+                <div class="settings-drawer-body">
+                  <div class="section-head" hidden>
+                    <h2 data-i18n="profile.appearanceTitle">Appearance &amp; layout</h2>
+                    <span>WCAG 2.2 AA</span>
+                  </div>
+                  <div class="appearance-studio" id="appearance-studio">
+                    <div class="appearance-block">
+                      <div class="appearance-group-label" data-i18n="profile.themeLabel">Color &amp; surface theme (10 Biomes / Minerals)</div>
+                      <div class="appearance-grid-themes" role="group" aria-label="Color and surface theme" data-i18n-aria="profile.themeLabel">
+                        <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Dark" aria-pressed="true">
+                          <div class="theme-swatch-bar" aria-hidden="true">
+                            <span class="sw-dark-canvas"></span>
+                            <span class="sw-dark-rail"></span>
+                            <span class="sw-dark-surface"></span>
+                            <span class="sw-dark-accent"></span>
+                          </div>
+                          <span class="choice-tile-title" data-i18n="profile.themeDark">Obsidian Violet</span>
+                        </button>
+                        <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Ember" aria-pressed="false">
+                          <div class="theme-swatch-bar" aria-hidden="true">
+                            <span class="sw-ember-canvas"></span>
+                            <span class="sw-ember-rail"></span>
+                            <span class="sw-ember-surface"></span>
+                            <span class="sw-ember-accent"></span>
+                          </div>
+                          <span class="choice-tile-title" data-i18n="profile.themeEmber">Charcoal Copper</span>
+                        </button>
+                        <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Light" aria-pressed="false">
+                          <div class="theme-swatch-bar" aria-hidden="true">
+                            <span class="sw-light-canvas"></span>
+                            <span class="sw-light-rail"></span>
+                            <span class="sw-light-surface"></span>
+                            <span class="sw-light-accent"></span>
+                          </div>
+                          <span class="choice-tile-title" data-i18n="profile.themeLight">Limestone</span>
+                        </button>
+                        <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Spruce" aria-pressed="false">
+                          <div class="theme-swatch-bar" aria-hidden="true">
+                            <span class="sw-spruce-canvas"></span>
+                            <span class="sw-spruce-rail"></span>
+                            <span class="sw-spruce-surface"></span>
+                            <span class="sw-spruce-accent"></span>
+                          </div>
+                          <span class="choice-tile-title" data-i18n="profile.themeSpruce">Spruce Emerald</span>
+                        </button>
+                        <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Cobalt" aria-pressed="false">
+                          <div class="theme-swatch-bar" aria-hidden="true">
+                            <span class="sw-cobalt-canvas"></span>
+                            <span class="sw-cobalt-rail"></span>
+                            <span class="sw-cobalt-surface"></span>
+                            <span class="sw-cobalt-accent"></span>
+                          </div>
+                          <span class="choice-tile-title" data-i18n="profile.themeCobalt">Deep Lapis</span>
+                        </button>
+                        <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Nether" aria-pressed="false">
+                          <div class="theme-swatch-bar" aria-hidden="true">
+                            <span class="sw-nether-canvas"></span>
+                            <span class="sw-nether-rail"></span>
+                            <span class="sw-nether-surface"></span>
+                            <span class="sw-nether-accent"></span>
+                          </div>
+                          <span class="choice-tile-title" data-i18n="profile.themeNether">Crimson Basalt</span>
+                        </button>
+                        <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Frost" aria-pressed="false">
+                          <div class="theme-swatch-bar" aria-hidden="true">
+                            <span class="sw-frost-canvas"></span>
+                            <span class="sw-frost-rail"></span>
+                            <span class="sw-frost-surface"></span>
+                            <span class="sw-frost-accent"></span>
+                          </div>
+                          <span class="choice-tile-title" data-i18n="profile.themeFrost">Glacier Frost</span>
+                        </button>
+                        <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Sculk" aria-pressed="false">
+                          <div class="theme-swatch-bar" aria-hidden="true">
+                            <span class="sw-sculk-canvas"></span>
+                            <span class="sw-sculk-rail"></span>
+                            <span class="sw-sculk-surface"></span>
+                            <span class="sw-sculk-accent"></span>
+                          </div>
+                          <span class="choice-tile-title" data-i18n="profile.themeSculk">Ancient City</span>
+                        </button>
+                        <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="End" aria-pressed="false">
+                          <div class="theme-swatch-bar" aria-hidden="true">
+                            <span class="sw-end-canvas"></span>
+                            <span class="sw-end-rail"></span>
+                            <span class="sw-end-surface"></span>
+                            <span class="sw-end-accent"></span>
+                          </div>
+                          <span class="choice-tile-title" data-i18n="profile.themeEnd">End Stone</span>
+                        </button>
+                        <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Cherry" aria-pressed="false">
+                          <div class="theme-swatch-bar" aria-hidden="true">
+                            <span class="sw-cherry-canvas"></span>
+                            <span class="sw-cherry-rail"></span>
+                            <span class="sw-cherry-surface"></span>
+                            <span class="sw-cherry-accent"></span>
+                          </div>
+                          <span class="choice-tile-title" data-i18n="profile.themeCherry">Cherry Blossom</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="appearance-block">
+                      <div class="appearance-group-label" data-i18n="profile.accentLabel">Accent color</div>
+                      <div class="accent-strip" role="group" aria-label="Accent color" data-i18n-aria="profile.accentLabel">
+                        <button class="accent-chip" type="button" data-accent-choice="Auto" aria-pressed="true">
+                          <span class="accent-dot dot-auto" aria-hidden="true"></span>
+                          <span data-accent-label="Auto">Match Theme</span>
+                        </button>
+                        <button class="accent-chip" type="button" data-accent-choice="Copper" aria-pressed="false">
+                          <span class="accent-dot dot-copper" aria-hidden="true"></span>
+                          <span data-accent-label="Copper">Copper</span>
+                        </button>
+                        <button class="accent-chip" type="button" data-accent-choice="Emerald" aria-pressed="false">
+                          <span class="accent-dot dot-emerald" aria-hidden="true"></span>
+                          <span data-accent-label="Emerald">Emerald</span>
+                        </button>
+                        <button class="accent-chip" type="button" data-accent-choice="Cyan" aria-pressed="false">
+                          <span class="accent-dot dot-cyan" aria-hidden="true"></span>
+                          <span data-accent-label="Cyan">Diamond</span>
+                        </button>
+                        <button class="accent-chip" type="button" data-accent-choice="Amber" aria-pressed="false">
+                          <span class="accent-dot dot-amber" aria-hidden="true"></span>
+                          <span data-accent-label="Amber">Amber</span>
+                        </button>
+                        <button class="accent-chip" type="button" data-accent-choice="Crimson" aria-pressed="false">
+                          <span class="accent-dot dot-crimson" aria-hidden="true"></span>
+                          <span data-accent-label="Crimson">Redstone</span>
+                        </button>
+                        <button class="accent-chip" type="button" data-accent-choice="Amethyst" aria-pressed="false">
+                          <span class="accent-dot dot-amethyst" aria-hidden="true"></span>
+                          <span data-accent-label="Amethyst">Amethyst</span>
+                        </button>
+                        <label class="accent-custom-chip" id="pref-custom-chip" title="Choose custom color" data-i18n-title="profile.customTitle">
+                          <input type="color" id="pref-custom-accent" value="#a47cff" aria-label="Choose custom color" data-i18n-aria="profile.customTitle" />
+                          <span data-accent-label="Custom">Custom</span>
+                          <span class="tabular" id="pref-custom-hex-label">#a47cff</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div class="appearance-block">
+                      <div class="appearance-group-label" data-i18n="profile.layoutLabel">Layout preset</div>
+                      <div class="appearance-grid-layouts" role="group" aria-label="Layout preset" data-i18n-aria="profile.layoutLabel">
+                        <button class="choice-tile" type="button" data-layout-choice="Sidebar" aria-pressed="true">
+                          <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
+                            <rect x="2" y="2" width="22" height="40" rx="1" fill="var(--bg-rail)" stroke="var(--border-subtle)" />
+                            <rect x="5" y="12" width="16" height="4" rx="1" fill="var(--accent)" />
+                            <rect x="5" y="19" width="14" height="3" rx="1" fill="var(--text-subtle)" opacity="0.55" />
+                            <rect x="28" y="2" width="66" height="8" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                            <rect x="28" y="13" width="38" height="29" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
+                            <rect x="69" y="13" width="25" height="29" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                          </svg>
+                          <span class="choice-tile-title" data-i18n="profile.layoutSidebar">Left Rail</span>
+                        </button>
+                        <button class="choice-tile" type="button" data-layout-choice="Topbar" aria-pressed="false">
+                          <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
+                            <rect x="2" y="2" width="92" height="10" rx="1" fill="var(--bg-rail)" stroke="var(--border-subtle)" />
+                            <rect x="18" y="5" width="14" height="4" rx="1" fill="var(--accent)" />
+                            <rect x="35" y="5" width="12" height="4" rx="1" fill="var(--text-subtle)" opacity="0.55" />
+                            <rect x="2" y="15" width="54" height="27" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
+                            <rect x="59" y="15" width="35" height="27" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                          </svg>
+                          <span class="choice-tile-title" data-i18n="profile.layoutTopbar">Top Strip</span>
+                        </button>
+                        <button class="choice-tile" type="button" data-layout-choice="CompactDeck" aria-pressed="false">
+                          <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
+                            <rect x="12" y="4" width="72" height="36" rx="2" fill="var(--bg-rail)" stroke="var(--border-control)" />
+                            <rect x="14" y="6" width="68" height="7" rx="1" fill="var(--bg-surface-alt)" />
+                            <rect x="17" y="8" width="11" height="3" rx="1" fill="var(--accent)" />
+                            <rect x="15" y="16" width="38" height="21" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
+                            <rect x="56" y="16" width="25" height="21" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                          </svg>
+                          <span class="choice-tile-title" data-i18n="profile.layoutCompact">Compact Focus</span>
+                        </button>
+                        <button class="choice-tile" type="button" data-layout-choice="RightRail" aria-pressed="false">
+                          <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
+                            <rect x="72" y="2" width="22" height="40" rx="1" fill="var(--bg-rail)" stroke="var(--border-subtle)" />
+                            <rect x="75" y="12" width="16" height="4" rx="1" fill="var(--accent)" />
+                            <rect x="75" y="19" width="14" height="3" rx="1" fill="var(--text-subtle)" opacity="0.55" />
+                            <rect x="2" y="2" width="66" height="8" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                            <rect x="2" y="13" width="25" height="29" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                            <rect x="30" y="13" width="38" height="29" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
+                          </svg>
+                          <span class="choice-tile-title" data-i18n="profile.layoutRight">Right Rail</span>
+                        </button>
+                        <button class="choice-tile" type="button" data-layout-choice="MinimalRail" aria-pressed="false">
+                          <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
+                            <rect x="2" y="2" width="11" height="40" rx="1" fill="var(--bg-rail)" stroke="var(--border-subtle)" />
+                            <rect x="4" y="10" width="7" height="5" rx="1" fill="var(--accent)" />
+                            <rect x="4" y="18" width="7" height="4" rx="1" fill="var(--text-subtle)" opacity="0.55" />
+                            <rect x="17" y="2" width="77" height="8" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                            <rect x="17" y="13" width="45" height="29" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
+                            <rect x="65" y="13" width="29" height="29" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                          </svg>
+                          <span class="choice-tile-title" data-i18n="profile.layoutMinimal">Minimal Dock</span>
+                        </button>
+                        <button class="choice-tile" type="button" data-layout-choice="DeckMode" aria-pressed="false">
+                          <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
+                            <rect x="2" y="2" width="92" height="9" rx="1" fill="var(--bg-surface)" stroke="var(--border-control)" />
+                            <rect x="24" y="5" width="14" height="3" rx="1" fill="var(--accent)" />
+                            <rect x="41" y="5" width="14" height="3" rx="1" fill="var(--text-subtle)" opacity="0.55" />
+                            <rect x="2" y="14" width="54" height="20" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
+                            <rect x="59" y="14" width="35" height="20" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                            <rect x="2" y="36" width="92" height="6" rx="1" fill="var(--bg-rail)" stroke="var(--border-subtle)" />
+                          </svg>
+                          <span class="choice-tile-title" data-i18n="profile.layoutDeck">Fullscreen Console</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="settings-rows compact-settings-rows">
+                      <div class="setting-line">
+                        <div>
+                          <span class="appearance-group-label" data-i18n="pref.cornerRadius">Corner radius</span>
+                        </div>
+                        <div class="corner-seg" role="group" aria-label="Corner radius" data-i18n-aria="pref.cornerRadius">
+                          <button class="seg-btn" type="button" data-corner-choice="Sharp" aria-pressed="false">Sharp</button>
+                          <button class="seg-btn active" type="button" data-corner-choice="Balanced" aria-pressed="true">Balanced</button>
+                          <button class="seg-btn" type="button" data-corner-choice="Soft" aria-pressed="false">Soft</button>
+                        </div>
+                      </div>
+                      <div class="setting-line">
+                        <div>
+                          <label for="pref-compact" data-i18n="pref.compact">Compact row density</label>
+                        </div>
+                        <input class="switch" type="checkbox" id="pref-compact" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </details>
             </div>
 
             <div class="panel-section">
@@ -719,7 +771,7 @@
                       <option value="Classic" data-i18n="skin.modelClassic">Classic Arms (Wide · 4 px)</option>
                     </select>
                   </div>
-                  <p class="muted-copy skin-note-compact" data-i18n="skin.noteCompact">
+                  <p class="muted-copy skin-note-compact" data-i18n="skin.noteCompact" hidden>
                     64×64 and legacy 64×32 PNG skins plus Slim / Classic arms are packaged cleanly as a Vanilla resource pack on launch.
                   </p>
                   <div class="skin-btn-row">
@@ -732,47 +784,6 @@
                     </button>
                   </div>
                   <div class="inline-notice" id="skin-feedback" aria-live="polite" hidden></div>
-                </div>
-              </div>
-
-              <div class="settings-rows compact-settings-rows spaced-top-sm">
-                <div class="setting-line">
-                  <div>
-                    <span class="appearance-group-label" data-i18n="pref.language">Language</span>
-                  </div>
-                  <div class="corner-seg" role="group" aria-label="Language" data-i18n-aria="pref.language">
-                    <button class="seg-btn active" type="button" data-lang-choice="En" aria-pressed="true">English</button>
-                    <button class="seg-btn" type="button" data-lang-choice="Tr" aria-pressed="false">Türkçe</button>
-                    <button class="seg-btn" type="button" data-lang-choice="De" aria-pressed="false">Deutsch</button>
-                  </div>
-                </div>
-                <div class="setting-line">
-                  <div>
-                    <span class="appearance-group-label" data-i18n="pref.cornerRadius">Corner radius</span>
-                  </div>
-                  <div class="corner-seg" role="group" aria-label="Corner radius" data-i18n-aria="pref.cornerRadius">
-                    <button class="seg-btn" type="button" data-corner-choice="Sharp" aria-pressed="false">Sharp</button>
-                    <button class="seg-btn active" type="button" data-corner-choice="Balanced" aria-pressed="true">Balanced</button>
-                    <button class="seg-btn" type="button" data-corner-choice="Soft" aria-pressed="false">Soft</button>
-                  </div>
-                </div>
-                <div class="setting-line">
-                  <div>
-                    <label for="pref-compact" data-i18n="pref.compact">Compact row density</label>
-                  </div>
-                  <input class="switch" type="checkbox" id="pref-compact" />
-                </div>
-                <div class="setting-line">
-                  <div>
-                    <label for="pref-reduced-motion" data-i18n="pref.reducedMotion">Reduce animations</label>
-                  </div>
-                  <input class="switch" type="checkbox" id="pref-reduced-motion" />
-                </div>
-                <div class="setting-line">
-                  <div>
-                    <label for="pref-sounds" data-i18n="pref.sounds">Desktop UI sound effects</label>
-                  </div>
-                  <input class="switch" type="checkbox" id="pref-sounds" title="Console mode enables UI sound feedback automatically." data-i18n-title="pref.soundsHint" />
                 </div>
               </div>
             </div>
@@ -796,17 +807,6 @@
           <div class="system-grid">
             <div class="panel-section">
               <div class="section-head">
-                <h2 data-i18n="system.hwTitle">Detected system hardware</h2>
-                <span id="hw-tier-tag">-</span>
-              </div>
-              <dl class="hw-table hw-table-2col">
-                <div><dt data-i18n="system.cpu">Processor</dt><dd id="hw-cpu">-</dd></div>
-                <div><dt data-i18n="system.cores">Cores / Threads</dt><dd class="tabular" id="hw-cores">-</dd></div>
-                <div><dt data-i18n="system.ram">Memory (Available / Total)</dt><dd class="tabular" id="hw-ram">-</dd></div>
-                <div><dt data-i18n="system.gpu">Graphics Card &amp; Backend</dt><dd id="hw-gpu">-</dd></div>
-              </dl>
-
-              <div class="section-head spaced-top-sm">
                 <h2 data-i18n="system.gfxTitle">Minecraft options.txt &amp; JVM</h2>
                 <span class="tabular" id="gfx-preset-badge">-</span>
               </div>
@@ -890,36 +890,55 @@
                   <span class="inline-status" id="gfx-save-status" aria-live="polite"></span>
                 </div>
               </form>
+
+              <details class="settings-drawer spaced-top-sm" id="hardware-runtime-drawer">
+                <summary class="settings-drawer-summary">
+                  <span data-i18n="system.drawerTitle">Hardware &amp; Runtime Diagnostics</span>
+                  <svg class="ico small drawer-chevron" aria-hidden="true"><use href="#ico-chevron" /></svg>
+                </summary>
+                <div class="settings-drawer-body">
+                  <div class="section-head">
+                    <h2 data-i18n="system.hwTitle">Detected system hardware</h2>
+                    <span id="hw-tier-tag">-</span>
+                  </div>
+                  <dl class="hw-table hw-table-2col">
+                    <div><dt data-i18n="system.cpu">Processor</dt><dd id="hw-cpu">-</dd></div>
+                    <div><dt data-i18n="system.cores">Cores / Threads</dt><dd class="tabular" id="hw-cores">-</dd></div>
+                    <div><dt data-i18n="system.ram">Memory (Available / Total)</dt><dd class="tabular" id="hw-ram">-</dd></div>
+                    <div><dt data-i18n="system.gpu">Graphics Card &amp; Backend</dt><dd id="hw-gpu">-</dd></div>
+                  </dl>
+
+                  <div class="section-head spaced-top-sm">
+                    <h2 data-i18n="system.gradleTitle">Vanilla 1.21.4 runtime</h2>
+                    <span class="tabular" id="gradle-status-tag">-</span>
+                  </div>
+                  <dl class="hw-table">
+                    <div><dt data-i18n="system.javaRuntime">Java Runtime</dt><dd class="tabular" id="gradle-java-label">-</dd></div>
+                    <div><dt data-i18n="system.modJar">Vanilla Files</dt><dd id="gradle-jar-status">-</dd></div>
+                    <div><dt data-i18n="system.workDir">Vanilla Cache Directory</dt><dd class="tabular mono-wrap" id="gradle-dir-label">-</dd></div>
+                    <div><dt data-i18n="system.savesDir">Saves Directory (saves)</dt><dd class="tabular mono-wrap" id="gradle-saves-dir">-</dd></div>
+                  </dl>
+                  <div class="form-actions tight-top" id="system-java-actions">
+                    <button class="btn-primary btn-sm" type="button" id="btn-system-install-java" data-i18n="system.installJavaBtn" hidden>
+                      Auto-Install Java 21 (Temurin)
+                    </button>
+                    <button class="btn-secondary btn-sm" type="button" id="btn-system-recheck-java" data-i18n="system.rescanJavaBtn">
+                      Rescan Java 21
+                    </button>
+                    <button class="btn-secondary btn-sm" type="button" id="btn-system-open-java" data-i18n="system.openJavaBtn">
+                      Adoptium JDK 21 Page
+                    </button>
+                  </div>
+                </div>
+              </details>
             </div>
 
             <div class="panel-section">
               <div class="section-head">
-                <h2 data-i18n="system.gradleTitle">Vanilla 1.21.4 runtime</h2>
-                <span class="tabular" id="gradle-status-tag">-</span>
-              </div>
-              <dl class="hw-table">
-                <div><dt data-i18n="system.javaRuntime">Java Runtime</dt><dd class="tabular" id="gradle-java-label">-</dd></div>
-                <div><dt data-i18n="system.modJar">Vanilla Files</dt><dd id="gradle-jar-status">-</dd></div>
-                <div><dt data-i18n="system.workDir">Vanilla Cache Directory</dt><dd class="tabular mono-wrap" id="gradle-dir-label">-</dd></div>
-                <div><dt data-i18n="system.savesDir">Saves Directory (saves)</dt><dd class="tabular mono-wrap" id="gradle-saves-dir">-</dd></div>
-              </dl>
-              <div class="form-actions tight-top" id="system-java-actions">
-                <button class="btn-primary btn-sm" type="button" id="btn-system-install-java" data-i18n="system.installJavaBtn" hidden>
-                  Auto-Install Java 21 (Temurin)
-                </button>
-                <button class="btn-secondary btn-sm" type="button" id="btn-system-recheck-java" data-i18n="system.rescanJavaBtn">
-                  Rescan Java 21
-                </button>
-                <button class="btn-secondary btn-sm" type="button" id="btn-system-open-java" data-i18n="system.openJavaBtn">
-                  Adoptium JDK 21 Page
-                </button>
-              </div>
-
-              <div class="section-head spaced-top-sm">
                 <h2 data-i18n="servers.title">Local servers (1.21.4 · Protocol 769)</h2>
                 <span data-i18n="servers.tag">SLP &amp; QUICK PLAY</span>
               </div>
-              <p class="muted-copy muted-compact" data-i18n="servers.note">
+              <p class="muted-copy muted-compact" data-i18n="servers.note" hidden>
                 Queries and joins offline-mode (online-mode=false) servers. Servers requiring EncryptionRequest are never bypassed.
               </p>
 
