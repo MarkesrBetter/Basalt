@@ -133,6 +133,10 @@ fn java_executable_name() -> &'static str {
     if cfg!(windows) { "java.exe" } else { "java" }
 }
 
+fn compiler_executable_name() -> &'static str {
+    if cfg!(windows) { "javac.exe" } else { "javac" }
+}
+
 fn parse_java_major(home: &Path) -> Option<(u32, String)> {
     let release_path = home.join("release");
     if let Ok(content) = fs::read_to_string(release_path) {
@@ -173,8 +177,12 @@ pub fn evaluate_jdk_candidates(candidates: &[PathBuf]) -> JavaDiscovery {
         let Some((major, label)) = parse_java_major(dir) else {
             continue;
         };
-        if major >= 21 {
-            let score = if major == 21 { 1000 } else { 500 + major };
+        let has_javac = dir.join("bin").join(compiler_executable_name()).is_file();
+        // Sponge Mixin 0.17.5 CompatibilityLevel tops out at JAVA_25; prefer full JDK 21 LTS.
+        if (21..=25).contains(&major) {
+            let jdk_bonus = if has_javac { 2000 } else { 0 };
+            let version_score = if major == 21 { 1000 } else { 500 + (30 - major) };
+            let score = jdk_bonus + version_score;
             if best_21.as_ref().is_none_or(|(b_score, _, _)| score > *b_score) {
                 best_21 = Some((score, strip_verbatim_prefix(dir.clone()), label));
             }
@@ -504,9 +512,118 @@ pub fn compute_file_sha256_hex(path: &Path) -> Result<String, String> {
         .map_err(|e| format!("Failed to compute SHA-256: {e}"))
 }
 
+fn is_gradle_footer_boilerplate(line: &str) -> bool {
+    let s = line.trim();
+    s.is_empty()
+        || s == "* Try:"
+        || s.starts_with("> Run with --info")
+        || s.starts_with("> Run with --debug")
+        || s.starts_with("> Run with --scan")
+        || s.starts_with("> Get more help at https://help.gradle.org")
+        || s.starts_with("BUILD FAILED in ")
+        || (s.contains("actionable task") && (s.contains("executed") || s.contains("up-to-date")))
+}
+
+fn is_high_signal_error_line(line: &str) -> bool {
+    let s = line.trim();
+    s.starts_with("Caused by:")
+        || s.starts_with("Exception in thread")
+        || s.starts_with("FAILURE:")
+        || s.starts_with("ERROR:")
+        || s.contains("Error:")
+        || s.contains("Exception:")
+        || s.contains("OutOfMemoryError")
+        || s.contains("UnsupportedClassVersionError")
+        || s.contains("NoClassDefFoundError")
+        || s.contains("MixinError")
+        || s.contains("MixinInitialisationError")
+        || s.contains("MixinApplyError")
+        || s.contains("InvalidMixinException")
+        || s.contains("GLFW error")
+        || s.contains("WGL:")
+        || s.contains("Pixel format not accelerated")
+        || s.contains("[main/ERROR]")
+        || s.contains("[main/FATAL]")
+        || s.contains("[Render thread/ERROR]")
+        || s.contains("Could not reserve enough space")
+}
+
+fn push_unique_line(picks: &mut Vec<String>, raw: &str) {
+    let clean = raw.trim().to_string();
+    if !clean.is_empty() && !picks.contains(&clean) {
+        picks.push(clean);
+    }
+}
+
+/// Extracts the most informative error summary from Gradle/Minecraft output instead of returning
+/// Gradle's generic `--info / --scan / help.gradle.org` footer.
+pub fn summarize_process_failure(
+    lines: &[String],
+    exit_code: Option<i32>,
+    log_path: Option<&Path>,
+) -> String {
+    let mut picks: Vec<String> = Vec::new();
+
+    for line in lines.iter().rev() {
+        if is_gradle_footer_boilerplate(line) {
+            continue;
+        }
+        if is_high_signal_error_line(line) {
+            push_unique_line(&mut picks, line);
+            if picks.len() >= 3 {
+                break;
+            }
+        }
+    }
+    picks.reverse();
+
+    if let Some(pos) = lines.iter().rposition(|l| l.trim() == "* What went wrong:") {
+        for next in lines.iter().skip(pos + 1).take(4) {
+            let trimmed = next.trim();
+            if is_gradle_footer_boilerplate(trimmed) {
+                break;
+            }
+            if !trimmed.is_empty() && picks.len() < 5 {
+                push_unique_line(&mut picks, trimmed);
+            }
+        }
+    }
+
+    if picks.is_empty() {
+        for line in lines.iter().rev() {
+            if !is_gradle_footer_boilerplate(line) {
+                push_unique_line(&mut picks, line);
+                if picks.len() >= 5 {
+                    break;
+                }
+            }
+        }
+        picks.reverse();
+    }
+
+    let mut summary = if picks.is_empty() {
+        format!(
+            "Gradle / Minecraft process exited with error status (code: {}).",
+            exit_code
+                .map(|c| c.to_string())
+                .unwrap_or_else(|| "none".into())
+        )
+    } else {
+        picks.join(" | ")
+    };
+
+    if let Some(path) = log_path {
+        summary.push_str(&format!(" (Full log: {})", path.display()));
+    }
+    summary
+}
+
 #[cfg(test)]
 mod sha256_tests {
-    use super::compute_sha256_hex;
+    use std::fs;
+    use std::path::PathBuf;
+
+    use super::{compute_sha256_hex, evaluate_jdk_candidates, summarize_process_failure};
 
     #[test]
     fn matches_fips_180_4_vectors() {
@@ -518,5 +635,54 @@ mod sha256_tests {
             compute_sha256_hex(&b"abc"[..]).unwrap(),
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
+    }
+
+    #[test]
+    fn summarizes_root_cause_instead_of_gradle_footer() {
+        let lines: Vec<String> = vec![
+            "Caused by: java.lang.UnsupportedClassVersionError: bad version".into(),
+            "\tat org.spongepowered.asm.mixin.transformer.MixinProcessor.selectConfigs(MixinProcessor.java:545)".into(),
+            "FAILURE: Build failed with an exception.".into(),
+            "* What went wrong:".into(),
+            "Execution failed for task ':runClient'.".into(),
+            "> Process 'command java.exe' finished with non-zero exit value 1".into(),
+            "* Try:".into(),
+            "> Run with --info or --debug option to get more log output.".into(),
+            "> Run with --scan to get full insights from a Build Scan (powered by Develocity).".into(),
+            "> Get more help at https://help.gradle.org.".into(),
+            "BUILD FAILED in 17s".into(),
+            "9 actionable tasks: 1 executed, 8 up-to-date".into(),
+        ];
+        let summary = summarize_process_failure(
+            &lines,
+            Some(1),
+            Some(PathBuf::from("C:\\Logs\\last-launch.log").as_path()),
+        );
+        assert!(summary.contains("UnsupportedClassVersionError"));
+        assert!(summary.contains("Execution failed for task ':runClient'."));
+        assert!(!summary.contains("--scan"));
+        assert!(!summary.contains("help.gradle.org"));
+        assert!(summary.contains("last-launch.log"));
+    }
+
+    #[test]
+    fn prefers_java21_and_ignores_unsupported_jdk26() {
+        let tmp = std::env::temp_dir().join("basalt_jdk_probe_test");
+        let _ = fs::remove_dir_all(&tmp);
+        let j21 = tmp.join("jdk-21");
+        let j26 = tmp.join("jdk-26");
+        for (dir, ver) in [(&j21, "21.0.5"), (&j26, "26.0.1")] {
+            fs::create_dir_all(dir.join("bin")).unwrap();
+            let java_bin = if cfg!(windows) { "java.exe" } else { "java" };
+            let javac_bin = if cfg!(windows) { "javac.exe" } else { "javac" };
+            fs::write(dir.join("bin").join(java_bin), b"").unwrap();
+            fs::write(dir.join("bin").join(javac_bin), b"").unwrap();
+            fs::write(dir.join("release"), format!("JAVA_VERSION=\"{ver}\"\n")).unwrap();
+        }
+        let disc = evaluate_jdk_candidates(&[j26.clone(), j21.clone()]);
+        assert_eq!(disc.java21.unwrap().1, "21.0.5");
+        let disc_26_only = evaluate_jdk_candidates(&[j26]);
+        assert!(disc_26_only.java21.is_none());
+        let _ = fs::remove_dir_all(&tmp);
     }
 }

@@ -45,7 +45,7 @@ interface ServerCheckState {
 }
 
 const VALID_USERNAME_RE = /^[A-Za-z0-9_-]{1,16}$/;
-const MAX_LOG_LINES = 60;
+const MAX_LOG_LINES = 400;
 
 const THEME_ORDER: readonly ThemeMode[] = [
   "Dark",

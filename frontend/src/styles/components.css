@@ -846,7 +846,7 @@ input[type="checkbox"].switch:checked::after {
 
 .gradle-log-box {
   margin-top: 0.65rem;
-  max-height: 7.5rem;
+  max-height: 12rem;
   overflow-y: auto;
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--border-subtle);

@@ -19,7 +19,7 @@ pub fn sync_minecraft_options(run_dir: &Path, gfx: &GraphicsSettings) -> Result<
 
     let fov_val = format!("{:.4}", fov_degrees_to_options_value(gfx.fov_degrees));
     let sens_val = format!("{:.4}", gfx.mouse_sensitivity.clamp(0.0, 1.0));
-    let graphics_mode = if gfx.fancy_graphics { "fancy" } else { "fast" };
+    let graphics_mode = if gfx.fancy_graphics { "1" } else { "0" };
 
     let managed: [(&str, String); 9] = [
         ("renderDistance", gfx.render_distance.clamp(2, 32).to_string()),
@@ -69,4 +69,29 @@ pub fn sync_minecraft_options(run_dir: &Path, gfx: &GraphicsSettings) -> Result<
 
     fs::write(&options_path, output)
         .map_err(|e| format!("Failed to write Minecraft options.txt: {e}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::sync_minecraft_options;
+    use crate::config::GraphicsSettings;
+
+    #[test]
+    fn writes_numeric_graphics_mode_for_1_21_4() {
+        let dir = std::env::temp_dir().join("basalt_options_txt_test");
+        let _ = fs::remove_dir_all(&dir);
+        let mut gfx = GraphicsSettings::default();
+        gfx.fancy_graphics = true;
+        sync_minecraft_options(&dir, &gfx).unwrap();
+        let written = fs::read_to_string(dir.join("options.txt")).unwrap();
+        assert!(written.contains("graphicsMode:1\n"));
+
+        gfx.fancy_graphics = false;
+        sync_minecraft_options(&dir, &gfx).unwrap();
+        let written_fast = fs::read_to_string(dir.join("options.txt")).unwrap();
+        assert!(written_fast.contains("graphicsMode:0\n"));
+        let _ = fs::remove_dir_all(&dir);
+    }
 }

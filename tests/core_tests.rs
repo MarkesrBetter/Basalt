@@ -128,7 +128,7 @@ fn options_txt_sync_preserves_custom_lines() {
     assert!(written.contains("key_key.attack:key.mouse.left\n"));
     assert!(written.contains("renderDistance:14\n"));
     assert!(written.contains("simulationDistance:10\n"));
-    assert!(written.contains("graphicsMode:fast\n"));
+    assert!(written.contains("graphicsMode:0\n"));
     assert!(written.contains("ao:false\n"));
     assert!(written.contains("maxFps:180\n"));
     assert!(written.contains("enableVsync:false\n"));

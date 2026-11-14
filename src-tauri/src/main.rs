@@ -1,8 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::collections::VecDeque;
-use std::fs;
-use std::io::{BufRead, BufReader};
+use std::fs::{self, File};
+use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -22,7 +22,7 @@ use basalt::config::{
 use basalt::gradle::{
     GradleEnvStatus, LaunchEnvConfig, build_launch_env, compute_file_sha256_hex,
     discover_java21_home_with_runtime, inspect_gradle_environment_with_runtime,
-    resolve_or_extract_gradle_workspace,
+    resolve_or_extract_gradle_workspace, summarize_process_failure,
 };
 use basalt::hardware::HardwareProfile;
 use basalt::options_txt::sync_minecraft_options;
@@ -273,6 +273,10 @@ fn spawn_gradle_command(
         "BASALT_SKIN_MODEL",
         "BASALT_QUICK_PLAY_SP",
         "BASALT_QUICK_PLAY_MP",
+        "_JAVA_OPTIONS",
+        "JAVA_TOOL_OPTIONS",
+        "JAVA_OPTS",
+        "GRADLE_OPTS",
     ] {
         cmd.env_remove(key);
     }
@@ -285,6 +289,46 @@ fn spawn_gradle_command(
         .map_err(|e| format!("Failed to start Gradle process: {e}"))
 }
 
+fn spawn_log_reader<R: std::io::Read + Send + 'static>(
+    stream: Option<R>,
+    is_err: bool,
+    app: tauri::AppHandle,
+    tail: Arc<Mutex<VecDeque<String>>>,
+    file_writer: Arc<Mutex<Option<BufWriter<File>>>>,
+) -> Option<thread::JoinHandle<()>> {
+    stream.map(|s| {
+        thread::spawn(move || {
+            let reader = BufReader::new(s);
+            for line in reader.lines().map_while(Result::ok) {
+                let trimmed = line.trim_end().to_string();
+                if trimmed.is_empty() {
+                    continue;
+                }
+                if let Ok(mut guard) = file_writer.lock()
+                    && let Some(ref mut w) = *guard
+                {
+                    let prefix = if is_err { "[ERR] " } else { "" };
+                    let _ = writeln!(w, "{prefix}{trimmed}");
+                    let _ = w.flush();
+                }
+                if let Ok(mut buf) = tail.lock() {
+                    if buf.len() >= 240 {
+                        buf.pop_front();
+                    }
+                    buf.push_back(trimmed.clone());
+                }
+                let _ = app.emit(
+                    "basalt://launch-log",
+                    LaunchLogPayload {
+                        line: trimmed,
+                        is_err,
+                    },
+                );
+            }
+        })
+    })
+}
+
 fn monitor_child_process(
     app: tauri::AppHandle,
     mut child: Child,
@@ -293,63 +337,31 @@ fn monitor_child_process(
     gradle_dir: PathBuf,
     saves_dir: PathBuf,
     runtime_dir: PathBuf,
+    log_file: PathBuf,
 ) {
     thread::spawn(move || {
-        let tail = Arc::new(Mutex::new(VecDeque::<String>::with_capacity(48)));
+        let tail = Arc::new(Mutex::new(VecDeque::<String>::with_capacity(240)));
+        if let Some(parent) = log_file.parent() {
+            let _ = fs::create_dir_all(parent);
+        }
+        let log_created = File::create(&log_file).ok().map(BufWriter::new);
+        let log_available = log_created.is_some();
+        let file_writer = Arc::new(Mutex::new(log_created));
 
-        let out_handle = child.stdout.take().map(|stdout| {
-            let app_c = app.clone();
-            let tail_c = Arc::clone(&tail);
-            thread::spawn(move || {
-                let reader = BufReader::new(stdout);
-                for line in reader.lines().map_while(Result::ok) {
-                    let trimmed = line.trim_end().to_string();
-                    if trimmed.is_empty() {
-                        continue;
-                    }
-                    if let Ok(mut buf) = tail_c.lock() {
-                        if buf.len() >= 48 {
-                            buf.pop_front();
-                        }
-                        buf.push_back(trimmed.clone());
-                    }
-                    let _ = app_c.emit(
-                        "basalt://launch-log",
-                        LaunchLogPayload {
-                            line: trimmed,
-                            is_err: false,
-                        },
-                    );
-                }
-            })
-        });
-
-        let err_handle = child.stderr.take().map(|stderr| {
-            let app_c = app.clone();
-            let tail_c = Arc::clone(&tail);
-            thread::spawn(move || {
-                let reader = BufReader::new(stderr);
-                for line in reader.lines().map_while(Result::ok) {
-                    let trimmed = line.trim_end().to_string();
-                    if trimmed.is_empty() {
-                        continue;
-                    }
-                    if let Ok(mut buf) = tail_c.lock() {
-                        if buf.len() >= 48 {
-                            buf.pop_front();
-                        }
-                        buf.push_back(trimmed.clone());
-                    }
-                    let _ = app_c.emit(
-                        "basalt://launch-log",
-                        LaunchLogPayload {
-                            line: trimmed,
-                            is_err: true,
-                        },
-                    );
-                }
-            })
-        });
+        let out_handle = spawn_log_reader(
+            child.stdout.take(),
+            false,
+            app.clone(),
+            Arc::clone(&tail),
+            Arc::clone(&file_writer),
+        );
+        let err_handle = spawn_log_reader(
+            child.stderr.take(),
+            true,
+            app.clone(),
+            Arc::clone(&tail),
+            Arc::clone(&file_writer),
+        );
 
         let status_res = child.wait();
         if let Some(h) = out_handle {
@@ -357,6 +369,11 @@ fn monitor_child_process(
         }
         if let Some(h) = err_handle {
             let _ = h.join();
+        }
+        if let Ok(mut guard) = file_writer.lock()
+            && let Some(mut w) = guard.take()
+        {
+            let _ = w.flush();
         }
 
         if let Ok(mut guard) = running_arc.lock() {
@@ -372,29 +389,16 @@ fn monitor_child_process(
                 if status.success() {
                     (code, None)
                 } else {
-                    let snippet = tail
+                    let captured: Vec<String> = tail
                         .lock()
                         .ok()
-                        .map(|buf| {
-                            buf.iter()
-                                .rev()
-                                .take(5)
-                                .cloned()
-                                .collect::<Vec<_>>()
-                                .into_iter()
-                                .rev()
-                                .collect::<Vec<_>>()
-                                .join(" | ")
-                        })
+                        .map(|buf| buf.iter().cloned().collect())
                         .unwrap_or_default();
-                    let msg = if snippet.is_empty() {
-                        format!(
-                            "Gradle / Minecraft process exited with error status (code: {}).",
-                            code.map(|c| c.to_string()).unwrap_or_else(|| "none".into())
-                        )
-                    } else {
-                        snippet
-                    };
+                    let msg = summarize_process_failure(
+                        &captured,
+                        code,
+                        log_available.then_some(log_file.as_path()),
+                    );
                     (code, Some(msg))
                 }
             }
@@ -1128,6 +1132,7 @@ fn prepare_gradle_client(
         state.gradle_dir.clone(),
         state.saves_dir(),
         state.paths.runtime_dir.clone(),
+        state.paths.root_dir.join("logs").join("last-launch.log"),
     );
 
     Ok(session)
@@ -1245,6 +1250,7 @@ fn launch_client(
         state.gradle_dir.clone(),
         state.saves_dir(),
         state.paths.runtime_dir.clone(),
+        state.paths.root_dir.join("logs").join("last-launch.log"),
     );
 
     Ok(session)

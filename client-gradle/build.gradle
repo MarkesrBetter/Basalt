@@ -37,6 +37,9 @@ loom {
 				vmArg("-Xms${xms}M")
 			}
 
+			vmArg("-Dfile.encoding=UTF-8")
+			vmArg("-XX:+IgnoreUnrecognizedVMOptions")
+
 			def jvmGc = providers.environmentVariable("BASALT_JVM_GC").orNull
 			if ("ZGC".equalsIgnoreCase(jvmGc)) {
 				vmArg("-XX:+UseZGC")
