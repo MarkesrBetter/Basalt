@@ -1,0 +1,29 @@
+# Rust & Cargo build outputs (contains compiled binaries and crates cache)
+/target/
+**/target/
+**/*.rs.bk
+
+# Frontend dependencies & Vite bundle (dist is rebuilt at compile time)
+/frontend/node_modules/
+/frontend/dist/
+
+# Gradle, Fabric Loom & Minecraft runtime directories (NEVER commit Mojang jars, assets, or user saves)
+/client-gradle/.gradle/
+/client-gradle/build/
+/client-gradle/run/
+/client-gradle/bin/
+**/.gradle/
+
+# Website binary downloads belong in GitHub Releases, not Git commits
+/site/*.exe
+/site/*.zip
+
+# IDE, OS and logs
+.idea/
+.vscode/
+.settings/
+*.iml
+*.log
+.DS_Store
+Thumbs.db
+*.tmp

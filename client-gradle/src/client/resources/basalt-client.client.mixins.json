@@ -1,0 +1,11 @@
+{
+	"required": true,
+	"package": "dev.basalt.client.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"LocalPlayerSkinMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

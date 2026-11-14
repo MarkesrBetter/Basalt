@@ -1,0 +1,35 @@
+[workspace]
+members = [".", "src-tauri"]
+resolver = "2"
+
+[package]
+name = "basalt"
+version = "0.1.0"
+edition = "2024"
+description = "Basalt native Rust core powering Gradle Fabric 1.21.4 Minecraft launcher, hardware tuning, skin validation, and SLP diagnostics"
+
+[dependencies]
+# Hardware GPU detection (headless adapter enumeration only)
+wgpu = "29.0"
+pollster = "0.4"
+
+# Skin validation, serialization, compression & system info
+image = { version = "0.25", default-features = false, features = ["png"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+flate2 = "1.1"
+sysinfo = "0.38"
+directories = "6.0"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

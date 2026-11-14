@@ -1,0 +1,3060 @@
+<!doctype html>
+<html lang="tr" data-theme="dark" data-corner="balanced">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Basalt · Minecraft 1.21.4 Yerli Masaüstü Başlatıcısı</title>
+  <meta name="description" content="Donanımına göre otomatik FPS ve bellek ayarı yapan, 10 mineral temalı ve Konsol Modlu Windows Minecraft 1.21.4 Fabric başlatıcısı." />
+  <link
+    rel="icon"
+    type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpolygon points='16,3 28,9.5 16,16 4,9.5' fill='%23a47cff'/%3E%3Cpolygon points='4,10.5 15.5,16.8 15.5,28.5 4,22' fill='%23433a59'/%3E%3Cpolygon points='28,10.5 16.5,16.8 16.5,28.5 28,22' fill='%232f2840'/%3E%3C/svg%3E"
+  />
+  <style>
+    :root,
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg-canvas: #131118;
+      --bg-rail: #18151f;
+      --bg-surface: #201c29;
+      --bg-surface-alt: #272233;
+      --bg-hover: #2f293d;
+      --border-subtle: #39314a;
+      --border-control: #766991;
+      --text: #f4f1fa;
+      --text-muted: #c2b8d6;
+      --text-subtle: #ada1c6;
+      --accent: #a47cff;
+      --accent-hover: #b594ff;
+      --accent-text: #0e091b;
+      --accent-fg: #b898ff;
+      --accent-soft: rgba(164, 124, 255, 0.16);
+      --focus-ring: #cebaff;
+      --brand-left: #433a59;
+      --brand-right: #2f2840;
+      --success: #7fd6a3;
+      --warning: #f2b763;
+      --danger: #ff9e99;
+      --shadow-frame: 0 22px 48px rgba(3, 2, 8, 0.56);
+    }
+
+    :root[data-theme="ember"] {
+      color-scheme: dark;
+      --bg-canvas: #121417;
+      --bg-rail: #171a1e;
+      --bg-surface: #1d2127;
+      --bg-surface-alt: #232830;
+      --bg-hover: #292f39;
+      --border-subtle: #2f3641;
+      --border-control: #6b7787;
+      --text: #f1f3f5;
+      --text-muted: #b6c0cc;
+      --text-subtle: #9faab8;
+      --accent: #e0824a;
+      --accent-hover: #ec935e;
+      --accent-text: #140b06;
+      --accent-fg: #eb9560;
+      --accent-soft: rgba(224, 130, 74, 0.15);
+      --focus-ring: #f2ad7e;
+      --brand-left: #3a414c;
+      --brand-right: #282d35;
+      --success: #82d19e;
+      --warning: #f3b363;
+      --danger: #ff9e99;
+      --shadow-frame: 0 22px 48px rgba(0, 0, 0, 0.5);
+    }
+
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg-canvas: #f3f1ec;
+      --bg-rail: #eae7e0;
+      --bg-surface: #ffffff;
+      --bg-surface-alt: #f7f5f0;
+      --bg-hover: #ece9e1;
+      --border-subtle: #d5cfc4;
+      --border-control: #7d776d;
+      --text: #17191c;
+      --text-muted: #474d56;
+      --text-subtle: #555d67;
+      --accent: #b34c19;
+      --accent-hover: #9d4113;
+      --accent-text: #ffffff;
+      --accent-fg: #9f4213;
+      --accent-soft: rgba(179, 76, 25, 0.11);
+      --focus-ring: #b34c19;
+      --brand-left: #8c867a;
+      --brand-right: #6d675d;
+      --success: #1b693f;
+      --warning: #8f4b00;
+      --danger: #b42318;
+      --shadow-frame: 0 18px 40px rgba(23, 25, 28, 0.11);
+    }
+
+    :root[data-theme="spruce"] {
+      color-scheme: dark;
+      --bg-canvas: #101613;
+      --bg-rail: #141c18;
+      --bg-surface: #1a241f;
+      --bg-surface-alt: #202c26;
+      --bg-hover: #25332c;
+      --border-subtle: #2b3a32;
+      --border-control: #637a6d;
+      --text: #eef4f0;
+      --text-muted: #b4c6bc;
+      --text-subtle: #9cb2a6;
+      --accent: #56c27e;
+      --accent-hover: #6dd090;
+      --accent-text: #08170e;
+      --accent-fg: #68cf8d;
+      --accent-soft: rgba(86, 194, 126, 0.15);
+      --focus-ring: #8be0aa;
+      --brand-left: #2b4437;
+      --brand-right: #1f3328;
+      --success: #74d695;
+      --warning: #f0b860;
+      --danger: #ff9e99;
+      --shadow-frame: 0 22px 48px rgba(0, 0, 0, 0.5);
+    }
+
+    :root[data-theme="cobalt"] {
+      color-scheme: dark;
+      --bg-canvas: #0f141c;
+      --bg-rail: #141b25;
+      --bg-surface: #1a2230;
+      --bg-surface-alt: #212b3b;
+      --bg-hover: #263244;
+      --border-subtle: #2c384b;
+      --border-control: #657891;
+      --text: #eff3f9;
+      --text-muted: #b3c1d4;
+      --text-subtle: #9badc4;
+      --accent: #53b8ec;
+      --accent-hover: #6cc6f3;
+      --accent-text: #06141d;
+      --accent-fg: #67c3f0;
+      --accent-soft: rgba(83, 184, 236, 0.15);
+      --focus-ring: #90d7f9;
+      --brand-left: #2b3d54;
+      --brand-right: #1f2d40;
+      --success: #79d49d;
+      --warning: #f2b763;
+      --danger: #ff9e99;
+      --shadow-frame: 0 22px 48px rgba(0, 0, 0, 0.52);
+    }
+
+    :root[data-theme="nether"] {
+      color-scheme: dark;
+      --bg-canvas: #161113;
+      --bg-rail: #1c1518;
+      --bg-surface: #241b1f;
+      --bg-surface-alt: #2c2126;
+      --bg-hover: #34272d;
+      --border-subtle: #3d2d34;
+      --border-control: #806871;
+      --text: #f5eff1;
+      --text-muted: #cbb7be;
+      --text-subtle: #b49da5;
+      --accent: #ea6b66;
+      --accent-hover: #f1827d;
+      --accent-text: #1a0707;
+      --accent-fg: #f2817d;
+      --accent-soft: rgba(234, 107, 102, 0.15);
+      --focus-ring: #f7a29f;
+      --brand-left: #4b313a;
+      --brand-right: #352128;
+      --success: #7dd39d;
+      --warning: #f3b562;
+      --danger: #ff9e99;
+      --shadow-frame: 0 22px 48px rgba(0, 0, 0, 0.52);
+    }
+
+    :root[data-theme="frost"] {
+      color-scheme: light;
+      --bg-canvas: #edf2f7;
+      --bg-rail: #e2e9f1;
+      --bg-surface: #ffffff;
+      --bg-surface-alt: #f4f7fb;
+      --bg-hover: #e7eef6;
+      --border-subtle: #ccd6e3;
+      --border-control: #738296;
+      --text: #121821;
+      --text-muted: #435061;
+      --text-subtle: #4f5e70;
+      --accent: #1d5fb8;
+      --accent-hover: #164e9a;
+      --accent-text: #ffffff;
+      --accent-fg: #1853a3;
+      --accent-soft: rgba(29, 95, 184, 0.11);
+      --focus-ring: #1d5fb8;
+      --brand-left: #7e8da1;
+      --brand-right: #5e6d82;
+      --success: #186b3f;
+      --warning: #8f4b00;
+      --danger: #b42318;
+      --shadow-frame: 0 18px 40px rgba(18, 24, 33, 0.1);
+    }
+
+    :root[data-theme="sculk"] {
+      color-scheme: dark;
+      --bg-canvas: #0b1116;
+      --bg-rail: #10171d;
+      --bg-surface: #151f27;
+      --bg-surface-alt: #1b2731;
+      --bg-hover: #202f3b;
+      --border-subtle: #243642;
+      --border-control: #577587;
+      --text: #ecf5f7;
+      --text-muted: #aec7ce;
+      --text-subtle: #97b3bc;
+      --accent: #35cad0;
+      --accent-hover: #52d7dc;
+      --accent-text: #051618;
+      --accent-fg: #4fd8dd;
+      --accent-soft: rgba(53, 202, 208, 0.15);
+      --focus-ring: #7de6ea;
+      --brand-left: #223b45;
+      --brand-right: #162930;
+      --success: #6ad9a6;
+      --warning: #f1b860;
+      --danger: #ff9e99;
+      --shadow-frame: 0 22px 48px rgba(0, 0, 0, 0.56);
+    }
+
+    :root[data-theme="end"] {
+      color-scheme: dark;
+      --bg-canvas: #15151b;
+      --bg-rail: #1b1b23;
+      --bg-surface: #22222d;
+      --bg-surface-alt: #2a2a37;
+      --bg-hover: #323241;
+      --border-subtle: #3d3c4e;
+      --border-control: #76748f;
+      --text: #f6f4ef;
+      --text-muted: #c6c3ba;
+      --text-subtle: #b1aea5;
+      --accent: #e4be52;
+      --accent-hover: #edd074;
+      --accent-text: #191405;
+      --accent-fg: #ecd075;
+      --accent-soft: rgba(228, 190, 82, 0.15);
+      --focus-ring: #f4df9a;
+      --brand-left: #474454;
+      --brand-right: #312f3d;
+      --success: #82d69f;
+      --warning: #f4bd60;
+      --danger: #ff9e99;
+      --shadow-frame: 0 22px 48px rgba(0, 0, 0, 0.52);
+    }
+
+    :root[data-theme="cherry"] {
+      color-scheme: light;
+      --bg-canvas: #f7f0f3;
+      --bg-rail: #eee3e8;
+      --bg-surface: #ffffff;
+      --bg-surface-alt: #fbf6f8;
+      --bg-hover: #f1e6eb;
+      --border-subtle: #dfc9d3;
+      --border-control: #8c6d7b;
+      --text: #1f1419;
+      --text-muted: #54414a;
+      --text-subtle: #5f4b54;
+      --accent: #a3295d;
+      --accent-hover: #8a1f4c;
+      --accent-text: #ffffff;
+      --accent-fg: #8f204f;
+      --accent-soft: rgba(163, 41, 93, 0.11);
+      --focus-ring: #a3295d;
+      --brand-left: #967785;
+      --brand-right: #765966;
+      --success: #1b6d41;
+      --warning: #8f4b00;
+      --danger: #b42318;
+      --shadow-frame: 0 18px 40px rgba(45, 16, 29, 0.1);
+    }
+
+    :root[data-corner="sharp"] {
+      --radius-sm: 2px;
+      --radius-md: 3px;
+      --radius-lg: 4px;
+    }
+
+    :root,
+    :root[data-corner="balanced"] {
+      --radius-sm: 5px;
+      --radius-md: 8px;
+      --radius-lg: 11px;
+    }
+
+    :root[data-corner="soft"] {
+      --radius-sm: 9px;
+      --radius-md: 13px;
+      --radius-lg: 18px;
+    }
+
+    :root {
+      --font-sans: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+      --font-mono: "Consolas", ui-monospace, monospace;
+      --container-w: 1220px;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+      *,
+      *::before,
+      *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+      }
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--bg-canvas);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.55;
+      overflow-x: hidden;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.92em;
+      background: var(--bg-surface-alt);
+      border: 1px solid var(--border-subtle);
+      border-radius: 3px;
+      padding: 1px 5px;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    button,
+    input {
+      font: inherit;
+      color: inherit;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 2px;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      padding: 10px 16px;
+      background: var(--accent);
+      color: var(--accent-text);
+      font-weight: 700;
+      text-decoration: none;
+      z-index: 200;
+    }
+
+    .skip-link:focus {
+      left: 12px;
+      top: 12px;
+    }
+
+    .svg-sprite {
+      position: absolute;
+      width: 0;
+      height: 0;
+      overflow: hidden;
+    }
+
+    .ico {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.9;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex: none;
+    }
+
+    .wrap {
+      width: min(100% - 40px, var(--container-w));
+      margin-inline: auto;
+    }
+
+    /* Ust gezinti cubugu */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 80;
+      background: var(--bg-canvas);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .header-inner {
+      min-height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+      padding-block: 10px;
+    }
+
+    .brand-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      text-decoration: none;
+      min-height: 44px;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      flex: none;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 750;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-tag {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-subtle);
+      border-left: 1px solid var(--border-subtle);
+      padding-left: 10px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      padding: 10px 12px;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: var(--radius-sm);
+    }
+
+    .nav-links a:hover {
+      background: var(--bg-hover);
+      color: var(--text);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      font-size: 14px;
+      font-weight: 650;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 120ms ease;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--accent-text);
+      border-color: var(--accent);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface);
+      color: var(--text);
+      border-color: var(--border-control);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border-color: var(--border-subtle);
+    }
+
+    .btn-ghost:hover {
+      background: var(--bg-surface);
+      color: var(--text);
+    }
+
+    /* 1. Sahne: Urun Vitrini */
+    .hero {
+      padding-block: 44px 56px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(300px, 0.88fr) minmax(360px, 1.12fr);
+      gap: 36px;
+      align-items: center;
+    }
+
+    .hero-meta-line {
+      font-size: 13px;
+      font-weight: 650;
+      color: var(--accent-fg);
+      margin: 0 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .mineral-dot {
+      width: 10px;
+      height: 10px;
+      background: var(--accent);
+      border-radius: 2px;
+      display: inline-block;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      font-size: clamp(32px, 4.1vw, 50px);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      font-weight: 800;
+    }
+
+    .hero-lead {
+      margin: 0 0 26px;
+      font-size: 17px;
+      color: var(--text-muted);
+      max-width: 52ch;
+    }
+
+    .hero-cta-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .hero-facts {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 18px;
+    }
+
+    .fact-item dt {
+      font-size: 12px;
+      color: var(--text-subtle);
+      font-weight: 600;
+    }
+
+    .fact-item dd {
+      margin: 2px 0 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Canli Basalt Masaustu Penceresi */
+    .showcase-shell {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .app-frame {
+      background: var(--bg-rail);
+      border: 1px solid var(--border-control);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-frame);
+      overflow: hidden;
+    }
+
+    .app-frame-bar {
+      height: 38px;
+      padding: 0 8px 0 12px;
+      background: var(--bg-rail);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .app-frame-id {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .win-controls {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .win-btn {
+      width: 34px;
+      height: 28px;
+      border: 0;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .win-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text);
+    }
+
+    .win-btn--close:hover {
+      background: var(--danger);
+      color: #160909;
+    }
+
+    .app-body {
+      min-height: 368px;
+      background: var(--bg-canvas);
+      display: grid;
+      grid-template-columns: 162px 1fr;
+    }
+
+    .app-body[data-mock-layout="topbar"] {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+    }
+
+    .app-body[data-mock-layout="right-rail"] {
+      grid-template-columns: 1fr 162px;
+    }
+
+    .app-body[data-mock-layout="right-rail"] .mock-nav {
+      order: 2;
+      border-right: 0;
+      border-left: 1px solid var(--border-subtle);
+    }
+
+    .app-body[data-mock-layout="minimal-rail"] {
+      grid-template-columns: 62px 1fr;
+    }
+
+    .app-body[data-mock-layout="compact-deck"] {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+      padding: 12px;
+      gap: 10px;
+    }
+
+    .app-body[data-mock-layout="compact-deck"] .mock-nav {
+      flex-direction: row;
+      border-right: 0;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 6px;
+      justify-content: space-between;
+    }
+
+    .app-body[data-mock-layout="topbar"] .mock-nav {
+      flex-direction: row;
+      align-items: center;
+      border-right: 0;
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 8px 12px;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .mock-nav {
+      background: var(--bg-rail);
+      border-right: 1px solid var(--border-subtle);
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .mock-nav-btn {
+      width: 100%;
+      min-height: 36px;
+      padding: 6px 10px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .app-body[data-mock-layout="topbar"] .mock-nav-btn,
+    .app-body[data-mock-layout="compact-deck"] .mock-nav-btn {
+      width: auto;
+    }
+
+    .app-body[data-mock-layout="minimal-rail"] .mock-nav-btn span {
+      display: none;
+    }
+
+    .app-body[data-mock-layout="minimal-rail"] .mock-nav-btn {
+      justify-content: center;
+      padding: 6px;
+    }
+
+    .mock-nav-btn.is-active {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .mock-nav-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text);
+    }
+
+    .mock-nav-foot {
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 11px;
+      color: var(--text-subtle);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .app-body[data-mock-layout="topbar"] .mock-nav-foot,
+    .app-body[data-mock-layout="compact-deck"] .mock-nav-foot,
+    .app-body[data-mock-layout="minimal-rail"] .mock-nav-foot {
+      display: none;
+    }
+
+    .mock-stage {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      justify-content: space-between;
+    }
+
+    .mock-hero-band {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .mock-kicker {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent-fg);
+      margin: 0 0 4px;
+    }
+
+    .mock-title {
+      margin: 0 0 4px;
+      font-size: 18px;
+      font-weight: 750;
+    }
+
+    .mock-sub {
+      margin: 0;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .mock-launch-btn {
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: var(--radius-sm);
+      border: 0;
+      background: var(--accent);
+      color: var(--accent-text);
+      font-weight: 700;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .mock-launch-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .mock-launch-log {
+      background: var(--bg-surface-alt);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 12px;
+    }
+
+    .mock-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 99px;
+      background: var(--success);
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    .mock-status-dot.is-busy {
+      background: var(--warning);
+    }
+
+    .mock-data-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .mock-panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+    }
+
+    .mock-panel h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .mock-skin-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .skin-canvas {
+      background: var(--bg-surface-alt);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      image-rendering: pixelated;
+      flex: none;
+    }
+
+    .mini-switch-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .mini-pill-btn {
+      min-height: 30px;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface-alt);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      flex: none;
+      cursor: pointer;
+    }
+
+    .mini-pill-btn.is-active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--text);
+    }
+
+    .spec-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding-block: 5px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 12px;
+    }
+
+    .spec-line:last-child {
+      border-bottom: 0;
+    }
+
+    .spec-line span {
+      color: var(--text-muted);
+    }
+
+    .spec-line strong {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 12px;
+    }
+
+    .app-closed-notice {
+      min-height: 220px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      text-align: center;
+      background: var(--bg-canvas);
+    }
+
+    .showcase-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .swatch-strip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .swatch-quick {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border-radius: var(--radius-sm);
+      border: 2px solid var(--border-subtle);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .swatch-quick.is-active {
+      border-color: var(--text);
+      transform: translateY(-1px);
+    }
+
+    .swatch-quick-chip {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      display: block;
+    }
+
+    /* Genel Bolum Iskeleti */
+    .section {
+      padding-block: 60px;
+      border-bottom: 1px solid var(--border-subtle);
+      scroll-margin-top: 82px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+
+    .section-kicker {
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--accent-fg);
+      margin: 0 0 6px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: clamp(24px, 3vw, 34px);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      font-weight: 780;
+    }
+
+    .section-note {
+      margin: 0;
+      color: var(--text-muted);
+      max-width: 50ch;
+      font-size: 15px;
+    }
+
+    /* 2. Bolum: Hiz ve FPS Kalibrasyonu */
+    .speed-bench {
+      display: grid;
+      grid-template-columns: minmax(260px, 0.9fr) minmax(320px, 1.1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .tier-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .tier-btn {
+      width: 100%;
+      min-height: 60px;
+      padding: 12px 16px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .tier-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-control);
+    }
+
+    .tier-btn.is-active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .tier-name {
+      font-size: 15px;
+      font-weight: 700;
+      display: block;
+    }
+
+    .tier-hw {
+      font-size: 13px;
+      color: var(--text-muted);
+      display: block;
+    }
+
+    .tier-gc {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent-fg);
+      flex: none;
+    }
+
+    .calibration-panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 22px;
+    }
+
+    .cal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 16px;
+    }
+
+    .cal-title {
+      margin: 0;
+      font-size: 19px;
+      font-weight: 750;
+    }
+
+    .cal-tag {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent-fg);
+      font-weight: 700;
+    }
+
+    .cal-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .cal-cell {
+      background: var(--bg-surface-alt);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+    }
+
+    .cal-cell-label {
+      font-size: 12px;
+      color: var(--text-subtle);
+      display: block;
+    }
+
+    .cal-cell-val {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
+      margin-top: 2px;
+      display: block;
+    }
+
+    .chunk-meter {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 4px;
+      margin-block: 8px 12px;
+    }
+
+    .chunk-block {
+      height: 12px;
+      border-radius: 2px;
+      background: var(--bg-hover);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .chunk-block.is-on {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .cal-explain {
+      margin: 0;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .speed-strip {
+      margin-top: 26px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-subtle);
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 24px;
+    }
+
+    .strip-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 14px;
+    }
+
+    .strip-list li {
+      border-left: 3px solid var(--accent);
+      padding-left: 14px;
+    }
+
+    .strip-list strong {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 2px;
+    }
+
+    .strip-list span {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .java-box {
+      background: var(--bg-surface-alt);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+    }
+
+    .java-box h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+
+    .java-box p {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .java-steps {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .java-step {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 5px 9px;
+    }
+
+    /* 3. Bolum: Temalar, Renkler ve Duzenler */
+    .studio-grid {
+      display: grid;
+      grid-template-columns: minmax(320px, 1.15fr) minmax(260px, 0.85fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .studio-controls {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .studio-group-title {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .theme-chip {
+      min-height: 48px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface-alt);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .theme-chip:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-control);
+    }
+
+    .theme-chip.is-active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .theme-preview-box {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      border: 1px solid rgba(128, 128, 128, 0.45);
+      display: grid;
+      place-items: center;
+      flex: none;
+    }
+
+    .theme-preview-accent {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      display: block;
+    }
+
+    .theme-chip-name {
+      font-size: 13px;
+      font-weight: 680;
+      display: block;
+      line-height: 1.2;
+    }
+
+    .theme-chip-mode {
+      font-size: 11px;
+      color: var(--text-subtle);
+      display: block;
+    }
+
+    .accent-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .accent-btn {
+      min-height: 44px;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface-alt);
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .accent-btn.is-active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .accent-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    .custom-color-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface-alt);
+    }
+
+    .custom-color-wrap input[type="color"] {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .segment-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .segment-btn {
+      min-height: 44px;
+      padding: 6px 13px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface-alt);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .segment-btn.is-active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--text);
+    }
+
+    .palette-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .token-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding-block: 8px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 13px;
+    }
+
+    .token-row:last-child {
+      border-bottom: 0;
+    }
+
+    .token-val {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .token-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      border: 1px solid var(--border-control);
+      display: inline-block;
+    }
+
+    .contrast-meter {
+      background: var(--bg-surface-alt);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    .contrast-badge {
+      font-family: var(--font-mono);
+      font-weight: 750;
+      color: var(--success);
+    }
+
+    /* 4. Bolum: Tam Ekran Konsol Modu */
+    .console-stage {
+      background: var(--bg-rail);
+      border: 1px solid var(--border-control);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .console-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .console-cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .console-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 128px;
+    }
+
+    .console-card:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-control);
+    }
+
+    .console-card.is-selected {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .console-card-kicker {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent-fg);
+    }
+
+    .console-card-title {
+      font-size: 16px;
+      font-weight: 750;
+    }
+
+    .console-card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .console-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 14px;
+    }
+
+    .sound-test-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .kbd-legend {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: var(--text-subtle);
+    }
+
+    .kbd-pill {
+      font-family: var(--font-mono);
+      border: 1px solid var(--border-control);
+      background: var(--bg-surface);
+      color: var(--text);
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    /* 5. Bolum: Indir ve SSS */
+    .download-grid {
+      display: grid;
+      grid-template-columns: minmax(300px, 1.05fr) minmax(280px, 0.95fr);
+      gap: 28px;
+      align-items: start;
+    }
+
+    .release-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-control);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .release-meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      background: var(--bg-surface-alt);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+    }
+
+    .release-meta span {
+      font-size: 12px;
+      color: var(--text-subtle);
+      display: block;
+    }
+
+    .release-meta strong {
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hash-panel {
+      background: var(--bg-surface-alt);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .hash-code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      word-break: break-all;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .faq-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .faq-item {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 4px 16px;
+    }
+
+    .faq-item summary {
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .faq-item summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .faq-chev {
+      transition: transform 140ms ease;
+      color: var(--text-subtle);
+      flex: none;
+    }
+
+    .faq-item[open] .faq-chev {
+      transform: rotate(90deg);
+      color: var(--accent-fg);
+    }
+
+    .faq-item p {
+      margin: 0 0 14px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .studio-subrow {
+      margin-top: 10px;
+    }
+
+    .toast-note {
+      font-size: 13px;
+      color: var(--success);
+      font-weight: 650;
+      min-height: 20px;
+      margin: 0;
+    }
+
+    .site-footer {
+      padding-block: 28px 40px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .footer-legal {
+      max-width: 58ch;
+      color: var(--text-subtle);
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .speed-bench,
+      .speed-strip,
+      .studio-grid,
+      .download-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .console-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 680px) {
+      .section {
+        scroll-margin-top: 126px;
+      }
+
+      .wrap {
+        width: calc(100% - 28px);
+      }
+
+      .brand-tag {
+        display: none;
+      }
+
+      .header-inner {
+        gap: 10px;
+      }
+
+      .nav-links {
+        order: 3;
+        width: 100%;
+        justify-content: space-between;
+        border-top: 1px solid var(--border-subtle);
+        padding-top: 6px;
+      }
+
+      .nav-links a {
+        padding: 8px 6px;
+        font-size: 13px;
+      }
+
+      .hero {
+        padding-block: 28px 40px;
+      }
+
+      .hero-facts,
+      .mock-data-row,
+      .theme-grid,
+      .release-meta,
+      .cal-metrics,
+      .console-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .app-body {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+
+      .mock-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+        border-right: 0;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .mock-nav-btn {
+        width: auto;
+      }
+
+      .mock-nav-foot {
+        display: none;
+      }
+
+      .mock-hero-band {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <svg class="svg-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="ico-play" viewBox="0 0 24 24">
+      <polygon points="7 5 19 12 7 19 7 5" />
+    </symbol>
+    <symbol id="ico-layers" viewBox="0 0 24 24">
+      <polygon points="12 3 3 8 12 13 21 8 12 3" />
+      <polyline points="3 13 12 18 21 13" />
+      <polyline points="3 17.5 12 22 21 17.5" />
+    </symbol>
+    <symbol id="ico-sliders" viewBox="0 0 24 24">
+      <line x1="4" y1="7" x2="20" y2="7" />
+      <circle cx="9" cy="7" r="2.2" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <circle cx="15" cy="12" r="2.2" />
+      <line x1="4" y1="17" x2="20" y2="17" />
+      <circle cx="8" cy="17" r="2.2" />
+    </symbol>
+    <symbol id="ico-palette" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="9.5" cy="9.5" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="14.5" cy="9.5" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="9.5" cy="14.5" r="1.1" fill="currentColor" stroke="none" />
+    </symbol>
+    <symbol id="ico-gamepad" viewBox="0 0 24 24">
+      <rect x="2.5" y="7" width="19" height="10" rx="3" />
+      <path d="M6.5 12h3M8 10.5v3" />
+      <circle cx="15.5" cy="11" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="17.8" cy="13" r="0.9" fill="currentColor" stroke="none" />
+    </symbol>
+    <symbol id="ico-download" viewBox="0 0 24 24">
+      <path d="M12 4v11" />
+      <polyline points="7 11 12 16 17 11" />
+      <path d="M5 19.5h14" />
+    </symbol>
+    <symbol id="ico-sound" viewBox="0 0 24 24">
+      <polygon points="11 5 6 9 3 9 3 15 6 15 11 19 11 5" />
+      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+    </symbol>
+    <symbol id="ico-sun" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="4.2" />
+      <path d="M12 2.5v2.3M12 19.2v2.3M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2.5 12h2.3M19.2 12h2.3M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6" />
+    </symbol>
+    <symbol id="ico-min" viewBox="0 0 24 24">
+      <line x1="6" y1="12" x2="18" y2="12" />
+    </symbol>
+    <symbol id="ico-max" viewBox="0 0 24 24">
+      <rect x="6" y="6" width="12" height="12" rx="1" />
+    </symbol>
+    <symbol id="ico-close" viewBox="0 0 24 24">
+      <line x1="6" y1="6" x2="18" y2="18" />
+      <line x1="18" y1="6" x2="6" y2="18" />
+    </symbol>
+    <symbol id="ico-chev" viewBox="0 0 24 24">
+      <polyline points="9 6 15 12 9 18" />
+    </symbol>
+  </svg>
+
+  <a class="skip-link" href="#icerik">İçeriğe atla</a>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand-link" href="#top">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <polygon points="16,3 28,9.5 16,16 4,9.5" fill="var(--accent)" />
+          <polygon points="4,10.5 15.5,16.8 15.5,28.5 4,22" fill="var(--brand-left)" />
+          <polygon points="28,10.5 16.5,16.8 16.5,28.5 28,22" fill="var(--brand-right)" />
+        </svg>
+        <span class="brand-title">Basalt</span>
+        <span class="brand-tag">Minecraft 1.21.4</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Sayfa bölümleri">
+        <a href="#hiz-fps">Hız ve FPS</a>
+        <a href="#temalar">Temalar</a>
+        <a href="#konsol-modu">Konsol Modu</a>
+        <a href="#indir">İndir</a>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" class="btn btn-ghost" id="btn-mode-toggle" aria-label="Koyu ve açık tema arasında geç">
+          <svg class="ico" aria-hidden="true"><use href="#ico-sun" /></svg>
+          <span id="mode-toggle-label">Açık Tema</span>
+        </button>
+        <a class="btn btn-primary" id="header-download-cta" href="https://github.com/MarkesrBetter/Basalt/releases/latest/download/basalt.exe" download="basalt.exe">
+          <svg class="ico" aria-hidden="true"><use href="#ico-download" /></svg>
+          <span>İndir</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main id="icerik">
+    <section class="hero" id="top">
+      <div class="wrap hero-grid">
+        <div>
+          <p class="hero-meta-line">
+            <span class="mineral-dot" aria-hidden="true"></span>
+            <span>Minecraft 1.21.4 · Fabric 0.20.1 · Windows 10/11</span>
+          </p>
+          <h1>Oyuna bas, ayarların bekletmesin.</h1>
+          <p class="hero-lead">
+            Basalt; işlemci, bellek ve ekran kartını tanıyıp JVM belleği ile görüş mesafesini otomatik kalibre eden tek dosyalı Windows başlatıcısıdır. Kurulum yapmaz, eksikse Java 21 kurar, 10 mineral teması ve Konsol Modu ile açılır.
+          </p>
+          <div class="hero-cta-row">
+            <a class="btn btn-primary" id="hero-download-cta" href="https://github.com/MarkesrBetter/Basalt/releases/latest/download/basalt.exe" download="basalt.exe">
+              <svg class="ico" aria-hidden="true"><use href="#ico-download" /></svg>
+              <span id="hero-cta-label">GitHub'dan İndir (v0.1.0)</span>
+            </a>
+            <a class="btn btn-secondary" href="#temalar">Temaları Canlı Dene</a>
+          </div>
+          <dl class="hero-facts">
+            <div class="fact-item">
+              <dt>Paket Boyutu</dt>
+              <dd>13.29 MB · Tek EXE</dd>
+            </div>
+            <div class="fact-item">
+              <dt>Görünüm Seçeneği</dt>
+              <dd>10 Tema · 6 Düzen</dd>
+            </div>
+            <div class="fact-item">
+              <dt>Otomatik Altyapı</dt>
+              <dd>Java 21 + options.txt</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="showcase-shell">
+          <div class="app-frame" id="live-app-frame">
+            <div class="app-frame-bar">
+              <div class="app-frame-id">
+                <svg class="ico" width="16" height="16" viewBox="0 0 32 32" aria-hidden="true">
+                  <polygon points="16,3 28,9.5 16,16 4,9.5" fill="var(--accent)" />
+                  <polygon points="4,10.5 15.5,16.8 15.5,28.5 4,22" fill="var(--brand-left)" />
+                  <polygon points="28,10.5 16.5,16.8 16.5,28.5 28,22" fill="var(--brand-right)" />
+                </svg>
+                <span>Basalt · Canlı Ürün Önizlemesi</span>
+              </div>
+              <div class="win-controls">
+                <button type="button" class="win-btn" id="mock-win-min" aria-label="Pencere önizlemesini küçült">
+                  <svg class="ico" aria-hidden="true"><use href="#ico-min" /></svg>
+                </button>
+                <button type="button" class="win-btn" id="mock-win-max" aria-label="Pencere düzenini değiştir">
+                  <svg class="ico" aria-hidden="true"><use href="#ico-max" /></svg>
+                </button>
+                <button type="button" class="win-btn win-btn--close" id="mock-win-close" aria-label="Önizlemeyi kapat">
+                  <svg class="ico" aria-hidden="true"><use href="#ico-close" /></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="app-body" id="mock-app-body" data-mock-layout="sidebar">
+              <nav class="mock-nav" aria-label="Başlatıcı içi sekmeler">
+                <button type="button" class="mock-nav-btn is-active" data-mock-tab="play">
+                  <svg class="ico" aria-hidden="true"><use href="#ico-play" /></svg>
+                  <span>Oyna</span>
+                </button>
+                <button type="button" class="mock-nav-btn" data-mock-tab="perf">
+                  <svg class="ico" aria-hidden="true"><use href="#ico-sliders" /></svg>
+                  <span>Hız ve FPS</span>
+                </button>
+                <button type="button" class="mock-nav-btn" data-mock-tab="skin">
+                  <svg class="ico" aria-hidden="true"><use href="#ico-layers" /></svg>
+                  <span>Skin</span>
+                </button>
+                <div class="mock-nav-foot">
+                  <canvas id="mock-head-canvas" class="skin-canvas" width="24" height="24" aria-hidden="true"></canvas>
+                  <span>Fabric 0.20.1</span>
+                </div>
+              </nav>
+
+              <div class="mock-stage">
+                <div class="mock-hero-band">
+                  <div>
+                    <p class="mock-kicker" id="mock-stage-kicker">Aktif Profil : Hızlı Başlat</p>
+                    <h2 class="mock-title" id="mock-stage-title">Minecraft 1.21.4</h2>
+                    <p class="mock-sub" id="mock-stage-sub">Donanım ayarı hazır. Tek tıkla doğrudan dünyaya iner.</p>
+                  </div>
+                  <button type="button" class="mock-launch-btn" id="mock-launch-btn">
+                    <svg class="ico" aria-hidden="true"><use href="#ico-play" /></svg>
+                    <span id="mock-launch-label">Oyunu Başlat</span>
+                  </button>
+                </div>
+
+                <div class="mock-launch-log" role="status" aria-live="polite">
+                  <div>
+                    <span class="mock-status-dot" id="mock-status-dot" aria-hidden="true"></span>
+                    <strong id="mock-status-text">Vitrin Önizlemesi : Başlatmaya hazır</strong>
+                  </div>
+                  <span id="mock-theme-readout">Tema : Obsidyen Mor</span>
+                </div>
+
+                <div class="mock-data-row">
+                  <div class="mock-panel">
+                    <h3>Donanım Çıktısı</h3>
+                    <div class="spec-line">
+                      <span>Bellek</span>
+                      <strong id="mock-spec-ram">3072 MB</strong>
+                    </div>
+                    <div class="spec-line">
+                      <span>Motor</span>
+                      <strong id="mock-spec-gc">G1GC</strong>
+                    </div>
+                    <div class="spec-line">
+                      <span>Görüş</span>
+                      <strong id="mock-spec-chunk">10 Chunk</strong>
+                    </div>
+                  </div>
+
+                  <div class="mock-panel">
+                    <h3>Skin Önizleme</h3>
+                    <div class="mock-skin-box">
+                      <canvas id="mock-skin-canvas" class="skin-canvas" width="64" height="112" aria-label="Basalt varsayılan oyuncu skini önizlemesi"></canvas>
+                      <div>
+                        <div class="spec-line">
+                          <span>Kol</span>
+                          <strong id="mock-arm-label">Slim 3px</strong>
+                        </div>
+                        <div class="mini-switch-row">
+                          <button type="button" class="mini-pill-btn is-active" id="mock-flip-front">Ön</button>
+                          <button type="button" class="mini-pill-btn" id="mock-flip-back">Arka</button>
+                          <button type="button" class="mini-pill-btn" id="mock-arm-toggle">Kol Değiş</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="app-closed-notice" id="app-closed-notice" hidden>
+              <strong id="closed-notice-title">Pencere küçültüldü.</strong>
+              <span class="mock-sub">Gerçek masaüstü uygulamasında bu üç düğme tema rengiyle Windows pencere kontrolü sunar.</span>
+              <button type="button" class="btn btn-primary" id="mock-win-restore">Önizlemeyi Geri Aç</button>
+            </div>
+          </div>
+
+          <div class="showcase-toolbar" aria-label="Hızlı tema seçicisi">
+            <div class="swatch-strip" id="quick-theme-strip"></div>
+            <div class="mini-switch-row">
+              <button type="button" class="mini-pill-btn is-active" data-quick-layout="sidebar">Sol Ray</button>
+              <button type="button" class="mini-pill-btn" data-quick-layout="topbar">Üst Şerit</button>
+              <button type="button" class="mini-pill-btn" data-quick-layout="right-rail">Sağ Ray</button>
+              <button type="button" class="mini-pill-btn" data-quick-layout="minimal-rail">İnce Dock</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="hiz-fps">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Hız ve FPS Kalibrasyonu</p>
+            <h2>Bilgisayarının gücüne göre otomatik ayarlanır.</h2>
+          </div>
+          <p class="section-note">
+            Her açılışta sistem RAM miktarı ve ekran kartı sınıfı algılanır. Kendi sınıfını seçip Basalt'ın hangi JVM ve görüş ayarlarını yazdığını gör.
+          </p>
+        </div>
+
+        <div class="speed-bench">
+          <div class="tier-list" role="radiogroup" aria-label="Donanım sınıfı seçimi">
+            <button type="button" class="tier-btn" data-tier="low">
+              <div>
+                <span class="tier-name">Ekonomik / Hafif Sistem</span>
+                <span class="tier-hw">6 GB altı RAM · Dahili grafik</span>
+              </div>
+              <span class="tier-gc">1536 MB · G1GC</span>
+            </button>
+
+            <button type="button" class="tier-btn" data-tier="medium">
+              <div>
+                <span class="tier-name">Dengeli Dizüstü</span>
+                <span class="tier-hw">8 GB RAM · Orta seviye GPU</span>
+              </div>
+              <span class="tier-gc">2560 MB · G1GC</span>
+            </button>
+
+            <button type="button" class="tier-btn is-active" data-tier="high">
+              <div>
+                <span class="tier-name">Yüksek Performans</span>
+                <span class="tier-hw">12 GB+ RAM · Harici oyun GPU</span>
+              </div>
+              <span class="tier-gc">3072 MB · G1GC</span>
+            </button>
+
+            <button type="button" class="tier-btn" data-tier="ultra">
+              <div>
+                <span class="tier-name">Ultra / ZGC Profili</span>
+                <span class="tier-hw">16 GB+ RAM · 8+ çekirdek CPU</span>
+              </div>
+              <span class="tier-gc">4096 MB · ZGC</span>
+            </button>
+          </div>
+
+          <div class="calibration-panel">
+            <div class="cal-header">
+              <h3 class="cal-title" id="cal-tier-title">Yüksek Performans Profili</h3>
+              <span class="cal-tag" id="cal-tier-tag">Otomatik options.txt Eşitleme</span>
+            </div>
+
+            <div class="cal-metrics">
+              <div class="cal-cell">
+                <span class="cal-cell-label">Ayrılan JVM Bellek</span>
+                <span class="cal-cell-val" id="cal-ram">3072 MB</span>
+              </div>
+              <div class="cal-cell">
+                <span class="cal-cell-label">Çöp Toplayıcı</span>
+                <span class="cal-cell-val" id="cal-gc">G1GC</span>
+              </div>
+              <div class="cal-cell">
+                <span class="cal-cell-label">Görüş Mesafesi</span>
+                <span class="cal-cell-val" id="cal-chunks">10 Chunk</span>
+              </div>
+              <div class="cal-cell">
+                <span class="cal-cell-label">Hedef FPS Tavanı</span>
+                <span class="cal-cell-val" id="cal-fps">165 FPS</span>
+              </div>
+            </div>
+
+            <div class="spec-line">
+              <span>Aktif Chunk Mesafe Göstergesi (12 üzerinden)</span>
+              <strong id="cal-chunk-ratio">10 / 12</strong>
+            </div>
+            <div class="chunk-meter" id="cal-chunk-meter" aria-hidden="true"></div>
+            <p class="cal-explain" id="cal-explain">
+              12 GB bellekli ve 6+ çekirdekli sistemlerde kare takılmalarını azaltmak için 3072 MB G1GC belleği atanır ve options.txt içindeki grafik anahtarları kişisel tuş atamalarına dokunulmadan güncellenir.
+            </p>
+          </div>
+        </div>
+
+        <div class="speed-strip">
+          <ul class="strip-list">
+            <li>
+              <strong>Doğrudan Dünya veya Yerel Sunucu Girişi</strong>
+              <span>Quick Play parametreleriyle ana menüye uğramadan seçtiğin kayıtlı dünyaya veya yerel test sunucuna başlar.</span>
+            </li>
+            <li>
+              <strong>Kaydırma Çubuksuz Orantılı Ekran</strong>
+              <span>Pencereyi büyütüp küçülttükçe yazı ve kontroller ekrana göre ölçeklenir; standart çözünürlüklerde sekmeler tek bakışta sığar.</span>
+            </li>
+            <li>
+              <strong>İsteğe Bağlı Hafif FPS Göstergesi</strong>
+              <span>Oyun içinde sol üst köşede anlık FPS ve oyuncu adını gösteren katmanı tek tıkla açıp kapatabilirsin.</span>
+            </li>
+          </ul>
+
+          <div class="java-box">
+            <h3>Eksik Java 21 Derdini Ortadan Kaldırır</h3>
+            <p>
+              Yeni veya sıfır Windows bilgisayarlarda Java aramak zorunda kalmazsın. Sistemde Java 21 yoksa Basalt, Eclipse Temurin 21 paketini SHA-256 doğrulamasıyla yerel klasöre kurar.
+            </p>
+            <div class="java-steps">
+              <span class="java-step">1. Sürüm Kontrolü (&gt;= 21)</span>
+              <span class="java-step">2. Adoptium Temurin İndirme</span>
+              <span class="java-step">3. SHA-256 Doğrulama</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="temalar">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Temalar, Renkler ve Düzenler</p>
+            <h2>10 mineral teması ve canlı renk stüdyosu.</h2>
+          </div>
+          <p class="section-note">
+            Aşağıdan bir tema, vurgu rengi veya köşe profili seçtiğinde sadece önizleme değil, şu an gezdiğin tüm sayfa anında o temaya bürünür.
+          </p>
+        </div>
+
+        <div class="studio-grid">
+          <div class="studio-controls">
+            <div>
+              <h3 class="studio-group-title">Mineral ve Biyom Temaları (7 Koyu · 3 Açık)</h3>
+              <div class="theme-grid" id="theme-grid"></div>
+            </div>
+
+            <div>
+              <h3 class="studio-group-title">Bağımsız Vurgu Rengi ve Özel #RRGGBB</h3>
+              <div class="accent-row" id="accent-row">
+                <label class="custom-color-wrap">
+                  <input type="color" id="custom-accent-picker" value="#a47cff" aria-label="Özel vurgu rengi seç" />
+                  <span>Özel Renk</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="studio-group-title">Köşe Profili ve Pencere İçi Yerleşim</h3>
+              <div class="segment-row" id="corner-row">
+                <button type="button" class="segment-btn" data-corner-choice="sharp">Keskin (2 px)</button>
+                <button type="button" class="segment-btn is-active" data-corner-choice="balanced">Dengeli (8 px)</button>
+                <button type="button" class="segment-btn" data-corner-choice="soft">Yumuşak (13 px)</button>
+              </div>
+              <div class="segment-row studio-subrow" id="studio-layout-row">
+                <button type="button" class="segment-btn is-active" data-studio-layout="sidebar">Sol Ray</button>
+                <button type="button" class="segment-btn" data-studio-layout="topbar">Üst Şerit</button>
+                <button type="button" class="segment-btn" data-studio-layout="compact-deck">Odak Kompakt</button>
+                <button type="button" class="segment-btn" data-studio-layout="right-rail">Sağ Ray</button>
+                <button type="button" class="segment-btn" data-studio-layout="minimal-rail">İnce Dock</button>
+              </div>
+            </div>
+          </div>
+
+          <aside class="palette-card" aria-label="Aktif tema renk ve kontrast dökümü">
+            <div class="cal-header">
+              <h3 class="cal-title" id="studio-active-name">Obsidyen Mor</h3>
+              <span class="cal-tag" id="studio-active-mode">Koyu Mod</span>
+            </div>
+
+            <div>
+              <div class="token-row">
+                <span>Ana Zemin</span>
+                <span class="token-val"><i class="token-swatch" id="sw-canvas"></i><code id="tx-canvas">#131118</code></span>
+              </div>
+              <div class="token-row">
+                <span>Yüzey Katmanı</span>
+                <span class="token-val"><i class="token-swatch" id="sw-surface"></i><code id="tx-surface">#201C29</code></span>
+              </div>
+              <div class="token-row">
+                <span>Aktif Vurgu</span>
+                <span class="token-val"><i class="token-swatch" id="sw-accent"></i><code id="tx-accent">#A47CFF</code></span>
+              </div>
+              <div class="token-row">
+                <span>Buton Üstü Metin</span>
+                <span class="token-val"><i class="token-swatch" id="sw-accent-text"></i><code id="tx-accent-text">#0E091B</code></span>
+              </div>
+            </div>
+
+            <div class="contrast-meter">
+              <span>WCAG AA Okunabilirlik Kontrolü</span>
+              <span class="contrast-badge" id="contrast-ratio-badge">14.6 : 1</span>
+            </div>
+
+            <p class="cal-explain">
+              Özel <code>#RRGGBB</code> seçtiğinde bile koyu veya açık yüzey için buton metni ve vurgu tonu otomatik kalibre edilir; kontrast düşmez.
+            </p>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="konsol-modu">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Tam Ekran Konsol Modu</p>
+            <h2>Koltukta veya Steam Deck ekranında tek tuşluk vitrin.</h2>
+          </div>
+          <p class="section-note">
+            Konsol Modu masaüstü pencereni tam ekrana alır, ses geri bildirimini etkinleştirir ve kartları klavye ya da gamepad ile gezmeni sağlar.
+          </p>
+        </div>
+
+        <div class="console-stage" id="console-stage" tabindex="0" aria-label="Etkileşimli Konsol Modu önizlemesi, sol ve sağ ok tuşlarıyla kart değiştirebilirsiniz">
+          <div class="console-topbar">
+            <div class="brand-link">
+              <span class="brand-title" id="console-active-card-title">Hızlı Başlat : Minecraft 1.21.4</span>
+            </div>
+            <div class="sound-test-row">
+              <button type="button" class="btn btn-secondary" id="console-prev-btn">Önceki Kart</button>
+              <button type="button" class="btn btn-secondary" id="console-next-btn">Sonraki Kart</button>
+            </div>
+          </div>
+
+          <div class="console-cards" id="console-cards-grid">
+            <button type="button" class="console-card is-selected" data-console-idx="0">
+              <span class="console-card-kicker">Birincil Aksiyon</span>
+              <span class="console-card-title">Minecraft 1.21.4</span>
+              <span class="console-card-desc">Seçili skin ve otomatik RAM profiliyle tek dokunuşla oyunu başlat.</span>
+            </button>
+            <button type="button" class="console-card" data-console-idx="1">
+              <span class="console-card-kicker">Kayıtlı Dünya</span>
+              <span class="console-card-title">Hayatta Kalma Dünyası</span>
+              <span class="console-card-desc">Ana menüyü atlayarak kayıtlı yerel dünyaya Quick Play girişi yap.</span>
+            </button>
+            <button type="button" class="console-card" data-console-idx="2">
+              <span class="console-card-kicker">Yerel Sunucu</span>
+              <span class="console-card-title">LAN / Test Sunucusu</span>
+              <span class="console-card-desc">Kayıtlı yerel sunucuların ping ve çevrimiçi durumunu gör.</span>
+            </button>
+            <button type="button" class="console-card" data-console-idx="3">
+              <span class="console-card-kicker">Görünüm ve Ses</span>
+              <span class="console-card-title">10 Mineral Teması</span>
+              <span class="console-card-desc">Koyu, açık veya renk aksanını tam ekrandan anında değiştir.</span>
+            </button>
+          </div>
+
+          <div class="console-footer">
+            <div class="sound-test-row">
+              <button type="button" class="btn btn-ghost" data-sfx="click">
+                <svg class="ico" aria-hidden="true"><use href="#ico-sound" /></svg>
+                <span>Menü Sesi</span>
+              </button>
+              <button type="button" class="btn btn-ghost" data-sfx="toast">
+                <svg class="ico" aria-hidden="true"><use href="#ico-sound" /></svg>
+                <span>Bildirim Tonu</span>
+              </button>
+              <button type="button" class="btn btn-ghost" data-sfx="launch">
+                <svg class="ico" aria-hidden="true"><use href="#ico-sound" /></svg>
+                <span>Başlatma Tonu</span>
+              </button>
+            </div>
+            <div class="kbd-legend">
+              <span><kbd class="kbd-pill">Sol / Sağ</kbd> Gez</span>
+              <span><kbd class="kbd-pill">A / Enter</kbd> Seç</span>
+              <span>Not : Web önizlemesi sentetik ton üretir; masaüstünde Minecraft .ogg sesleri çalar.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="indir">
+      <div class="wrap download-grid">
+        <div class="release-box">
+          <div>
+            <p class="section-kicker">İndirme ve Doğrulama</p>
+            <h2>Basalt v0.1.0 · Windows 10/11</h2>
+            <p class="mock-sub" id="release-status-desc">
+              Uygulama dosyası GitHub Releases üzerinden açık kaynak sürüm varlığı ve SHA-256 doğrulama koduyla dağıtılmak üzere hazırlanmıştır.
+            </p>
+          </div>
+
+          <div class="release-meta">
+            <div>
+              <span>Dosya</span>
+              <strong>basalt.exe</strong>
+            </div>
+            <div>
+              <span>Boyut</span>
+              <strong>13.29 MB</strong>
+            </div>
+            <div>
+              <span>Gereksinim</span>
+              <strong>Windows x64</strong>
+            </div>
+          </div>
+
+          <div class="hero-cta-row">
+            <a class="btn btn-primary" id="primary-release-btn" href="https://github.com/MarkesrBetter/Basalt/releases/latest/download/basalt.exe" download="basalt.exe">
+              <svg class="ico" aria-hidden="true"><use href="#ico-download" /></svg>
+              <span id="primary-release-label">GitHub Releases · basalt.exe İndir</span>
+            </a>
+            <a class="btn btn-secondary" id="releases-page-btn" href="https://github.com/MarkesrBetter/Basalt/releases" target="_blank" rel="noopener noreferrer">
+              <span>Sürüm Notları (GitHub)</span>
+            </a>
+          </div>
+
+          <div class="hash-panel">
+            <div class="spec-line">
+              <span>SHA-256 Bütünlük Kodu</span>
+              <button type="button" class="mini-pill-btn" id="copy-sha-btn">Kodu Kopyala</button>
+            </div>
+            <p class="hash-code" id="sha-value">213d6de37c87bfeee122f6572ed61fd33598250f11c69dc30669c98225e1f134</p>
+            <div class="spec-line">
+              <span>PowerShell Doğrulama Komutu</span>
+              <button type="button" class="mini-pill-btn" id="copy-ps-btn">Komutu Kopyala</button>
+            </div>
+            <p class="hash-code" id="ps-verify-cmd">Get-FileHash .\basalt.exe -Algorithm SHA256</p>
+            <p class="toast-note" id="copy-feedback" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+
+        <div>
+          <p class="section-kicker">Ürün Hakkında</p>
+          <h2>Sık Sorulanlar</h2>
+          <div class="faq-list">
+            <details class="faq-item" open>
+              <summary><span>Java 21 bilgisayarımda yoksa oyunu nasıl açıyor?</span><svg class="ico faq-chev" aria-hidden="true"><use href="#ico-chev" /></svg></summary>
+              <p>
+                Sistemde Java 21 veya üzeri bulunamazsa uygulama içinden "Java 21 Kur" düğmesine tıklaman yeterlidir. Basalt, Windows'un yerleşik aracıyla Adoptium Temurin 21 paketini indirir, SHA-256 ile doğrular ve yerel çalışma klasörüne kurar.
+              </p>
+            </details>
+            <details class="faq-item">
+              <summary><span>Windows SmartScreen veya antivirüs uyarısı neden görünebilir?</span><svg class="ico faq-chev" aria-hidden="true"><use href="#ico-chev" /></svg></summary>
+              <p>
+                Yeni yayınlanan ve ücretli kod imzalama sertifikası taşımayan bağımsız açık kaynak <code>.exe</code> dosyaları ilk haftalarda Windows SmartScreen tarafından tanınmayabilir. Açık kaynak kod, GitHub Releases dağıtımı ve sayfadaki SHA-256 doğrulama koduyla dosyanın değişmediğini kontrol edebilirsin.
+              </p>
+            </details>
+            <details class="faq-item">
+              <summary><span>Özel skin ve FPS HUD ayarlarım oyuna nasıl yansır?</span><svg class="ico faq-chev" aria-hidden="true"><use href="#ico-chev" /></svg></summary>
+              <p>
+                Basalt içinden yüklediğin <code>64x64</code> veya <code>64x32</code> PNG skinler ve seçtiğin <code>Slim (3 px)</code> / <code>Classic (4 px)</code> kol modeli doğrudan Minecraft <code>1.21.4</code> Fabric istemci moduna aktarılır. Sol üstteki anlık FPS HUD katmanını da isteğine göre açıp kapatabilirsin.
+              </p>
+            </details>
+            <details class="faq-item">
+              <summary><span>Hangi oyun modları ve sunucular destekleniyor?</span><svg class="ico faq-chev" aria-hidden="true"><use href="#ico-chev" /></svg></summary>
+              <p>
+                Basalt; yerel tek oyunculu kayıtlar ve yerel <code>online-mode=false</code> geliştirme sunucuları için tasarlanmıştır. Microsoft çevrimiçi hesap doğrulamasını atlatmaz.
+              </p>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <div>
+        <strong>Basalt</strong> · Windows için Açık Kaynak Minecraft 1.21.4 Fabric Başlatıcısı (MIT Lisansı) · <a href="https://github.com/MarkesrBetter/Basalt" target="_blank" rel="noopener noreferrer">GitHub Deposu</a>
+      </div>
+      <div class="footer-legal">
+        Resmi bir Minecraft ürünü değildir. Mojang veya Microsoft tarafından onaylanmamış ve bunlarla ilişkili değildir. Resmi oyun varlıkları uygulama ikilisine gömülmez; kullanıcı bilgisayarında resmi kaynaklardan önbelleklenir.
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const DEFAULT_GITHUB_REPO = "MarkesrBetter/Basalt";
+      const EXE_SHA256 = "213d6de37c87bfeee122f6572ed61fd33598250f11c69dc30669c98225e1f134";
+      const SKIN_DATA_URL =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAJ4klEQVR4AeyabYwdVRnHnzkzXUqBmlZbUEtoa0vqquHNKIZoE0lIsBXFaAwGTCBBtHbtbunrUqVSKC3W7m52odCkJJhYvxjEgOIHa2L8QkxQQwJpaCO+fABUsNnasi/3zvj8zr3PzezcuTvb3nu7u8ne3P99/uf/nNdnzp2ZM2ecFHz2b9qQgL7urmRgyyYPOJqhr6fL58Fv3GxB9S1x01a2ojwtm4d0YQA6glDmz5sn0fxQOjoqgKPh63ChNPpM5mtU5lx1BtrTNxhky6Hhy+rZdGEAxpKyjIyPS2mkLGNjFcDR8I3Fqimo2GtVntbxtQsMtFHdk/msTGEAOMocbY56oxnAkd76gwclDTRgDc1UWxgAFzlxUSCRcxIF+lcAytG8L3Syadcu0f/JBKA59ckM/xQGgGl99r0xGTk7LmdHRzw8R9O/Bv5GY5zM16jMhdYLA8BfYMHFHTP2JNhswAoDwImOGcCJr9FJsFEnOBE28rVS53KcrS9Py+Yh7R7T6/xBvY6b5VpuHMv1ZZ5e6sb1alAux5QROBo+hIG9D8uPenfJ4IM/lAE9GcLR8NGRg5sr9wlY6k9r5GkW2weesK7UqsrTas4U8TMgrJ6ssAC/2TRHA2kN7gJfjfgTo/GqxR+6ij90TsiD1r17v2x54BHolMDBIHhD23sS+JQKTZIpeW80we3u104wqMiFEmogQuf0jF/haADdbOgq/o3bdgtlGQSD6ohCLVcZINw0LoXweWEo2Mg5gScjo8KH2YedDAw6cuGE/tkAJivHjRCzLi/P0EPbBZ8bemy3hM5JWBt8VONeq+rdeqnbsG2H3Ldlm8AP9z0slAWRC4RZ4C+TWpfnVc1p+Ui10DkNUCCh0/qVH+7f48vTxqGd9/ujIZkPRxyErr5/Tz7UK/hApphPHurtSWg7dE4O9W6uqz8KtE71OZ+74Oc3L78it99xZy0XHK0mTCCV88QEqclEpEHbdGAgsGrgaJZuxjpObOU4FrOluFTjXTt75XevvCbPPH1EvnX3HbV2er53n9fwkacUJxInsZSScSnp+GN4VStr3SVFxSZSpn5NlxRo1m6t8hTxPj3x3vvIfj/47zz640ASTwUNf0yDqTJGS7SvZWmjpG2ZbhYNnxvXe3cqKlVtWTOXqtzf3WmJy5ZeLsuuWiE+PX+e8pWCpi6vxaVExkplHXwsxs2Ol8teM0vDYymt1pavbOIPPpBW7927rxIBFfFxmVZa9/Xt6zis3WwG/Pj8X4AAkAELjB/QS9tNH10twelT8olrrkH2WLlyudfwccmLNdI4qLTGq5rXq7yswSUPGhy7TS9h1ibpNPCBvLM+Gr5Glzv6gQ9YW9RtQMPn+Nmsy0kqw1619otyxadvkfddu1Yu7rxJtvY/LsHipRIsWOThLlkceLz/8oAylGfVheW/yc0PZ34siyjjWCJ+67c3yVe6tsj6DT1yu9rXT/41Wf/dHsEC62Da0o6l33r7Xwn4spaNz7ybeLzzdt1Jjj5Zmc0H65fLpvkZYBlbZRk8dbEWMG4WfeFll0oe8F1otCUANghbHlt6Jtq2BsBOmtmBD5/+n+Qhm+9CpN1zz/82SSPb6NDho5LG4FM/TY488/PkJ0ef8+X26VoijUArMCj1X0tjfzF4QLJ44Yk+r2G5sUmvFfi/p+ErrP6cfPOUePz3TO0cYnmrWQqN61yzSm77/PUecHDnlz4nd6//rHzmk9fmAh95yEsLnNQAHEQuxMjLx//uQcI0OCc/AAehq0zE0Dlx+vAlrS29NJI6REnuOYTzylL1kZ86pgK36kMLa/ngwITrliyQPJifvAychsFFQai3u6GEevv7zd7dcuWyD3vA0QgCzxfIC7gysC5g0GYj5/xaAS0dJEl/9F5kyegZyYP/26XzFnDX0K+NBJcskDykG3nxyYFaFTwiY6DgH8OjYvjTG+/6oKCTxwrYvTqDDp3T4DkJXWWtgJauWzKfvH6hZbIVJhsHoLBofQan05dBhs7Jp1ZfKf8eE48v3LhGB+aEewBgJeGAQZtmNk8zXyttSwMQ6QowDANxLpJfv3RclnSIfOTZ2+SPJ/7ptWNHHpdjTw+JfTjCwNLTYVsagJvv6ZKb79kosS54Xj3xhvz55Dvy/PK93qJx+8laYDoG2qhNZ7e4uXax3gLnYcEisfzcc1vlHE3AQDtXr5Dh/7wpndd/XJYtmq+rwNivMmNdOFl+yoKyBqymVTka9ZjeLtv0DFin9/HWuViXpixsANrCD3xQ5PQZqHx1885qAHS97BWRUV2tcYtc0kUSg8Um6jPOekGTbf02HYBn9cbGejiqD05LOqivb33AS8M6AzzRn6P79giLnnUbezQ18RvrrGChhCUI8K/19Pqbo4k5W59qOgDcB1i34KzSfvboHrlhxWK565YbvIV/Y8f3LVvNkp9rfVlnACKWIMCP7t/jV4vwdqLpANC54eq9PRxwlE1LW3zANDhgqhMILJdF4/iaRVF5FzT5uXrVyqCd8M8e7BlE2urzCJeHap6igZu/JTPAKpuNdi4As/GotbLPczOAaL5+4m8JgAP4q6+d5J6EZB3wkafOURXytrvytGp24SEIHDu4o9u3C0drN/wMuHr18gBYY/CPda4KLJ21+MiT1S3NitD48O/f8gNKa+Yz63QVCceyDDaObTd8AFrdiA32Vy8dT/5w0SkhCKbltWWDxoYu8lngnrT5pz0B0OcB2u9k3Y1rArBw7RX+eYBquV8bdNqZp6X9reJtCQAbl3r0fR+P77kugaN5YYb9tCUAJV3ScuSfevEvCc8D4GgzbOy+O+0JgK4K9agnw7oa3HrXrQG8pBpnduBbTv2UNWCWNG7W9HbZlgagv7sr6VPEurylwwt5HgBRdO3rD2J9XpAoNDnhW6quBs3iTHPS7UJLAzCiR5ntajZJmfY8CeLowwlMT/9g0K3IDibWgLG5gmXgcAKWzdeOdEsDsEO3utklZibQWQYO4AwemwcChs7jMYIAv1BoaQCs03lH2XyNLMFjS5tgwBvlK9LP1d/yAGT3DpPMp6iDtrfHuwJ+7593AHL2/4vqmaq/5QGYasMzJd9cAGbKkZiufjQ9A/jPp5EdyC9fOCZp8C4C7xbwjgHl7D9vNl3e7/3zDkAT+//p+vJ4bgCy633W/sAqgJOHdN47BOn3BzoL3j9gL78OusfP9nkeznX/nz5OhtwAZNf7rP2BVQQnD+mi9wd4h4B8AA7ggLLYOujWfN7eP1p6a76u3HkIuQE4l3rYk89iSp3UQVKuUVv48tAo//nqTQfgfBueKeXmAjBTjsR09aPpGeBfo82+Q5B6f8DeI8i1Wm66Bm7tNh0Aq2i22rkAzNYj16p+z/oZ0Gwg/g8AAP//eIQtrwAAAAZJREFUAwB/7M5+xwJUmwAAAABJRU5ErkJggg==";
+
+      const THEMES = {
+        dark: { name: "Obsidyen Mor", mode: "Koyu", light: false, canvas: "#131118", surface: "#201c29", accent: "#a47cff", text: "#0e091b", hover: "#b594ff", fg: "#b898ff", focus: "#cebaff", soft: "rgba(164, 124, 255, 0.16)" },
+        ember: { name: "Kömür Bakır", mode: "Koyu", light: false, canvas: "#121417", surface: "#1d2127", accent: "#e0824a", text: "#140b06", hover: "#ec935e", fg: "#eb9560", focus: "#f2ad7e", soft: "rgba(224, 130, 74, 0.15)" },
+        light: { name: "Açık Kireçtaşı", mode: "Açık", light: true, canvas: "#f3f1ec", surface: "#ffffff", accent: "#b34c19", text: "#ffffff", hover: "#9d4113", fg: "#9f4213", focus: "#b34c19", soft: "rgba(179, 76, 25, 0.11)" },
+        spruce: { name: "Ladin Zümrüt", mode: "Koyu", light: false, canvas: "#101613", surface: "#1a241f", accent: "#56c27e", text: "#08170e", hover: "#6dd090", fg: "#68cf8d", focus: "#8be0aa", soft: "rgba(86, 194, 126, 0.15)" },
+        cobalt: { name: "Derin Lapis", mode: "Koyu", light: false, canvas: "#0f141c", surface: "#1a2230", accent: "#53b8ec", text: "#06141d", hover: "#6cc6f3", fg: "#67c3f0", focus: "#90d7f9", soft: "rgba(83, 184, 236, 0.15)" },
+        nether: { name: "Kızıl Bazalt", mode: "Koyu", light: false, canvas: "#161113", surface: "#241b1f", accent: "#ea6b66", text: "#1a0707", hover: "#f1827d", fg: "#f2817d", focus: "#f7a29f", soft: "rgba(234, 107, 102, 0.15)" },
+        frost: { name: "Açık Buzul", mode: "Açık", light: true, canvas: "#edf2f7", surface: "#ffffff", accent: "#1d5fb8", text: "#ffffff", hover: "#164e9a", fg: "#1853a3", focus: "#1d5fb8", soft: "rgba(29, 95, 184, 0.11)" },
+        sculk: { name: "Antik Şehir", mode: "Koyu", light: false, canvas: "#0b1116", surface: "#151f27", accent: "#35cad0", text: "#051618", hover: "#52d7dc", fg: "#4fd8dd", focus: "#7de6ea", soft: "rgba(53, 202, 208, 0.15)" },
+        end: { name: "End Taşı", mode: "Koyu", light: false, canvas: "#15151b", surface: "#22222d", accent: "#e4be52", text: "#191405", hover: "#edd074", fg: "#ecd075", focus: "#f4df9a", soft: "rgba(228, 190, 82, 0.15)" },
+        cherry: { name: "Kiraz Çiçeği", mode: "Açık", light: true, canvas: "#f7f0f3", surface: "#ffffff", accent: "#a3295d", text: "#ffffff", hover: "#8a1f4c", fg: "#8f204f", focus: "#a3295d", soft: "rgba(163, 41, 93, 0.11)" }
+      };
+
+      const ACCENT_PRESETS = {
+        auto: { label: "Tema Varsayılanı", dark: null, light: null },
+        amethyst: {
+          label: "Ametist",
+          dark: { accent: "#a47cff", hover: "#b594ff", text: "#0e091b", fg: "#b898ff", focus: "#cebaff", soft: "rgba(164, 124, 255, 0.16)" },
+          light: { accent: "#693cc4", hover: "#572fa8", text: "#ffffff", fg: "#5a2eb2", focus: "#693cc4", soft: "rgba(105, 60, 196, 0.11)" }
+        },
+        copper: {
+          label: "Bakır",
+          dark: { accent: "#e0824a", hover: "#ec935e", text: "#140b06", fg: "#eb9560", focus: "#f2ad7e", soft: "rgba(224, 130, 74, 0.15)" },
+          light: { accent: "#b34c19", hover: "#9d4113", text: "#ffffff", fg: "#9f4213", focus: "#b34c19", soft: "rgba(179, 76, 25, 0.11)" }
+        },
+        emerald: {
+          label: "Zümrüt",
+          dark: { accent: "#56c27e", hover: "#6dd090", text: "#08170e", fg: "#68cf8d", focus: "#8be0aa", soft: "rgba(86, 194, 126, 0.15)" },
+          light: { accent: "#167940", hover: "#116334", text: "#ffffff", fg: "#126836", focus: "#167940", soft: "rgba(22, 121, 64, 0.11)" }
+        },
+        cyan: {
+          label: "Camgöbeği",
+          dark: { accent: "#53b8ec", hover: "#6cc6f3", text: "#06141d", fg: "#67c3f0", focus: "#90d7f9", soft: "rgba(83, 184, 236, 0.15)" },
+          light: { accent: "#0d669b", hover: "#095480", text: "#ffffff", fg: "#095786", focus: "#0d669b", soft: "rgba(13, 102, 155, 0.11)" }
+        },
+        amber: {
+          label: "Kehribar",
+          dark: { accent: "#e5a93b", hover: "#eeb955", text: "#171002", fg: "#edb953", focus: "#f5cb78", soft: "rgba(229, 169, 59, 0.15)" },
+          light: { accent: "#945a00", hover: "#7d4b00", text: "#ffffff", fg: "#804d00", focus: "#945a00", soft: "rgba(148, 90, 0, 0.11)" }
+        },
+        crimson: {
+          label: "Kızıl",
+          dark: { accent: "#ea6b66", hover: "#f1827d", text: "#1a0707", fg: "#f2817d", focus: "#f7a29f", soft: "rgba(234, 107, 102, 0.15)" },
+          light: { accent: "#b42b26", hover: "#99221e", text: "#ffffff", fg: "#9e231f", focus: "#b42b26", soft: "rgba(180, 43, 38, 0.11)" }
+        }
+      };
+
+      const HARDWARE_TIERS = {
+        low: {
+          title: "Ekonomik / Hafif Sistem Profili",
+          ram: "1536 MB",
+          gc: "G1GC",
+          chunks: 6,
+          fps: "60 FPS",
+          explain: "6 GB ve altı bellekli sistemlerde tarayıcı ve Windows'a alan bırakmak için 1536 MB Xmx atanır, görüş mesafesi 6 chunk seviyesinde tutulur."
+        },
+        medium: {
+          title: "Dengeli Dizüstü Profili",
+          ram: "2560 MB",
+          gc: "G1GC",
+          chunks: 8,
+          fps: "120 FPS",
+          explain: "8 GB RAM ve orta düzey grafik kartlarında akıcı keşif için 2560 MB G1GC belleği ve 8 chunk görüş alanı dengelenir."
+        },
+        high: {
+          title: "Yüksek Performans Profili",
+          ram: "3072 MB",
+          gc: "G1GC",
+          chunks: 10,
+          fps: "165 FPS",
+          explain: "12 GB bellekli ve 6+ çekirdekli sistemlerde kare takılmalarını azaltmak için 3072 MB G1GC belleği atanır ve options.txt içindeki grafik anahtarları güncellenir."
+        },
+        ultra: {
+          title: "Ultra / ZGC Profili",
+          ram: "4096 MB",
+          gc: "ZGC",
+          chunks: 12,
+          fps: "240 FPS",
+          explain: "16 GB ve üzeri sistemlerde duraklama süresini milisaniyenin altına indiren nesilsel ZGC ve 12 chunk görüş uzaklığı otomatik açılır."
+        }
+      };
+
+      const CONSOLE_TITLES = [
+        "Hızlı Başlat · Minecraft 1.21.4",
+        "Kayıtlı Dünya · Hayatta Kalma Dünyası",
+        "Yerel Sunucu · LAN / Test Sunucusu",
+        "Görünüm · 10 Mineral Teması"
+      ];
+
+      let activeTheme = "dark";
+      let activeAccent = "auto";
+      let customHex = "#a47cff";
+      let activeTier = "high";
+      let skinSide = "front";
+      let skinSlim = true;
+      let consoleIdx = 0;
+      let launchTimer = null;
+      let skinImg = null;
+      let audioCtx = null;
+
+      function hexToRgb(hex) {
+        const clean = hex.replace("#", "");
+        return {
+          r: parseInt(clean.slice(0, 2), 16),
+          g: parseInt(clean.slice(2, 4), 16),
+          b: parseInt(clean.slice(4, 6), 16)
+        };
+      }
+
+      function rgbToHex(c) {
+        const ch = (n) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
+        return "#" + ch(c.r) + ch(c.g) + ch(c.b);
+      }
+
+      function mixHex(aHex, bHex, t) {
+        const a = hexToRgb(aHex);
+        const b = hexToRgb(bHex);
+        return rgbToHex({
+          r: a.r + (b.r - a.r) * t,
+          g: a.g + (b.g - a.g) * t,
+          b: a.b + (b.b - a.b) * t
+        });
+      }
+
+      function luminance(hex) {
+        const { r, g, b } = hexToRgb(hex);
+        const f = (v) => {
+          const s = v / 255;
+          return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+        };
+        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+      }
+
+      function contrastRatio(h1, h2) {
+        const l1 = luminance(h1);
+        const l2 = luminance(h2);
+        return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+      }
+
+      function calibrateCustomAccent(hex, isLight) {
+        let base = hex;
+        const targetBg = isLight ? "#ffffff" : "#18151f";
+        for (let i = 0; i < 16; i++) {
+          if (contrastRatio(base, targetBg) >= 4.5) break;
+          base = mixHex(base, isLight ? "#101014" : "#ffffff", 0.14);
+        }
+        const darkText = "#0f0d14";
+        const whiteText = "#ffffff";
+        const btnText = contrastRatio(base, whiteText) >= contrastRatio(base, darkText) ? whiteText : darkText;
+        const hover = isLight ? mixHex(base, "#000000", 0.14) : mixHex(base, "#ffffff", 0.14);
+        const { r, g, b } = hexToRgb(base);
+        return {
+          accent: base,
+          hover: hover,
+          text: btnText,
+          fg: base,
+          focus: isLight ? base : mixHex(base, "#ffffff", 0.3),
+          soft: "rgba(" + r + ", " + g + ", " + b + ", " + (isLight ? "0.12)" : "0.16)")
+        };
+      }
+
+      function applyPalette() {
+        const theme = THEMES[activeTheme];
+        const root = document.documentElement;
+        root.setAttribute("data-theme", activeTheme);
+
+        let tok = theme;
+        if (activeAccent === "custom") {
+          tok = calibrateCustomAccent(customHex, theme.light);
+        } else if (activeAccent !== "auto") {
+          const p = ACCENT_PRESETS[activeAccent];
+          tok = theme.light ? p.light : p.dark;
+        }
+
+        const style = root.style;
+        style.setProperty("--accent", tok.accent);
+        style.setProperty("--accent-hover", tok.hover);
+        style.setProperty("--accent-text", tok.text);
+        style.setProperty("--accent-fg", tok.fg);
+        style.setProperty("--focus-ring", tok.focus);
+        style.setProperty("--accent-soft", tok.soft);
+
+        document.getElementById("mode-toggle-label").textContent = theme.light ? "Koyu Tema" : "Açık Tema";
+        document.getElementById("mock-theme-readout").textContent = "Tema : " + theme.name;
+        document.getElementById("studio-active-name").textContent = theme.name;
+        document.getElementById("studio-active-mode").textContent = theme.mode + " Mod";
+
+        document.getElementById("sw-canvas").style.background = theme.canvas;
+        document.getElementById("tx-canvas").textContent = theme.canvas.toUpperCase();
+        document.getElementById("sw-surface").style.background = theme.surface;
+        document.getElementById("tx-surface").textContent = theme.surface.toUpperCase();
+        document.getElementById("sw-accent").style.background = tok.accent;
+        document.getElementById("tx-accent").textContent = tok.accent.toUpperCase();
+        document.getElementById("sw-accent-text").style.background = tok.text;
+        document.getElementById("tx-accent-text").textContent = tok.text.toUpperCase();
+
+        const ratio = contrastRatio(tok.accent, tok.text);
+        const bodyRatio = contrastRatio(theme.light ? "#17191c" : "#f4f1fa", theme.surface);
+        const badge = document.getElementById("contrast-ratio-badge");
+        badge.textContent = "Buton " + ratio.toFixed(1) + ":1 · Metin " + bodyRatio.toFixed(1) + ":1";
+
+        document.querySelectorAll("[data-theme-pick]").forEach((btn) => {
+          const on = btn.getAttribute("data-theme-pick") === activeTheme;
+          btn.classList.toggle("is-active", on);
+          btn.setAttribute("aria-pressed", String(on));
+        });
+      }
+
+      function buildThemeControls() {
+        const quick = document.getElementById("quick-theme-strip");
+        const grid = document.getElementById("theme-grid");
+
+        Object.entries(THEMES).forEach(([key, t]) => {
+          const qBtn = document.createElement("button");
+          qBtn.type = "button";
+          qBtn.className = "swatch-quick" + (key === activeTheme ? " is-active" : "");
+          qBtn.setAttribute("data-theme-pick", key);
+          qBtn.setAttribute("aria-label", t.name + " temasını uygula");
+          qBtn.title = t.name;
+          qBtn.style.background = t.canvas;
+          qBtn.innerHTML = '<span class="swatch-quick-chip" style="background:' + t.accent + '"></span>';
+          qBtn.addEventListener("click", () => {
+            activeTheme = key;
+            applyPalette();
+          });
+          quick.appendChild(qBtn);
+
+          const cBtn = document.createElement("button");
+          cBtn.type = "button";
+          cBtn.className = "theme-chip" + (key === activeTheme ? " is-active" : "");
+          cBtn.setAttribute("data-theme-pick", key);
+          cBtn.innerHTML =
+            '<span class="theme-preview-box" style="background:' + t.canvas + '"><span class="theme-preview-accent" style="background:' + t.accent + '"></span></span>' +
+            '<span><span class="theme-chip-name">' + t.name + '</span><span class="theme-chip-mode">' + t.mode + " Mod</span></span>";
+          cBtn.addEventListener("click", () => {
+            activeTheme = key;
+            applyPalette();
+          });
+          grid.appendChild(cBtn);
+        });
+
+        const accentRow = document.getElementById("accent-row");
+        const customWrap = accentRow.querySelector(".custom-color-wrap");
+        Object.entries(ACCENT_PRESETS).forEach(([key, item]) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "accent-btn" + (key === "auto" ? " is-active" : "");
+          btn.setAttribute("data-accent-pick", key);
+          const color = key === "auto" ? "var(--accent)" : item.dark.accent;
+          btn.innerHTML = '<span class="accent-dot" style="background:' + color + '"></span><span>' + item.label + "</span>";
+          btn.addEventListener("click", () => {
+            activeAccent = key;
+            accentRow.querySelectorAll("[data-accent-pick]").forEach((el) => {
+              el.classList.toggle("is-active", el.getAttribute("data-accent-pick") === key);
+            });
+            applyPalette();
+          });
+          accentRow.insertBefore(btn, customWrap);
+        });
+
+        const picker = document.getElementById("custom-accent-picker");
+        picker.addEventListener("input", (e) => {
+          customHex = e.target.value;
+          activeAccent = "custom";
+          accentRow.querySelectorAll("[data-accent-pick]").forEach((el) => el.classList.remove("is-active"));
+          applyPalette();
+        });
+      }
+
+      function updateHardwareTier(key) {
+        activeTier = key;
+        const data = HARDWARE_TIERS[key];
+        document.querySelectorAll("[data-tier]").forEach((b) => {
+          b.classList.toggle("is-active", b.getAttribute("data-tier") === key);
+        });
+        document.getElementById("cal-tier-title").textContent = data.title;
+        document.getElementById("cal-ram").textContent = data.ram;
+        document.getElementById("cal-gc").textContent = data.gc;
+        document.getElementById("cal-chunks").textContent = data.chunks + " Chunk";
+        document.getElementById("cal-fps").textContent = data.fps;
+        document.getElementById("cal-chunk-ratio").textContent = data.chunks + " / 12";
+        document.getElementById("cal-explain").textContent = data.explain;
+
+        document.getElementById("mock-spec-ram").textContent = data.ram;
+        document.getElementById("mock-spec-gc").textContent = data.gc;
+        document.getElementById("mock-spec-chunk").textContent = data.chunks + " Chunk";
+
+        const meter = document.getElementById("cal-chunk-meter");
+        meter.innerHTML = "";
+        for (let i = 1; i <= 12; i++) {
+          const block = document.createElement("span");
+          block.className = "chunk-block" + (i <= data.chunks ? " is-on" : "");
+          meter.appendChild(block);
+        }
+      }
+
+      function renderSkinCanvas() {
+        if (!skinImg) return;
+        const headCanvas = document.getElementById("mock-head-canvas");
+        const hctx = headCanvas.getContext("2d");
+        hctx.clearRect(0, 0, headCanvas.width, headCanvas.height);
+        hctx.imageSmoothingEnabled = false;
+        hctx.drawImage(skinImg, 8, 8, 8, 8, 0, 0, 24, 24);
+        hctx.drawImage(skinImg, 40, 8, 8, 8, 0, 0, 24, 24);
+
+        const c = document.getElementById("mock-skin-canvas");
+        const ctx = c.getContext("2d");
+        ctx.clearRect(0, 0, c.width, c.height);
+        ctx.imageSmoothingEnabled = false;
+
+        const u = 3;
+        const ox = 8;
+        const oy = 8;
+        const armW = skinSlim ? 3 : 4;
+        const armXShift = skinSlim ? 1 : 0;
+
+        ctx.fillStyle = "rgba(0,0,0,0.28)";
+        ctx.fillRect(ox + 2 * u, oy + 31 * u, 12 * u, 4);
+
+        if (skinSide === "front") {
+          ctx.drawImage(skinImg, 8, 8, 8, 8, ox + 4 * u, oy, 8 * u, 8 * u);
+          ctx.drawImage(skinImg, 40, 8, 8, 8, ox + 4 * u, oy, 8 * u, 8 * u);
+          ctx.drawImage(skinImg, 20, 20, 8, 12, ox + 4 * u, oy + 8 * u, 8 * u, 12 * u);
+          ctx.drawImage(skinImg, 20, 36, 8, 12, ox + 4 * u, oy + 8 * u, 8 * u, 12 * u);
+          ctx.drawImage(skinImg, 44, 20, armW, 12, ox + armXShift * u, oy + 8 * u, armW * u, 12 * u);
+          ctx.drawImage(skinImg, 36, 52, armW, 12, ox + 12 * u, oy + 8 * u, armW * u, 12 * u);
+          ctx.drawImage(skinImg, 4, 20, 4, 12, ox + 4 * u, oy + 20 * u, 4 * u, 12 * u);
+          ctx.drawImage(skinImg, 20, 52, 4, 12, ox + 8 * u, oy + 20 * u, 4 * u, 12 * u);
+        } else {
+          ctx.drawImage(skinImg, 24, 8, 8, 8, ox + 4 * u, oy, 8 * u, 8 * u);
+          ctx.drawImage(skinImg, 56, 8, 8, 8, ox + 4 * u, oy, 8 * u, 8 * u);
+          ctx.drawImage(skinImg, 32, 20, 8, 12, ox + 4 * u, oy + 8 * u, 8 * u, 12 * u);
+          ctx.drawImage(skinImg, 32, 36, 8, 12, ox + 4 * u, oy + 8 * u, 8 * u, 12 * u);
+          ctx.drawImage(skinImg, 44 + armW + 4, 20, armW, 12, ox + armXShift * u, oy + 8 * u, armW * u, 12 * u);
+          ctx.drawImage(skinImg, 36 + armW + 4, 52, armW, 12, ox + 12 * u, oy + 8 * u, armW * u, 12 * u);
+          ctx.drawImage(skinImg, 12, 20, 4, 12, ox + 4 * u, oy + 20 * u, 4 * u, 12 * u);
+          ctx.drawImage(skinImg, 28, 52, 4, 12, ox + 8 * u, oy + 20 * u, 4 * u, 12 * u);
+        }
+
+        document.getElementById("mock-arm-label").textContent = skinSlim ? "Slim 3px" : "Classic 4px";
+      }
+
+      function setupShowcaseInteractions() {
+        const body = document.getElementById("mock-app-body");
+        const closedBox = document.getElementById("app-closed-notice");
+        const closedTitle = document.getElementById("closed-notice-title");
+        const layouts = ["sidebar", "topbar", "right-rail", "minimal-rail", "compact-deck"];
+        let layoutIdx = 0;
+
+        function setMockLayout(target) {
+          body.setAttribute("data-mock-layout", target);
+          layoutIdx = Math.max(0, layouts.indexOf(target));
+          document.querySelectorAll("[data-quick-layout]").forEach((b) => {
+            b.classList.toggle("is-active", b.getAttribute("data-quick-layout") === target);
+          });
+          document.querySelectorAll("[data-studio-layout]").forEach((b) => {
+            b.classList.toggle("is-active", b.getAttribute("data-studio-layout") === target);
+          });
+        }
+
+        document.querySelectorAll("[data-quick-layout]").forEach((btn) => {
+          btn.addEventListener("click", () => setMockLayout(btn.getAttribute("data-quick-layout")));
+        });
+
+        document.querySelectorAll("[data-studio-layout]").forEach((btn) => {
+          btn.addEventListener("click", () => setMockLayout(btn.getAttribute("data-studio-layout")));
+        });
+
+        document.getElementById("mock-win-min").addEventListener("click", () => {
+          body.hidden = true;
+          closedBox.hidden = false;
+          closedTitle.textContent = "Basalt penceresi simge durumuna küçültüldü.";
+        });
+
+        document.getElementById("mock-win-close").addEventListener("click", () => {
+          body.hidden = true;
+          closedBox.hidden = false;
+          closedTitle.textContent = "Vitrin penceresi kapatıldı.";
+        });
+
+        document.getElementById("mock-win-restore").addEventListener("click", () => {
+          closedBox.hidden = true;
+          body.hidden = false;
+        });
+
+        document.getElementById("mock-win-max").addEventListener("click", () => {
+          if (body.hidden) {
+            closedBox.hidden = true;
+            body.hidden = false;
+          }
+          layoutIdx = (layoutIdx + 1) % layouts.length;
+          setMockLayout(layouts[layoutIdx]);
+        });
+
+        const tabCopy = {
+          play: ["Aktif Profil : Hızlı Başlat", "Minecraft 1.21.4", "Donanım ayarı hazır. Tek tıkla doğrudan dünyaya iner."],
+          perf: ["Kalibrasyon : Otomatik", "G1GC / ZGC Profili", "Sistem RAM miktarına göre options.txt değerlerini dengeler."],
+          skin: ["Görünüm : Yerel PNG", "Slim ve Classic Skin", "Seçtiğin PNG dokusu oyuna doğrudan aktarılır."]
+        };
+
+        document.querySelectorAll("[data-mock-tab]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const key = btn.getAttribute("data-mock-tab");
+            document.querySelectorAll("[data-mock-tab]").forEach((b) => {
+              b.classList.toggle("is-active", b.getAttribute("data-mock-tab") === key);
+            });
+            const [k, t, s] = tabCopy[key];
+            document.getElementById("mock-stage-kicker").textContent = k;
+            document.getElementById("mock-stage-title").textContent = t;
+            document.getElementById("mock-stage-sub").textContent = s;
+          });
+        });
+
+        document.getElementById("mock-flip-front").addEventListener("click", () => {
+          skinSide = "front";
+          document.getElementById("mock-flip-front").classList.add("is-active");
+          document.getElementById("mock-flip-back").classList.remove("is-active");
+          renderSkinCanvas();
+        });
+
+        document.getElementById("mock-flip-back").addEventListener("click", () => {
+          skinSide = "back";
+          document.getElementById("mock-flip-back").classList.add("is-active");
+          document.getElementById("mock-flip-front").classList.remove("is-active");
+          renderSkinCanvas();
+        });
+
+        document.getElementById("mock-arm-toggle").addEventListener("click", () => {
+          skinSlim = !skinSlim;
+          renderSkinCanvas();
+        });
+
+        const launchBtn = document.getElementById("mock-launch-btn");
+        const launchLabel = document.getElementById("mock-launch-label");
+        const statusDot = document.getElementById("mock-status-dot");
+        const statusText = document.getElementById("mock-status-text");
+
+        launchBtn.addEventListener("click", () => {
+          if (launchTimer) return;
+          const steps = [
+            "Vitrin Önizlemesi : Java 21 ortamı kontrol ediliyor...",
+            "Vitrin Önizlemesi : options.txt ve skin parametreleri yazılıyor...",
+            "Vitrin Önizlemesi : Fabric 1.21.4 penceresi başlatmaya hazır."
+          ];
+          let i = 0;
+          statusDot.classList.add("is-busy");
+          launchLabel.textContent = "Hazırlanıyor";
+          statusText.textContent = steps[0];
+
+          launchTimer = setInterval(() => {
+            i++;
+            if (i < steps.length) {
+              statusText.textContent = steps[i];
+            } else {
+              clearInterval(launchTimer);
+              launchTimer = null;
+              statusDot.classList.remove("is-busy");
+              launchLabel.textContent = "Oyunu Başlat";
+            }
+          }, 900);
+        });
+      }
+
+      function updateConsoleSelection(idx) {
+        consoleIdx = (idx + 4) % 4;
+        document.querySelectorAll("[data-console-idx]").forEach((card) => {
+          const on = Number(card.getAttribute("data-console-idx")) === consoleIdx;
+          card.classList.toggle("is-selected", on);
+        });
+        document.getElementById("console-active-card-title").textContent = CONSOLE_TITLES[consoleIdx];
+      }
+
+      function playSynthSfx(kind) {
+        try {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (!Ctx) return;
+          if (!audioCtx) audioCtx = new Ctx();
+          if (audioCtx.state === "suspended") audioCtx.resume();
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "triangle";
+
+          if (kind === "click") {
+            osc.frequency.setValueAtTime(540, now);
+            osc.frequency.exponentialRampToValueAtTime(280, now + 0.06);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+            osc.stop(now + 0.08);
+          } else if (kind === "toast") {
+            osc.frequency.setValueAtTime(440, now);
+            osc.frequency.setValueAtTime(660, now + 0.06);
+            gain.gain.setValueAtTime(0.07, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+            osc.stop(now + 0.17);
+          } else {
+            osc.frequency.setValueAtTime(330, now);
+            osc.frequency.setValueAtTime(495, now + 0.07);
+            osc.frequency.setValueAtTime(660, now + 0.14);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            osc.stop(now + 0.26);
+          }
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+        } catch (_err) {
+          /* Sessiz ortamda yoksay */
+        }
+      }
+
+      function setupConsoleSection() {
+        document.querySelectorAll("[data-console-idx]").forEach((card) => {
+          card.addEventListener("click", () => {
+            updateConsoleSelection(Number(card.getAttribute("data-console-idx")));
+            playSynthSfx("click");
+          });
+        });
+        document.getElementById("console-prev-btn").addEventListener("click", () => {
+          updateConsoleSelection(consoleIdx - 1);
+          playSynthSfx("click");
+        });
+        document.getElementById("console-next-btn").addEventListener("click", () => {
+          updateConsoleSelection(consoleIdx + 1);
+          playSynthSfx("click");
+        });
+        document.getElementById("console-stage").addEventListener("keydown", (e) => {
+          if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            updateConsoleSelection(consoleIdx - 1);
+            playSynthSfx("click");
+          } else if (e.key === "ArrowRight") {
+            e.preventDefault();
+            updateConsoleSelection(consoleIdx + 1);
+            playSynthSfx("click");
+          }
+        });
+        document.querySelectorAll("[data-sfx]").forEach((btn) => {
+          btn.addEventListener("click", () => playSynthSfx(btn.getAttribute("data-sfx")));
+        });
+      }
+
+      function applyGithubRepo(repoSlug) {
+        const clean = (repoSlug || "").trim().replace(/^https?:\/\/github\.com\//i, "").replace(/\.git$/i, "").replace(/^\/+|\/+$/g, "");
+        const valid = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(clean);
+        const heroBtn = document.getElementById("hero-download-cta");
+        const heroLabel = document.getElementById("hero-cta-label");
+        const headerCta = document.getElementById("header-download-cta");
+        const relBtn = document.getElementById("primary-release-btn");
+        const relLabel = document.getElementById("primary-release-label");
+        const pageBtn = document.getElementById("releases-page-btn");
+        const statusDesc = document.getElementById("release-status-desc");
+
+        if (valid) {
+          const directUrl = "https://github.com/" + clean + "/releases/latest/download/basalt.exe";
+          const releasesUrl = "https://github.com/" + clean + "/releases";
+          heroBtn.href = directUrl;
+          heroBtn.setAttribute("download", "basalt.exe");
+          heroLabel.textContent = "GitHub'dan İndir (v0.1.0)";
+          headerCta.href = directUrl;
+          relBtn.href = directUrl;
+          relLabel.textContent = "GitHub Releases · basalt.exe İndir";
+          pageBtn.href = releasesUrl;
+          pageBtn.target = "_blank";
+          pageBtn.rel = "noopener noreferrer";
+          pageBtn.querySelector("span").textContent = "Sürüm Notları (" + clean + ")";
+          statusDesc.textContent = clean + " GitHub Releases sürümüne bağlı. İndirdikten sonra aşağıdaki SHA-256 özeti ile dosyayı doğrulayabilirsin.";
+          return true;
+        }
+        return false;
+      }
+
+      function setupDownloadsAndCopy() {
+        const params = new URLSearchParams(window.location.search);
+        const queryRepo = params.get("repo");
+        applyGithubRepo(queryRepo || DEFAULT_GITHUB_REPO);
+
+        const feedback = document.getElementById("copy-feedback");
+        function copyText(text, okMsg) {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+              feedback.textContent = okMsg;
+            }).catch(() => {
+              feedback.textContent = text;
+            });
+          } else {
+            feedback.textContent = okMsg + " · " + text;
+          }
+        }
+
+        document.getElementById("copy-sha-btn").addEventListener("click", () => {
+          copyText(EXE_SHA256, "SHA-256 doğrulama kodu panoya kopyalandı.");
+        });
+
+        document.getElementById("copy-ps-btn").addEventListener("click", () => {
+          copyText(document.getElementById("ps-verify-cmd").textContent, "PowerShell doğrulama komutu kopyalandı.");
+        });
+      }
+
+      function init() {
+        buildThemeControls();
+        setupShowcaseInteractions();
+        setupConsoleSection();
+        setupDownloadsAndCopy();
+        updateHardwareTier("high");
+
+        document.querySelectorAll("[data-tier]").forEach((btn) => {
+          btn.addEventListener("click", () => updateHardwareTier(btn.getAttribute("data-tier")));
+        });
+
+        document.querySelectorAll("[data-corner-choice]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const c = btn.getAttribute("data-corner-choice");
+            document.documentElement.setAttribute("data-corner", c);
+            document.querySelectorAll("[data-corner-choice]").forEach((b) => {
+              b.classList.toggle("is-active", b.getAttribute("data-corner-choice") === c);
+            });
+          });
+        });
+
+        document.getElementById("btn-mode-toggle").addEventListener("click", () => {
+          const isLight = THEMES[activeTheme].light;
+          activeTheme = isLight ? "dark" : "light";
+          applyPalette();
+        });
+
+        skinImg = new Image();
+        skinImg.onload = renderSkinCanvas;
+        skinImg.src = SKIN_DATA_URL;
+
+        applyPalette();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

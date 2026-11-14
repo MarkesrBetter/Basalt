@@ -1,0 +1,29 @@
+{
+	"schemaVersion": 1,
+	"id": "basalt-client",
+	"version": "${version}",
+	"name": "Basalt Client",
+	"description": "Basalt Gradle/Fabric 1.21.4 client helper for local offline skin rendering, telemetry HUD, and hardware tuning.",
+	"authors": [
+		"Basalt"
+	],
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"dev.basalt.client.BasaltClientMod"
+		]
+	},
+	"mixins": [
+		{
+			"config": "basalt-client.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.16.10",
+		"minecraft": "1.21.4",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

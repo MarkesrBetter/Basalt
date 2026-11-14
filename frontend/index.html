@@ -1,0 +1,969 @@
+<!doctype html>
+<html lang="tr" data-theme="dark" data-layout="sidebar">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Basalt - Minecraft 1.21.4 Gradle İstemcisi</title>
+  <link
+    rel="icon"
+    type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpolygon points='16,3 28,9.5 16,16 4,9.5' fill='%23a47cff'/%3E%3Cpolygon points='4,10.5 15.5,16.8 15.5,28.5 4,22' fill='%23433a59'/%3E%3Cpolygon points='28,10.5 16.5,16.8 16.5,28.5 28,22' fill='%232f2840'/%3E%3C/svg%3E"
+  />
+  <link rel="stylesheet" href="/src/styles/tokens.css" />
+  <link rel="stylesheet" href="/src/styles/base.css" />
+  <link rel="stylesheet" href="/src/styles/layout.css" />
+  <link rel="stylesheet" href="/src/styles/components.css" />
+  <script type="module" src="/src/ts/main.ts"></script>
+</head>
+<body>
+  <svg class="svg-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="ico-play" viewBox="0 0 24 24">
+      <polygon points="7 5 19 12 7 19 7 5" />
+    </symbol>
+    <symbol id="ico-layers" viewBox="0 0 24 24">
+      <polygon points="12 3 3 8 12 13 21 8 12 3" />
+      <polyline points="3 13 12 18 21 13" />
+      <polyline points="3 17.5 12 22 21 17.5" />
+    </symbol>
+    <symbol id="ico-user" viewBox="0 0 24 24">
+      <rect x="7" y="4" width="10" height="10" rx="1" />
+      <path d="M5 20v-1.5A3.5 3.5 0 0 1 8.5 15h7a3.5 3.5 0 0 1 3.5 3.5V20" />
+    </symbol>
+    <symbol id="ico-sliders" viewBox="0 0 24 24">
+      <line x1="4" y1="7" x2="20" y2="7" />
+      <circle cx="9" cy="7" r="2.2" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <circle cx="15" cy="12" r="2.2" />
+      <line x1="4" y1="17" x2="20" y2="17" />
+      <circle cx="8" cy="17" r="2.2" />
+    </symbol>
+    <symbol id="ico-chevron" viewBox="0 0 24 24">
+      <polyline points="9 6 15 12 9 18" />
+    </symbol>
+    <symbol id="ico-refresh" viewBox="0 0 24 24">
+      <path d="M20 5v5h-5" />
+      <path d="M19.4 13a7.5 7.5 0 1 1-1.9-6.6L20 10" />
+    </symbol>
+    <symbol id="ico-upload" viewBox="0 0 24 24">
+      <path d="M12 16V5" />
+      <polyline points="7 10 12 5 17 10" />
+      <path d="M4 19h16" />
+    </symbol>
+    <symbol id="ico-theme" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="4.5" />
+      <path d="M12 2.5v2.5M12 19v2.5M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2.5 12H5M19 12h2.5M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" />
+    </symbol>
+    <symbol id="ico-layout" viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="16" rx="1.5" />
+      <line x1="9" y1="4" x2="9" y2="20" />
+      <line x1="9" y1="9" x2="21" y2="9" />
+    </symbol>
+    <symbol id="ico-close" viewBox="0 0 24 24">
+      <line x1="6" y1="6" x2="18" y2="18" />
+      <line x1="18" y1="6" x2="6" y2="18" />
+    </symbol>
+    <symbol id="ico-win-min" viewBox="0 0 24 24">
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </symbol>
+    <symbol id="ico-win-max" viewBox="0 0 24 24">
+      <rect x="6" y="6" width="12" height="12" rx="1" />
+    </symbol>
+    <symbol id="ico-win-restore" viewBox="0 0 24 24">
+      <rect x="5" y="8.5" width="10" height="10" rx="1" />
+      <path d="M8.5 8.5V5.5h10v10h-3" />
+    </symbol>
+    <symbol id="ico-check" viewBox="0 0 24 24">
+      <polyline points="5 12.5 10 17.5 19 7" />
+    </symbol>
+    <symbol id="ico-sound" viewBox="0 0 24 24">
+      <polygon points="11 5 6 9 3 9 3 15 6 15 11 19 11 5" />
+      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+      <path d="M18.5 5.5a9.5 9.5 0 0 1 0 13" />
+    </symbol>
+    <symbol id="ico-gamepad" viewBox="0 0 24 24">
+      <rect x="2.5" y="7" width="19" height="10" rx="3" />
+      <path d="M6.5 12h3M8 10.5v3" />
+      <circle cx="15.5" cy="11" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="17.8" cy="13" r="0.9" fill="currentColor" stroke="none" />
+    </symbol>
+  </svg>
+
+  <a class="skip-link" href="#main-content">İçeriğe atla</a>
+
+  <div class="window-frame">
+    <header class="app-titlebar" id="app-titlebar" data-tauri-drag-region aria-label="Pencere başlık çubuğu">
+      <div class="titlebar-drag" data-tauri-drag-region>
+        <svg class="titlebar-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <polygon points="16,3 28,9.5 16,16 4,9.5" fill="var(--accent)" />
+          <polygon points="4,10.5 15.5,16.8 15.5,28.5 4,22" fill="var(--brand-left)" />
+          <polygon points="28,10.5 16.5,16.8 16.5,28.5 28,22" fill="var(--brand-right)" />
+        </svg>
+        <span class="titlebar-name">BASALT</span>
+        <span class="titlebar-tag tabular">1.21.4</span>
+      </div>
+      <div class="titlebar-actions">
+        <button class="titlebar-btn" type="button" id="btn-win-minimize" aria-label="Küçült" title="Küçült">
+          <svg class="ico win-ico" aria-hidden="true"><use href="#ico-win-min" /></svg>
+        </button>
+        <button class="titlebar-btn" type="button" id="btn-win-maximize" aria-label="Ekranı Kapla" title="Ekranı Kapla / Geri Yükle">
+          <svg class="ico win-ico" aria-hidden="true"><use id="ico-win-max-use" href="#ico-win-max" /></svg>
+        </button>
+        <button class="titlebar-btn titlebar-close" type="button" id="btn-win-close" aria-label="Kapat" title="Basalt'ı Kapat">
+          <svg class="ico win-ico" aria-hidden="true"><use href="#ico-close" /></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="app-shell">
+    <aside class="rail" aria-label="Ana gezinme">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <polygon points="16,3 28,9.5 16,16 4,9.5" fill="var(--accent)" />
+          <polygon points="4,10.5 15.5,16.8 15.5,28.5 4,22" fill="var(--brand-left)" />
+          <polygon points="28,10.5 16.5,16.8 16.5,28.5 28,22" fill="var(--brand-right)" />
+          <polyline points="17.5,22.2 26.8,17.2" stroke="var(--accent)" stroke-width="2.2" fill="none" />
+        </svg>
+        <div class="brand-copy">
+          <span class="brand-name">BASALT</span>
+          <span class="brand-sub">GRADLE 1.21.4</span>
+        </div>
+      </div>
+
+      <p class="rail-label">MENÜ</p>
+      <nav class="nav" aria-label="Bölümler">
+        <span class="deck-shoulder" aria-hidden="true">L1</span>
+        <button class="nav-btn active" type="button" data-nav="play" aria-current="page">
+          <svg class="ico" aria-hidden="true"><use href="#ico-play" /></svg>
+          <span class="nav-text">Oyna</span>
+          <span class="nav-index">01</span>
+        </button>
+        <button class="nav-btn" type="button" data-nav="worlds">
+          <svg class="ico" aria-hidden="true"><use href="#ico-layers" /></svg>
+          <span class="nav-text">Kayıtlar</span>
+          <span class="nav-index">02</span>
+        </button>
+        <button class="nav-btn" type="button" data-nav="profile">
+          <svg class="ico" aria-hidden="true"><use href="#ico-user" /></svg>
+          <span class="nav-text">Profil ve Skin</span>
+          <span class="nav-index">03</span>
+        </button>
+        <button class="nav-btn" type="button" data-nav="system">
+          <svg class="ico" aria-hidden="true"><use href="#ico-sliders" /></svg>
+          <span class="nav-text">Sistem ve Ağ</span>
+          <span class="nav-index">04</span>
+        </button>
+        <span class="deck-shoulder" aria-hidden="true">R1</span>
+      </nav>
+
+      <div class="rail-footer">
+        <div class="rail-status" id="rail-status-row" data-state="ready">
+          <span class="status-led" aria-hidden="true"></span>
+          <span id="rail-status-text">Gradle Fabric hazır</span>
+        </div>
+        <div class="rail-quick-actions rail-quick-actions-3">
+          <button class="btn-subtle btn-rail-mini" type="button" id="btn-rail-theme" title="Renk temasını değiştir" aria-label="Renk temasını değiştir">
+            <svg class="ico small" aria-hidden="true"><use href="#ico-theme" /></svg>
+            <span id="rail-theme-label">Mor</span>
+          </button>
+          <button class="btn-subtle btn-rail-mini" type="button" id="btn-rail-layout" title="Yerleşim görünüşünü değiştir" aria-label="Yerleşim görünüşünü değiştir">
+            <svg class="ico small" aria-hidden="true"><use href="#ico-layout" /></svg>
+            <span id="rail-layout-label">Sol Ray</span>
+          </button>
+          <button class="btn-subtle btn-rail-mini" type="button" id="btn-rail-sound" aria-pressed="false" title="Arayüz ses efektlerini aç veya kapat" aria-label="Arayüz ses efektlerini aç veya kapat">
+            <svg class="ico small" aria-hidden="true"><use href="#ico-sound" /></svg>
+            <span id="rail-sound-label">Sessiz</span>
+          </button>
+        </div>
+        <div class="deck-console-meta" hidden>
+          <span class="deck-clock tabular" id="deck-clock">--:--</span>
+          <div class="player-chip deck-user-chip" title="Aktif çevrimdışı oyuncu">
+            <canvas id="deck-head-canvas" width="20" height="20" aria-hidden="true"></canvas>
+            <span id="deck-username">Oyuncu</span>
+          </div>
+        </div>
+        <button class="deck-exit-btn" type="button" id="btn-exit-deck" hidden>
+          <svg class="ico small" aria-hidden="true"><use href="#ico-layout" /></svg>
+          <span>Masaüstüne Dön</span>
+        </button>
+        <div class="rail-build">
+          <span>FABRIC LOOM · 1.21.4</span>
+          <span class="tabular" id="rail-version-tag">PROTOKOL 769</span>
+        </div>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <div class="breadcrumbs">
+          <span class="crumb-root">BASALT</span>
+          <svg class="ico small crumb-sep" aria-hidden="true"><use href="#ico-chevron" /></svg>
+          <strong id="topbar-crumb">01 · Oyna</strong>
+        </div>
+
+        <div class="topbar-meta">
+          <span class="preview-badge" id="preview-mode-badge" hidden>
+            Önizleme (örnek veri)
+          </span>
+          <button class="btn-subtle btn-console-enter" type="button" id="btn-enter-deck" title="Tam Ekran Steam Deck / PlayStation Moduna Geç">
+            <svg class="ico small" aria-hidden="true"><use href="#ico-gamepad" /></svg>
+            <span>Tam Ekran Konsol</span>
+          </button>
+          <div class="player-chip" title="Aktif çevrimdışı oyuncu">
+            <canvas id="topbar-head-canvas" width="20" height="20" aria-hidden="true"></canvas>
+            <span id="topbar-username">Oyuncu</span>
+          </div>
+          <div class="engine-pill" id="engine-status-pill" data-state="idle">
+            Hazır
+          </div>
+        </div>
+      </header>
+
+      <main id="main-content" tabindex="-1">
+        <!-- 01 / OYNA -->
+        <section class="view" id="view-play" data-view="play" aria-labelledby="play-heading">
+          <div class="view-head">
+            <div>
+              <p class="eyebrow">01 / BAŞLATMA MERKEZİ</p>
+              <h1 id="play-heading">Minecraft'ı başlat</h1>
+            </div>
+            <p class="view-lead">
+              Gerçek Minecraft Java 1.21.4 istemcisini Fabric Loom Gradle üzerinden optimize ayarlar ve yerel skin ile çalıştır.
+            </p>
+          </div>
+
+          <div class="console-home" id="console-home" hidden>
+            <div class="console-hero">
+              <svg id="deck-hero-svg" class="console-hero-backdrop" viewBox="0 0 480 220" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+              <div class="console-hero-scrim" aria-hidden="true"></div>
+              <div class="console-hero-content">
+                <div class="console-hero-info">
+                  <div class="console-badge-row">
+                    <span class="console-kicker" id="deck-hero-kicker">TEK OYUNCULU · 1.21.4</span>
+                    <span class="console-proto-badge tabular" id="deck-hero-tag">Fabric Loom · Protokol 769</span>
+                  </div>
+                  <h2 class="console-hero-title" id="deck-hero-title">Minecraft 1.21.4</h2>
+                  <p class="console-hero-sub" id="deck-hero-sub">
+                    Gerçek Fabric 1.21.4 istemcisini seçili dünya ve yerel PNG skin ile tek tuşla başlat.
+                  </p>
+                  <div class="console-spec-pills" id="deck-hero-specs"></div>
+                  <div class="console-hero-actions">
+                    <button class="btn-primary console-btn-start" type="button" id="btn-deck-primary">
+                      <span class="console-btn-glyph" aria-hidden="true">A</span>
+                      <span id="deck-primary-label">Oyunu Başlat</span>
+                    </button>
+                    <button class="btn-secondary console-btn-act" type="button" id="btn-deck-secondary">
+                      <span id="deck-secondary-label">Kayıtları Yönet</span>
+                    </button>
+                    <button class="btn-subtle console-btn-act" type="button" id="btn-deck-prepare">
+                      <span>Gradle Ön Hazırlık</span>
+                    </button>
+                  </div>
+                  <p class="console-status-line tabular" id="deck-status-line">
+                    Gamepad, ok tuşları veya fare ile aşağıdaki kartlardan hedef seçin.
+                  </p>
+                </div>
+
+                <div class="console-hero-skin">
+                  <div class="console-skin-pedestal">
+                    <canvas id="deck-skin-canvas" width="196" height="236" aria-label="Konsol karakter önizlemesi"></canvas>
+                  </div>
+                  <div class="console-skin-meta">
+                    <span class="console-skin-name" id="deck-skin-caption">Oyuncu</span>
+                    <span class="console-skin-model tabular" id="deck-skin-model-badge">Slim · 3 px</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="console-ribbon-section">
+              <div class="console-ribbon-head">
+                <span class="console-ribbon-title">KÜTÜPHANE · DÜNYALAR VE HIZLI ERİŞİM</span>
+                <div class="console-ribbon-controls">
+                  <span class="console-ribbon-count tabular" id="deck-carousel-count">0 öge</span>
+                  <button class="btn-icon console-step-btn" type="button" id="btn-deck-prev" aria-label="Önceki kart">
+                    <span aria-hidden="true">‹</span>
+                  </button>
+                  <button class="btn-icon console-step-btn" type="button" id="btn-deck-next" aria-label="Sonraki kart">
+                    <span aria-hidden="true">›</span>
+                  </button>
+                </div>
+              </div>
+              <div class="console-carousel" id="deck-carousel" role="listbox" aria-label="Konsol hızlı başlatma kartları"></div>
+            </div>
+          </div>
+
+          <div class="play-workbench">
+            <div class="play-hero" id="world-stage">
+              <div class="stratum-visual">
+                <svg id="stratum-svg" viewBox="0 0 480 220" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+                <div class="stratum-overlay-tag tabular" id="stage-biome-tag">FABRIC 1.21.4 · GRADLE</div>
+                <div class="stratum-scene-footer">
+                  <div>
+                    <span class="field-kicker">BAŞLATMA HEDEFİ</span>
+                    <h2 class="selected-world-title" id="play-world-title">Minecraft Ana Menü</h2>
+                  </div>
+                  <button class="btn-secondary btn-sm" type="button" id="btn-goto-worlds">
+                    Kayıtları yönet
+                  </button>
+                </div>
+              </div>
+
+              <aside class="launch-deck" aria-label="Başlatma kontrolleri">
+                <div class="launch-version-header">
+                  <span class="field-kicker">HEDEF İSTEMCİ · FABRIC LOOM</span>
+                  <div class="launch-version-row">
+                    <span class="version-hero tabular">1.21.4</span>
+                    <span class="proto-badge tabular">Protokol 769</span>
+                  </div>
+                  <p class="version-summary">
+                    Donanıma eşitlenmiş options.txt ve seçili yerel skin ile Gradle runClient başlatılır.
+                  </p>
+                </div>
+
+                <div class="form-stack">
+                  <div class="field-group">
+                    <label for="play-save-select">Hızlı giriş</label>
+                    <select id="play-save-select"></select>
+                  </div>
+
+                  <div class="field-group">
+                    <label for="play-username">Oyuncu adı (çevrimdışı)</label>
+                    <input
+                      id="play-username"
+                      type="text"
+                      maxlength="16"
+                      autocomplete="off"
+                      placeholder="Örn. Oyuncu"
+                    />
+                    <span class="field-hint" id="play-username-error" role="alert" hidden></span>
+                  </div>
+                </div>
+
+                <div class="java-setup-card" id="java-setup-panel" role="region" aria-labelledby="java-setup-title" hidden>
+                  <div class="java-setup-head">
+                    <span class="java-setup-title" id="java-setup-title">Java 21 JDK Gerekli</span>
+                    <span class="row-tag">TEMURIN JDK 21</span>
+                  </div>
+                  <p class="java-setup-desc" id="java-setup-desc">
+                    Bu bilgisayarda Java 21 JDK algılanmadı. Yönetici izni gerektirmeden Basalt çalışma dizinine resmi Eclipse Temurin 21 kurabilirsiniz.
+                  </p>
+                  <div class="java-setup-actions">
+                    <button class="btn-primary btn-sm" type="button" id="btn-install-java">
+                      Otomatik Java 21 Kur
+                    </button>
+                    <button class="btn-secondary btn-sm" type="button" id="btn-recheck-java">
+                      Tekrar Tara
+                    </button>
+                    <button class="btn-secondary btn-sm" type="button" id="btn-open-java-site">
+                      Resmi Sayfa
+                    </button>
+                  </div>
+                </div>
+
+                <div class="launch-action-block">
+                  <button class="btn-primary btn-launch" type="button" id="btn-launch-client">
+                    <svg class="ico fill" aria-hidden="true"><use href="#ico-play" /></svg>
+                    <span id="launch-btn-label">Minecraft'ı Başlat</span>
+                    <svg class="ico chevron" aria-hidden="true"><use href="#ico-chevron" /></svg>
+                  </button>
+                  <div class="launch-prepare-row">
+                    <button class="btn-link-subtle" type="button" id="btn-prepare-gradle">
+                      Gradle Ön Hazırlık
+                    </button>
+                    <span class="inline-status" id="prepare-status-hint">İsteğe bağlı önbellek derlemesi</span>
+                  </div>
+                  <div class="action-feedback" id="launch-feedback" aria-live="polite" hidden></div>
+                  <pre class="gradle-log-box tabular" id="gradle-log-box" hidden></pre>
+                </div>
+              </aside>
+            </div>
+
+            <div class="play-under-grid">
+              <section class="flat-section" aria-label="İstemci parametreleri">
+                <div class="section-head">
+                  <h2>İstemci ve çalışma zamanı</h2>
+                  <span>1.21.4</span>
+                </div>
+                <dl class="readiness-list" id="play-client-specs">
+                  <div class="kv-row"><dt class="kv-key">Java Çalışma Zamanı</dt><dd class="kv-val tabular" id="play-spec-jdk">-</dd></div>
+                  <div class="kv-row"><dt class="kv-key">JVM Bellek ve GC</dt><dd class="kv-val tabular" id="play-spec-ram">-</dd></div>
+                  <div class="kv-row"><dt class="kv-key">Görüş Mesafesi</dt><dd class="kv-val tabular" id="play-spec-chunks">-</dd></div>
+                  <div class="kv-row"><dt class="kv-key">Basalt Mod JAR</dt><dd class="kv-val" id="play-spec-mod">-</dd></div>
+                </dl>
+              </section>
+
+              <section class="flat-section" aria-label="Donanım ve oturum kapsamı">
+                <div class="section-head">
+                  <h2>Ortam ve kapsam</h2>
+                  <span>YEREL</span>
+                </div>
+                <div class="readiness-list">
+                  <div class="kv-row">
+                    <span class="kv-key">Donanım profili</span>
+                    <span class="kv-val" id="play-hw-summary">Donanım analizi yükleniyor...</span>
+                  </div>
+                  <div class="kv-row">
+                    <span class="kv-key">Çevrimdışı kapsam</span>
+                    <span class="kv-val">Tek oyunculu kayıtlar ve online-mode=false geliştirme sunucuları; Microsoft lisansı atlatılmaz.</span>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <!-- 02 / KAYITLAR (MINECRAFT SAVES) -->
+        <section class="view" id="view-worlds" data-view="worlds" aria-labelledby="worlds-heading" hidden>
+          <div class="view-head">
+            <div>
+              <p class="eyebrow">02 / MINECRAFT RUN/SAVES</p>
+              <h1 id="worlds-heading">Kayıtlı dünyalar</h1>
+            </div>
+            <div class="view-head-actions">
+              <span class="count-label tabular" id="worlds-count-label">0 kayıt</span>
+              <button class="btn-secondary btn-sm" type="button" id="btn-refresh-worlds">
+                <svg class="ico small" aria-hidden="true"><use href="#ico-refresh" /></svg>
+                <span>Yenile</span>
+              </button>
+              <button class="btn-primary btn-sm" type="button" id="btn-open-mc-for-world">
+                <span>Minecraft içinde oluştur</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="state-banner" id="worlds-state-banner" hidden></div>
+
+          <div class="worlds-list" id="worlds-list" role="list" aria-label="Minecraft saves kayıtları"></div>
+        </section>
+
+        <!-- 03 / PROFİL VE SKİN -->
+        <section class="view" id="view-profile" data-view="profile" aria-labelledby="profile-heading" hidden>
+          <div class="view-head">
+            <div>
+              <p class="eyebrow">03 / KİMLİK VE GÖRÜNÜM</p>
+              <h1 id="profile-heading">Profil ve skin</h1>
+            </div>
+            <p class="view-lead">
+              Çevrimdışı kullanıcı adını, arayüz temasını ve yerel PNG karakter skinini yönet.
+            </p>
+          </div>
+
+          <div class="split-2col profile-split">
+            <div class="panel-section">
+              <div class="section-head">
+                <h2>Oyuncu kimliği</h2>
+                <span class="tabular">ÇEVRİMDIŞI UUID</span>
+              </div>
+              <form id="profile-form" class="profile-id-form" novalidate>
+                <div class="field-group">
+                  <label for="profile-username">Kullanıcı adı (1-16 karakter: harf, rakam, _ veya -)</label>
+                  <div class="profile-id-row">
+                    <input id="profile-username" type="text" maxlength="16" required />
+                    <button class="btn-primary btn-sm" type="submit" id="btn-save-profile">
+                      <svg class="ico small" aria-hidden="true"><use href="#ico-check" /></svg>
+                      <span>Kaydet</span>
+                    </button>
+                  </div>
+                  <span class="field-hint" id="profile-username-error" role="alert" hidden></span>
+                  <span class="inline-status" id="profile-save-status" aria-live="polite"></span>
+                </div>
+              </form>
+
+              <div class="section-head spaced-top-sm">
+                <h2>Görünüş ve arayüz düzeni</h2>
+                <span>WCAG 2.2 AA</span>
+              </div>
+              <div class="appearance-studio" id="appearance-studio">
+                <div class="appearance-block">
+                  <div class="appearance-group-label">Yerleşim görünüşü</div>
+                  <div class="appearance-grid-layouts" role="group" aria-label="Yerleşim görünüşü">
+                    <button class="choice-tile" type="button" data-layout-choice="Sidebar" aria-pressed="true">
+                      <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
+                        <rect x="2" y="2" width="22" height="40" rx="1" fill="var(--bg-rail)" stroke="var(--border-subtle)" />
+                        <rect x="5" y="12" width="16" height="4" rx="1" fill="var(--accent)" />
+                        <rect x="5" y="19" width="14" height="3" rx="1" fill="var(--text-subtle)" opacity="0.55" />
+                        <rect x="28" y="2" width="66" height="8" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                        <rect x="28" y="13" width="38" height="29" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
+                        <rect x="69" y="13" width="25" height="29" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                      </svg>
+                      <span class="choice-tile-title">Sol Ray</span>
+                    </button>
+                    <button class="choice-tile" type="button" data-layout-choice="Topbar" aria-pressed="false">
+                      <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
+                        <rect x="2" y="2" width="92" height="10" rx="1" fill="var(--bg-rail)" stroke="var(--border-subtle)" />
+                        <rect x="18" y="5" width="14" height="4" rx="1" fill="var(--accent)" />
+                        <rect x="35" y="5" width="12" height="4" rx="1" fill="var(--text-subtle)" opacity="0.55" />
+                        <rect x="2" y="15" width="54" height="27" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
+                        <rect x="59" y="15" width="35" height="27" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                      </svg>
+                      <span class="choice-tile-title">Üst Şerit</span>
+                    </button>
+                    <button class="choice-tile" type="button" data-layout-choice="CompactDeck" aria-pressed="false">
+                      <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
+                        <rect x="12" y="4" width="72" height="36" rx="2" fill="var(--bg-rail)" stroke="var(--border-control)" />
+                        <rect x="14" y="6" width="68" height="7" rx="1" fill="var(--bg-surface-alt)" />
+                        <rect x="17" y="8" width="11" height="3" rx="1" fill="var(--accent)" />
+                        <rect x="15" y="16" width="38" height="21" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
+                        <rect x="56" y="16" width="25" height="21" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                      </svg>
+                      <span class="choice-tile-title">Odak Kompakt</span>
+                    </button>
+                    <button class="choice-tile" type="button" data-layout-choice="RightRail" aria-pressed="false">
+                      <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
+                        <rect x="72" y="2" width="22" height="40" rx="1" fill="var(--bg-rail)" stroke="var(--border-subtle)" />
+                        <rect x="75" y="12" width="16" height="4" rx="1" fill="var(--accent)" />
+                        <rect x="75" y="19" width="14" height="3" rx="1" fill="var(--text-subtle)" opacity="0.55" />
+                        <rect x="2" y="2" width="66" height="8" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                        <rect x="2" y="13" width="25" height="29" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                        <rect x="30" y="13" width="38" height="29" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
+                      </svg>
+                      <span class="choice-tile-title">Sağ Ray</span>
+                    </button>
+                    <button class="choice-tile" type="button" data-layout-choice="MinimalRail" aria-pressed="false">
+                      <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
+                        <rect x="2" y="2" width="11" height="40" rx="1" fill="var(--bg-rail)" stroke="var(--border-subtle)" />
+                        <rect x="4" y="10" width="7" height="5" rx="1" fill="var(--accent)" />
+                        <rect x="4" y="18" width="7" height="4" rx="1" fill="var(--text-subtle)" opacity="0.55" />
+                        <rect x="17" y="2" width="77" height="8" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                        <rect x="17" y="13" width="45" height="29" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
+                        <rect x="65" y="13" width="29" height="29" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                      </svg>
+                      <span class="choice-tile-title">İnce Dock</span>
+                    </button>
+                    <button class="choice-tile" type="button" data-layout-choice="DeckMode" aria-pressed="false">
+                      <svg class="layout-schematic" viewBox="0 0 96 44" aria-hidden="true">
+                        <rect x="2" y="2" width="92" height="9" rx="1" fill="var(--bg-surface)" stroke="var(--border-control)" />
+                        <rect x="24" y="5" width="14" height="3" rx="1" fill="var(--accent)" />
+                        <rect x="41" y="5" width="14" height="3" rx="1" fill="var(--text-subtle)" opacity="0.55" />
+                        <rect x="2" y="14" width="54" height="20" rx="1" fill="var(--bg-surface)" stroke="var(--border-subtle)" />
+                        <rect x="59" y="14" width="35" height="20" rx="1" fill="var(--bg-surface-alt)" stroke="var(--border-subtle)" />
+                        <rect x="2" y="36" width="92" height="6" rx="1" fill="var(--bg-rail)" stroke="var(--border-subtle)" />
+                      </svg>
+                      <span class="choice-tile-title">Tam Ekran Konsol</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="appearance-block">
+                  <div class="appearance-group-label">Renk ve yüzey teması (10 Biyom / Mineral)</div>
+                  <div class="appearance-grid-themes" role="group" aria-label="Renk ve yüzey teması">
+                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Dark" aria-pressed="true">
+                      <div class="theme-swatch-bar" aria-hidden="true">
+                        <span class="sw-dark-canvas"></span>
+                        <span class="sw-dark-rail"></span>
+                        <span class="sw-dark-surface"></span>
+                        <span class="sw-dark-accent"></span>
+                      </div>
+                      <span class="choice-tile-title">Obsidyen Mor</span>
+                    </button>
+                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Ember" aria-pressed="false">
+                      <div class="theme-swatch-bar" aria-hidden="true">
+                        <span class="sw-ember-canvas"></span>
+                        <span class="sw-ember-rail"></span>
+                        <span class="sw-ember-surface"></span>
+                        <span class="sw-ember-accent"></span>
+                      </div>
+                      <span class="choice-tile-title">Kömür Bakır</span>
+                    </button>
+                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Light" aria-pressed="false">
+                      <div class="theme-swatch-bar" aria-hidden="true">
+                        <span class="sw-light-canvas"></span>
+                        <span class="sw-light-rail"></span>
+                        <span class="sw-light-surface"></span>
+                        <span class="sw-light-accent"></span>
+                      </div>
+                      <span class="choice-tile-title">Kireçtaşı</span>
+                    </button>
+                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Spruce" aria-pressed="false">
+                      <div class="theme-swatch-bar" aria-hidden="true">
+                        <span class="sw-spruce-canvas"></span>
+                        <span class="sw-spruce-rail"></span>
+                        <span class="sw-spruce-surface"></span>
+                        <span class="sw-spruce-accent"></span>
+                      </div>
+                      <span class="choice-tile-title">Ladin Zümrüt</span>
+                    </button>
+                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Cobalt" aria-pressed="false">
+                      <div class="theme-swatch-bar" aria-hidden="true">
+                        <span class="sw-cobalt-canvas"></span>
+                        <span class="sw-cobalt-rail"></span>
+                        <span class="sw-cobalt-surface"></span>
+                        <span class="sw-cobalt-accent"></span>
+                      </div>
+                      <span class="choice-tile-title">Derin Lapis</span>
+                    </button>
+                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Nether" aria-pressed="false">
+                      <div class="theme-swatch-bar" aria-hidden="true">
+                        <span class="sw-nether-canvas"></span>
+                        <span class="sw-nether-rail"></span>
+                        <span class="sw-nether-surface"></span>
+                        <span class="sw-nether-accent"></span>
+                      </div>
+                      <span class="choice-tile-title">Kızıl Bazalt</span>
+                    </button>
+                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Frost" aria-pressed="false">
+                      <div class="theme-swatch-bar" aria-hidden="true">
+                        <span class="sw-frost-canvas"></span>
+                        <span class="sw-frost-rail"></span>
+                        <span class="sw-frost-surface"></span>
+                        <span class="sw-frost-accent"></span>
+                      </div>
+                      <span class="choice-tile-title">Açık Buzul</span>
+                    </button>
+                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Sculk" aria-pressed="false">
+                      <div class="theme-swatch-bar" aria-hidden="true">
+                        <span class="sw-sculk-canvas"></span>
+                        <span class="sw-sculk-rail"></span>
+                        <span class="sw-sculk-surface"></span>
+                        <span class="sw-sculk-accent"></span>
+                      </div>
+                      <span class="choice-tile-title">Antik Şehir</span>
+                    </button>
+                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="End" aria-pressed="false">
+                      <div class="theme-swatch-bar" aria-hidden="true">
+                        <span class="sw-end-canvas"></span>
+                        <span class="sw-end-rail"></span>
+                        <span class="sw-end-surface"></span>
+                        <span class="sw-end-accent"></span>
+                      </div>
+                      <span class="choice-tile-title">End Taşı</span>
+                    </button>
+                    <button class="choice-tile theme-swatch-tile" type="button" data-theme-choice="Cherry" aria-pressed="false">
+                      <div class="theme-swatch-bar" aria-hidden="true">
+                        <span class="sw-cherry-canvas"></span>
+                        <span class="sw-cherry-rail"></span>
+                        <span class="sw-cherry-surface"></span>
+                        <span class="sw-cherry-accent"></span>
+                      </div>
+                      <span class="choice-tile-title">Kiraz Çiçeği</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="appearance-block">
+                  <div class="appearance-group-label">Vurgu rengi (aksan)</div>
+                  <div class="accent-strip" role="group" aria-label="Vurgu rengi seçimi">
+                    <button class="accent-chip" type="button" data-accent-choice="Auto" aria-pressed="true">
+                      <span class="accent-dot dot-auto" aria-hidden="true"></span>
+                      <span>Temaya göre</span>
+                    </button>
+                    <button class="accent-chip" type="button" data-accent-choice="Copper" aria-pressed="false">
+                      <span class="accent-dot dot-copper" aria-hidden="true"></span>
+                      <span>Bakır</span>
+                    </button>
+                    <button class="accent-chip" type="button" data-accent-choice="Emerald" aria-pressed="false">
+                      <span class="accent-dot dot-emerald" aria-hidden="true"></span>
+                      <span>Zümrüt</span>
+                    </button>
+                    <button class="accent-chip" type="button" data-accent-choice="Cyan" aria-pressed="false">
+                      <span class="accent-dot dot-cyan" aria-hidden="true"></span>
+                      <span>Elmas</span>
+                    </button>
+                    <button class="accent-chip" type="button" data-accent-choice="Amber" aria-pressed="false">
+                      <span class="accent-dot dot-amber" aria-hidden="true"></span>
+                      <span>Kehribar</span>
+                    </button>
+                    <button class="accent-chip" type="button" data-accent-choice="Crimson" aria-pressed="false">
+                      <span class="accent-dot dot-crimson" aria-hidden="true"></span>
+                      <span>Kızıltaş</span>
+                    </button>
+                    <button class="accent-chip" type="button" data-accent-choice="Amethyst" aria-pressed="false">
+                      <span class="accent-dot dot-amethyst" aria-hidden="true"></span>
+                      <span>Ametist</span>
+                    </button>
+                    <label class="accent-custom-chip" id="pref-custom-chip" title="Özel renk seç">
+                      <input type="color" id="pref-custom-accent" value="#a47cff" aria-label="Özel vurgu rengi seç" />
+                      <span>Özel</span>
+                      <span class="tabular" id="pref-custom-hex-label">#a47cff</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <div class="section-head">
+                <h2>Yerel PNG skin</h2>
+                <span class="tabular" id="skin-resolved-badge">64×64 · İnce (Slim)</span>
+              </div>
+
+              <div class="skin-studio">
+                <div class="skin-viewport">
+                  <canvas
+                    id="skin-preview-canvas"
+                    width="220"
+                    height="264"
+                    aria-label="Seçili karakter skin önizlemesi"
+                  ></canvas>
+                  <div class="skin-view-modes" role="group" aria-label="Skin bakış açısı">
+                    <button class="seg-btn active" type="button" data-skin-view="front">Ön</button>
+                    <button class="seg-btn" type="button" data-skin-view="back">Arka</button>
+                    <button class="seg-btn" type="button" data-skin-view="atlas" title="64×64 UV Doku Haritası">Doku</button>
+                  </div>
+                </div>
+
+                <div class="skin-controls">
+                  <p class="skin-path tabular" id="skin-file-label">Yerleşik varsayılan skin</p>
+                  <div class="field-group">
+                    <label for="skin-model-select">Kol modeli (Slim / Classic)</label>
+                    <select id="skin-model-select">
+                      <option value="Auto">Otomatik algıla (Önerilen)</option>
+                      <option value="Slim">İnce Kol (Slim · 3 px)</option>
+                      <option value="Classic">Klasik Kol (Wide · 4 px)</option>
+                    </select>
+                  </div>
+                  <p class="muted-copy skin-note-compact">
+                    64×64 ve eski 64×32 PNG dosyaları Basalt Fabric Mixin ile doğrudan uygulanır.
+                  </p>
+                  <div class="skin-btn-row">
+                    <button class="btn-primary btn-sm" type="button" id="btn-pick-skin">
+                      <svg class="ico small" aria-hidden="true"><use href="#ico-upload" /></svg>
+                      <span>PNG Skin Yükle</span>
+                    </button>
+                    <button class="btn-secondary btn-sm" type="button" id="btn-reset-skin">
+                      Varsayılana dön
+                    </button>
+                  </div>
+                  <div class="inline-notice" id="skin-feedback" aria-live="polite" hidden></div>
+                </div>
+              </div>
+
+              <div class="settings-rows compact-settings-rows spaced-top-sm">
+                <div class="setting-line">
+                  <div>
+                    <span class="appearance-group-label">Köşe yuvarlaklığı</span>
+                  </div>
+                  <div class="corner-seg" role="group" aria-label="Köşe yuvarlaklığı">
+                    <button class="seg-btn" type="button" data-corner-choice="Sharp" aria-pressed="false">Keskin</button>
+                    <button class="seg-btn active" type="button" data-corner-choice="Balanced" aria-pressed="true">Dengeli</button>
+                    <button class="seg-btn" type="button" data-corner-choice="Soft" aria-pressed="false">Yumuşak</button>
+                  </div>
+                </div>
+                <div class="setting-line">
+                  <div>
+                    <label for="pref-compact">Kompakt satır yoğunluğu</label>
+                  </div>
+                  <input class="switch" type="checkbox" id="pref-compact" />
+                </div>
+                <div class="setting-line">
+                  <div>
+                    <label for="pref-reduced-motion">Animasyonları azalt</label>
+                  </div>
+                  <input class="switch" type="checkbox" id="pref-reduced-motion" />
+                </div>
+                <div class="setting-line">
+                  <div>
+                    <label for="pref-sounds">Masaüstü arayüz sesleri</label>
+                  </div>
+                  <input class="switch" type="checkbox" id="pref-sounds" title="Steam Deck / PlayStation modunda sesler otomatik açılır." />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 04 / SİSTEM VE AĞ -->
+        <section class="view" id="view-system" data-view="system" aria-labelledby="system-heading" hidden>
+          <div class="view-head">
+            <div>
+              <p class="eyebrow">04 / DONANIM, GRADLE VE YEREL AĞ</p>
+              <h1 id="system-heading">Sistem ve ağ</h1>
+            </div>
+            <button class="btn-primary btn-sm" type="button" id="btn-auto-optimize">
+              Donanıma göre optimize et
+            </button>
+          </div>
+
+          <div class="inline-notice" id="hardware-optimize-notice" aria-live="polite" hidden></div>
+
+          <div class="system-grid">
+            <div class="panel-section">
+              <div class="section-head">
+                <h2>Algılanan sistem donanımı</h2>
+                <span id="hw-tier-tag">-</span>
+              </div>
+              <dl class="hw-table hw-table-2col">
+                <div><dt>İşlemci</dt><dd id="hw-cpu">-</dd></div>
+                <div><dt>Çekirdek / İş Parçacığı</dt><dd class="tabular" id="hw-cores">-</dd></div>
+                <div><dt>Bellek (Kullanılabilir / Toplam)</dt><dd class="tabular" id="hw-ram">-</dd></div>
+                <div><dt>Grafik Kartı ve Arka Uç</dt><dd id="hw-gpu">-</dd></div>
+              </dl>
+
+              <div class="section-head spaced-top-sm">
+                <h2>Minecraft options.txt ve JVM</h2>
+                <span class="tabular" id="gfx-preset-badge">-</span>
+              </div>
+
+              <form id="graphics-form" class="gfx-compact-form" novalidate>
+                <div class="gfx-controls-grid">
+                  <div class="setting-tile">
+                    <div class="setting-tile-head">
+                      <label for="gfx-render-dist">Görüş mesafesi</label>
+                      <output class="tabular" id="gfx-render-dist-out">12</output>
+                    </div>
+                    <input id="gfx-render-dist" type="range" min="4" max="32" step="1" title="Minecraft renderDistance (chunk)" />
+                  </div>
+
+                  <div class="setting-tile">
+                    <div class="setting-tile-head">
+                      <label for="gfx-sim-dist">Simülasyon mesafesi</label>
+                      <output class="tabular" id="gfx-sim-dist-out">10</output>
+                    </div>
+                    <input id="gfx-sim-dist" type="range" min="5" max="24" step="1" title="Etkin varlık ve kızıltaş tick mesafesi" />
+                  </div>
+
+                  <div class="setting-tile">
+                    <div class="setting-tile-head">
+                      <label for="gfx-fov">Görüş alanı (FOV)</label>
+                      <output class="tabular" id="gfx-fov-out">75°</output>
+                    </div>
+                    <input id="gfx-fov" type="range" min="50" max="110" step="1" title="30 - 110 derece arası Minecraft görüş açısı" />
+                  </div>
+
+                  <div class="setting-tile">
+                    <label for="gfx-jvm-ram">JVM Bellek (-Xmx)</label>
+                    <select id="gfx-jvm-ram">
+                      <option value="1536">1536 MB (1.5 GB)</option>
+                      <option value="2048">2048 MB (2 GB)</option>
+                      <option value="2560">2560 MB (2.5 GB)</option>
+                      <option value="3072">3072 MB (3 GB)</option>
+                      <option value="4096">4096 MB (4 GB)</option>
+                      <option value="6144">6144 MB (6 GB)</option>
+                      <option value="8192">8192 MB (8 GB)</option>
+                    </select>
+                  </div>
+
+                  <div class="setting-tile">
+                    <label for="gfx-jvm-gc">Çöp Toplayıcı (GC)</label>
+                    <select id="gfx-jvm-gc">
+                      <option value="G1GC">G1GC (Dengeli)</option>
+                      <option value="ZGC">ZGC (Düşük Gecikme)</option>
+                    </select>
+                  </div>
+
+                  <div class="setting-tile">
+                    <label for="gfx-max-fps">Kare hızı sınırı</label>
+                    <select id="gfx-max-fps">
+                      <option value="60">60 FPS</option>
+                      <option value="120">120 FPS</option>
+                      <option value="165">165 FPS</option>
+                      <option value="240">240 FPS</option>
+                      <option value="260">Sınırsız</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="gfx-switches-grid">
+                  <div class="setting-toggle">
+                    <label for="gfx-vsync">Dikey eşitleme (VSync)</label>
+                    <input class="switch" type="checkbox" id="gfx-vsync" />
+                  </div>
+                  <div class="setting-toggle">
+                    <label for="gfx-fancy">Kaliteli grafik (Fancy)</label>
+                    <input class="switch" type="checkbox" id="gfx-fancy" />
+                  </div>
+                  <div class="setting-toggle">
+                    <label for="gfx-ao">Yumuşak aydınlatma (AO)</label>
+                    <input class="switch" type="checkbox" id="gfx-ao" />
+                  </div>
+                  <div class="setting-toggle">
+                    <label for="gfx-fps-hud">Basalt FPS HUD</label>
+                    <input class="switch" type="checkbox" id="gfx-fps-hud" />
+                  </div>
+                </div>
+
+                <div class="form-actions tight-top">
+                  <button class="btn-primary btn-sm" type="submit" id="btn-save-graphics">Ayarları kaydet ve options.txt eşitle</button>
+                  <span class="inline-status" id="gfx-save-status" aria-live="polite"></span>
+                </div>
+              </form>
+            </div>
+
+            <div class="panel-section">
+              <div class="section-head">
+                <h2>Gradle & Fabric 1.21.4 ortamı</h2>
+                <span class="tabular" id="gradle-status-tag">-</span>
+              </div>
+              <dl class="hw-table">
+                <div><dt>Java Runtime</dt><dd class="tabular" id="gradle-java-label">-</dd></div>
+                <div><dt>Mod JAR</dt><dd id="gradle-jar-status">-</dd></div>
+                <div><dt>Çalışma Dizini</dt><dd class="tabular mono-wrap" id="gradle-dir-label">-</dd></div>
+                <div><dt>Kayıt Dizini (saves)</dt><dd class="tabular mono-wrap" id="gradle-saves-dir">-</dd></div>
+              </dl>
+              <div class="form-actions tight-top" id="system-java-actions">
+                <button class="btn-primary btn-sm" type="button" id="btn-system-install-java" hidden>
+                  Otomatik Java 21 Kur (Temurin)
+                </button>
+                <button class="btn-secondary btn-sm" type="button" id="btn-system-recheck-java">
+                  Java 21 Tekrar Tara
+                </button>
+                <button class="btn-secondary btn-sm" type="button" id="btn-system-open-java">
+                  Adoptium JDK 21 Sayfası
+                </button>
+              </div>
+
+              <div class="section-head spaced-top-sm">
+                <h2>Yerel sunucular (1.21.4 · Protokol 769)</h2>
+                <span>SLP VE QUICK PLAY</span>
+              </div>
+              <p class="muted-copy muted-compact">
+                Çevrimdışı (online-mode=false) sunucuları sorgular ve bağlanır. EncryptionRequest isteyen resmi sunucular atlatılmaz.
+              </p>
+
+              <form id="add-server-form" class="server-add-grid" novalidate>
+                <div class="field-group">
+                  <label for="srv-name">Sunucu adı</label>
+                  <input id="srv-name" type="text" maxlength="32" value="Yerel Sunucu" required />
+                </div>
+                <div class="field-group">
+                  <label for="srv-addr">Adres (host:port)</label>
+                  <input id="srv-addr" type="text" maxlength="64" value="127.0.0.1:25565" required />
+                </div>
+                <div class="field-group submit-cell">
+                  <button class="btn-secondary btn-sm" type="submit" id="btn-add-server">Ekle</button>
+                </div>
+              </form>
+              <p class="inline-error" id="server-form-error" role="alert" hidden></p>
+
+              <div class="servers-list" id="servers-list"></div>
+              <div class="inline-notice" id="probe-feedback" aria-live="polite" hidden></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <footer class="deck-controls-bar" id="deck-controls-bar" aria-label="Konsol kısayolları" hidden>
+      <div class="deck-hints">
+        <span class="deck-hint"><kbd class="deck-key">Oklar / D-Pad</kbd><span>Gezin</span></span>
+        <span class="deck-hint"><kbd class="deck-key console-k-a">A</kbd> <kbd class="deck-key">Enter</kbd><span>Seç &amp; Başlat</span></span>
+        <span class="deck-hint"><kbd class="deck-key">L1 / Q</kbd> <kbd class="deck-key">R1 / E</kbd><span>Sekme</span></span>
+        <span class="deck-hint"><kbd class="deck-key console-k-y">Y</kbd> <kbd class="deck-key">M</kbd><span>Ses</span></span>
+        <span class="deck-hint"><kbd class="deck-key console-k-b">B</kbd> <kbd class="deck-key">Esc</kbd><span>Masaüstüne Dön</span></span>
+      </div>
+      <div class="deck-gamepad-badge" id="deck-gamepad-status">
+        <svg class="ico small" aria-hidden="true"><use href="#ico-gamepad" /></svg>
+        <span id="deck-gamepad-label">Klavye &amp; Gamepad hazır</span>
+      </div>
+    </footer>
+  </div>
+  </div>
+
+  <dialog id="delete-world-dialog" aria-labelledby="delete-dialog-title" aria-describedby="delete-dialog-desc">
+    <div class="dialog-head">
+      <span class="eyebrow">KALICI İŞLEM ONAYI</span>
+      <button class="btn-icon" type="button" id="delete-dialog-close" aria-label="Onay penceresini kapat">
+        <svg class="ico small" aria-hidden="true"><use href="#ico-close" /></svg>
+      </button>
+    </div>
+    <h2 id="delete-dialog-title">Kaydı diskten sil</h2>
+    <p id="delete-dialog-desc"></p>
+    <div class="dialog-actions">
+      <button class="btn-secondary" type="button" id="delete-dialog-cancel">Vazgeç</button>
+      <button class="btn-danger" type="button" id="delete-dialog-confirm">Kalıcı olarak sil</button>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

@@ -1,0 +1,332 @@
+use std::fs;
+use std::net::TcpListener;
+use std::path::PathBuf;
+use std::thread;
+
+use basalt::assets::{detect_skin_is_slim, generate_default_skin, load_skin_from_file, resolve_skin_is_slim};
+use basalt::config::{
+    AccentTone, AppConfig, CornerStyle, GraphicsSettings, JvmGcMode, LayoutMode, SkinModel,
+    ThemeMode, normalize_hex_color,
+};
+use basalt::gradle::{
+    LaunchEnvConfig, build_launch_env, discover_java21_home, ensure_embedded_gradle_workspace,
+    evaluate_jdk_candidates, is_valid_gradle_workspace, resolve_or_extract_gradle_workspace,
+};
+use basalt::hardware::{GpuTier, HardwareProfile};
+use basalt::options_txt::{fov_degrees_to_options_value, sync_minecraft_options};
+use basalt::protocol::{
+    LocalHandshakeResult, MINECRAFT_1_21_4_PROTOCOL, PacketBuffer, local_player_uuid_dashed,
+    ping_server_1_21_4, probe_local_dev_login_1_21_4, read_framed_packet, write_framed_packet,
+};
+use basalt::saves::{delete_save, list_saves, resolve_save_dir};
+use basalt::sounds::{encode_base64, load_local_minecraft_sounds};
+use image::{ImageBuffer, Rgba};
+
+#[test]
+fn varint_roundtrip_boundaries() {
+    let cases = [0, 1, 127, 128, 255, 25565, 2_097_151, i32::MAX, -1, i32::MIN];
+    for val in cases {
+        let mut buf = PacketBuffer::new();
+        buf.write_varint(val);
+        assert_eq!(buf.read_varint().unwrap(), val);
+    }
+}
+
+#[test]
+fn protocol_769_slp_and_encryption_guard() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+
+    let server_handle = thread::spawn(move || {
+        // Call 1: SLP
+        {
+            let (mut stream, _) = listener.accept().unwrap();
+            let (id0, mut hs) = read_framed_packet(&mut stream, None).unwrap();
+            assert_eq!(id0, 0x00);
+            assert_eq!(hs.read_varint().unwrap(), MINECRAFT_1_21_4_PROTOCOL);
+            let _ = read_framed_packet(&mut stream, None).unwrap();
+
+            let mut resp = PacketBuffer::new();
+            resp.write_string(
+                r#"{"version":{"name":"1.21.4","protocol":769},"players":{"max":10,"online":2},"description":{"text":"Basalt Gradle Local"}}"#,
+            );
+            write_framed_packet(&mut stream, 0x00, &resp.data, None).unwrap();
+            let (ping_id, mut ping_body) = read_framed_packet(&mut stream, None).unwrap();
+            assert_eq!(ping_id, 0x01);
+            write_framed_packet(&mut stream, 0x01, &ping_body.data, None).unwrap();
+            let _ = &mut ping_body;
+        }
+        // Call 2: EncryptionRequest refusal
+        {
+            let (mut stream, _) = listener.accept().unwrap();
+            let _ = read_framed_packet(&mut stream, None).unwrap();
+            let _ = read_framed_packet(&mut stream, None).unwrap();
+            write_framed_packet(&mut stream, 0x01, &[0x00, 0x01, 0xAA], None).unwrap();
+        }
+    });
+
+    let info = ping_server_1_21_4(&addr.to_string()).unwrap();
+    assert_eq!(info.protocol_version, 769);
+    assert_eq!(info.online_players, 2);
+    assert_eq!(info.description, "Basalt Gradle Local");
+
+    let login = probe_local_dev_login_1_21_4(&addr.to_string(), "BasaltTester").unwrap();
+    assert!(matches!(login, LocalHandshakeResult::RequiresOfficialAuth));
+
+    server_handle.join().unwrap();
+}
+
+#[test]
+fn skin_validation_converts_legacy_64x32() {
+    let default_skin = generate_default_skin();
+    assert_eq!(default_skin.dimensions(), (64, 64));
+    assert!(detect_skin_is_slim(&default_skin));
+    assert!(resolve_skin_is_slim(SkinModel::Auto, &default_skin));
+    assert!(!resolve_skin_is_slim(SkinModel::Classic, &default_skin));
+    assert!(resolve_skin_is_slim(SkinModel::Slim, &default_skin));
+
+    let tmp_dir = std::env::temp_dir().join("basalt_skin_test_gradle");
+    let _ = fs::remove_dir_all(&tmp_dir);
+    fs::create_dir_all(&tmp_dir).unwrap();
+
+    let legacy_path = tmp_dir.join("legacy.png");
+    let legacy = ImageBuffer::from_pixel(64, 32, Rgba([120u8, 140, 160, 255]));
+    legacy.save(&legacy_path).unwrap();
+
+    let loaded = load_skin_from_file(&legacy_path).unwrap();
+    assert_eq!(loaded.dimensions(), (64, 64));
+    assert_eq!(*loaded.get_pixel(20, 52), Rgba([120, 140, 160, 255]));
+    assert!(!detect_skin_is_slim(&loaded));
+
+    let _ = fs::remove_dir_all(&tmp_dir);
+}
+
+#[test]
+fn options_txt_sync_preserves_custom_lines() {
+    let tmp_dir = std::env::temp_dir().join("basalt_options_sync_test");
+    let _ = fs::remove_dir_all(&tmp_dir);
+    fs::create_dir_all(&tmp_dir).unwrap();
+
+    fs::write(
+        tmp_dir.join("options.txt"),
+        "lang:tr_tr\nkey_key.attack:key.mouse.left\nrenderDistance:6\nfov:0.0\n",
+    )
+    .unwrap();
+
+    let mut gfx = GraphicsSettings::default();
+    gfx.render_distance = 14;
+    gfx.simulation_distance = 10;
+    gfx.fov_degrees = 90.0;
+    gfx.fancy_graphics = false;
+    gfx.smooth_lighting = false;
+    gfx.max_fps = 180;
+    gfx.vsync = false;
+    sync_minecraft_options(&tmp_dir, &gfx).unwrap();
+
+    let written = fs::read_to_string(tmp_dir.join("options.txt")).unwrap();
+    assert!(written.contains("lang:tr_tr\n"));
+    assert!(written.contains("key_key.attack:key.mouse.left\n"));
+    assert!(written.contains("renderDistance:14\n"));
+    assert!(written.contains("simulationDistance:10\n"));
+    assert!(written.contains("graphicsMode:fast\n"));
+    assert!(written.contains("ao:false\n"));
+    assert!(written.contains("maxFps:180\n"));
+    assert!(written.contains("enableVsync:false\n"));
+    assert!((fov_degrees_to_options_value(90.0) - 0.5).abs() < 1e-4);
+
+    let _ = fs::remove_dir_all(&tmp_dir);
+}
+
+#[test]
+fn saves_scanner_and_path_traversal_guard() {
+    let tmp_dir = std::env::temp_dir().join("basalt_saves_guard_test");
+    let _ = fs::remove_dir_all(&tmp_dir);
+    fs::create_dir_all(tmp_dir.join("YeniDunya")).unwrap();
+    fs::write(tmp_dir.join("YeniDunya").join("level.dat"), [1u8, 2, 3]).unwrap();
+    fs::create_dir_all(tmp_dir.join("NotAWorld")).unwrap();
+
+    let saves = list_saves(&tmp_dir).unwrap();
+    assert_eq!(saves.len(), 1);
+    assert_eq!(saves[0].id, "YeniDunya");
+
+    assert!(resolve_save_dir(&tmp_dir, "../escape").is_err());
+    assert!(resolve_save_dir(&tmp_dir, "NotAWorld").is_err());
+    assert!(resolve_save_dir(&tmp_dir, "YeniDunya").is_ok());
+
+    delete_save(&tmp_dir, "YeniDunya").unwrap();
+    assert!(list_saves(&tmp_dir).unwrap().is_empty());
+
+    let _ = fs::remove_dir_all(&tmp_dir);
+}
+
+#[test]
+fn hardware_and_launch_env_builder() {
+    let high_hw = HardwareProfile {
+        cpu_name: "Test Ryzen".into(),
+        physical_cores: 8,
+        logical_cores: 16,
+        total_ram_mb: 16_384,
+        available_ram_mb: 11_000,
+        gpu_name: "Test Discrete".into(),
+        gpu_backend: "Dx12".into(),
+        gpu_device_type: GpuTier::Discrete,
+    };
+    let (rec, _) = high_hw.recommend_settings(&GraphicsSettings::default());
+    assert!(rec.auto_configured);
+    assert_eq!(rec.jvm_ram_mb, 4096);
+    assert_eq!(rec.jvm_gc, JvmGcMode::ZGC);
+
+    let cfg = AppConfig::default();
+    let encoded = toml::to_string_pretty(&cfg).unwrap();
+    let decoded: AppConfig = toml::from_str(&encoded).unwrap();
+    assert_eq!(decoded.username, "Oyuncu");
+    assert_eq!(decoded.theme, ThemeMode::Dark);
+    assert_eq!(decoded.ui_layout, LayoutMode::Sidebar);
+    assert!(!decoded.ui_sounds);
+
+    // Eski config.toml dosyaları yeni alanlar olmadan varsayılanlarla yüklenebilmelidir
+    let legacy_decoded: AppConfig = toml::from_str("username = \"Eski\"\ntheme = \"Light\"\n").unwrap();
+    assert_eq!(legacy_decoded.username, "Eski");
+    assert_eq!(legacy_decoded.theme, ThemeMode::Light);
+    assert_eq!(legacy_decoded.ui_layout, LayoutMode::Sidebar);
+    assert!(!legacy_decoded.ui_sounds);
+
+    // Eski v0 dosyasından yüklerken masaüstü varsayılanı sessiz ve pencere moduna normalize olur; v1 tercihi korunur
+    let cfg_tmp_dir = std::env::temp_dir().join(format!("basalt_cfg_test_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&cfg_tmp_dir);
+    fs::create_dir_all(&cfg_tmp_dir).unwrap();
+    let v0_path = cfg_tmp_dir.join("cfg_v0.toml");
+    fs::write(
+        &v0_path,
+        "username = \"TestUser\"\nui_layout = \"DeckMode\"\nui_sounds = true\n",
+    )
+    .unwrap();
+    let migrated = AppConfig::load(&v0_path);
+    assert_eq!(migrated.config_version, 1);
+    assert_eq!(migrated.ui_layout, LayoutMode::Sidebar);
+    assert!(!migrated.ui_sounds);
+
+    let mut styled = AppConfig::default();
+    styled.theme = ThemeMode::Sculk;
+    styled.ui_layout = LayoutMode::RightRail;
+    styled.ui_sounds = true;
+    let styled_path = cfg_tmp_dir.join("cfg_v1.toml");
+    styled.save(&styled_path).unwrap();
+    let styled_decoded = AppConfig::load(&styled_path);
+    assert_eq!(styled_decoded.theme, ThemeMode::Sculk);
+    assert_eq!(styled_decoded.ui_layout, LayoutMode::RightRail);
+    assert!(styled_decoded.ui_sounds);
+    let _ = fs::remove_dir_all(&cfg_tmp_dir);
+
+    for (theme, layout) in [
+        (ThemeMode::Ember, LayoutMode::MinimalRail),
+        (ThemeMode::End, LayoutMode::DeckMode),
+        (ThemeMode::Cherry, LayoutMode::Topbar),
+        (ThemeMode::Frost, LayoutMode::CompactDeck),
+    ] {
+        styled.theme = theme;
+        styled.ui_layout = layout;
+        styled.ui_accent = AccentTone::Custom;
+        styled.custom_accent_hex = normalize_hex_color(" #FF7A45 ");
+        styled.ui_corner = CornerStyle::Soft;
+        let rt: AppConfig = toml::from_str(&toml::to_string_pretty(&styled).unwrap()).unwrap();
+        assert_eq!(rt.theme, theme);
+        assert_eq!(rt.ui_layout, layout);
+        assert_eq!(rt.ui_accent, AccentTone::Custom);
+        assert_eq!(rt.custom_accent_hex.as_deref(), Some("#ff7a45"));
+        assert_eq!(rt.ui_corner, CornerStyle::Soft);
+    }
+    assert!(normalize_hex_color("not-hex").is_none());
+
+    let env = build_launch_env(&LaunchEnvConfig {
+        username: "BasaltPlayer".into(),
+        jvm_ram_mb: 4096,
+        jvm_gc: JvmGcMode::G1GC,
+        show_fps_hud: true,
+        skin_path: Some(PathBuf::from("C:\\tmp\\skin.png")),
+        skin_is_slim: true,
+        quick_play_singleplayer: Some("TestSave".into()),
+        quick_play_multiplayer: None,
+        java_home: None,
+    });
+    assert!(env.iter().any(|(k, v)| k == "BASALT_USERNAME" && v == "BasaltPlayer"));
+    assert!(env.iter().any(|(k, v)| k == "BASALT_UUID" && *v == local_player_uuid_dashed("BasaltPlayer")));
+    assert!(env.iter().any(|(k, v)| k == "BASALT_JVM_XMX" && v == "4096"));
+    assert!(env.iter().any(|(k, v)| k == "BASALT_SKIN_MODEL" && v == "slim"));
+    assert!(env.iter().any(|(k, v)| k == "BASALT_QUICK_PLAY_SP" && v == "TestSave"));
+
+    let detected_hw = HardwareProfile::detect_headless();
+    assert!(detected_hw.logical_cores >= 1);
+
+    let gradle_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("client-gradle");
+    assert!(is_valid_gradle_workspace(&gradle_path));
+    assert!(discover_java21_home().is_some());
+
+    let extract_root = std::env::temp_dir().join("basalt_embedded_gradle_test");
+    let _ = fs::remove_dir_all(&extract_root);
+    let extracted = ensure_embedded_gradle_workspace(&extract_root.join("client-gradle")).unwrap();
+    assert!(is_valid_gradle_workspace(&extracted));
+    assert!(extracted.join("src/client/resources/assets/basalt/skins/default.png").is_file());
+    fs::create_dir_all(extracted.join("run/saves/KeepMe")).unwrap();
+    let again = resolve_or_extract_gradle_workspace(&extract_root).unwrap();
+    assert_eq!(again, extracted);
+    assert!(again.join("run/saves/KeepMe").is_dir());
+
+    let jdk17_dir = extract_root.join("mock_jdk17");
+    let jdk21_dir = extract_root.join("mock_jdk21");
+    let bin_name = if cfg!(windows) { "java.exe" } else { "java" };
+    fs::create_dir_all(jdk17_dir.join("bin")).unwrap();
+    fs::write(jdk17_dir.join("bin").join(bin_name), b"").unwrap();
+    fs::write(jdk17_dir.join("release"), "JAVA_VERSION=\"17.0.9\"\n").unwrap();
+
+    let only_17 = evaluate_jdk_candidates(&[jdk17_dir.clone()]);
+    assert!(only_17.java21.is_none());
+    assert_eq!(only_17.older_detected.as_deref(), Some("Java 17.0.9"));
+
+    fs::create_dir_all(jdk21_dir.join("bin")).unwrap();
+    fs::write(jdk21_dir.join("bin").join(bin_name), b"").unwrap();
+    fs::write(jdk21_dir.join("release"), "JAVA_VERSION=\"21.0.5\"\n").unwrap();
+    let both = evaluate_jdk_candidates(&[jdk17_dir, jdk21_dir.clone()]);
+    assert_eq!(both.java21.as_ref().unwrap().1, "21.0.5");
+
+    let _ = fs::remove_dir_all(&extract_root);
+}
+
+#[test]
+fn minecraft_sounds_local_cache_and_base64() {
+    assert_eq!(encode_base64(b"OggS\x00"), "T2dnUwA=");
+
+    let tmp = std::env::temp_dir().join(format!("basalt_sounds_test_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&tmp);
+    let sounds_dir = tmp.join("sounds");
+    let mock_assets = tmp.join("mock_assets");
+
+    // Seed fake OggS blob at the 1.21.4 hash object for `click` (`3455ca...`)
+    let click_hash = "3455ca942556c7d5eac7dd5e458e7fb3bad564c9";
+    let click_obj_dir = mock_assets.join("objects").join(&click_hash[..2]);
+    fs::create_dir_all(&click_obj_dir).unwrap();
+    let mut dummy_ogg = b"OggS".to_vec();
+    dummy_ogg.extend_from_slice(&[0u8; 40]);
+    fs::write(click_obj_dir.join(click_hash), &dummy_ogg).unwrap();
+
+    // Seed an alternate index-mapped hash for `orb` (`toggleOn`)
+    let orb_hash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    let orb_obj_dir = mock_assets.join("objects").join(&orb_hash[..2]);
+    fs::create_dir_all(&orb_obj_dir).unwrap();
+    fs::write(orb_obj_dir.join(orb_hash), &dummy_ogg).unwrap();
+    fs::create_dir_all(mock_assets.join("indexes")).unwrap();
+    fs::write(
+        mock_assets.join("indexes").join("custom.json"),
+        format!("{{\"objects\":{{\"minecraft/sounds/random/orb.ogg\":{{\"hash\":\"{orb_hash}\"}}}}}}"),
+    )
+    .unwrap();
+
+    let dto = load_local_minecraft_sounds(&sounds_dir, &[mock_assets]);
+    assert!(dto.sounds.contains_key("click"));
+    assert!(dto.sounds.contains_key("toggleOn"));
+    assert!(dto.sounds["click"].starts_with("data:audio/ogg;base64,T2dnUw"));
+    assert!(sounds_dir.join("click.ogg").is_file());
+    assert!(sounds_dir.join("toggleOn.ogg").is_file());
+
+    let _ = fs::remove_dir_all(&tmp);
+}

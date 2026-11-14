@@ -1,0 +1,100 @@
+plugins {
+	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
+	id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+}
+
+loom {
+	splitEnvironmentSourceSets()
+
+	mods {
+		"basalt-client" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+
+	runs {
+		client {
+			client()
+			ideConfigGenerated true
+			runDir "run"
+
+			def jvmXmx = providers.environmentVariable("BASALT_JVM_XMX").orNull
+			if (jvmXmx != null && jvmXmx.trim().isInteger()) {
+				int xmx = Math.max(1024, Math.min(16384, Integer.parseInt(jvmXmx.trim())))
+				int xms = Math.min(1024, xmx)
+				vmArg("-Xmx${xmx}M")
+				vmArg("-Xms${xms}M")
+			}
+
+			def jvmGc = providers.environmentVariable("BASALT_JVM_GC").orNull
+			if ("ZGC".equalsIgnoreCase(jvmGc)) {
+				vmArg("-XX:+UseZGC")
+				vmArg("-XX:+ZGenerational")
+			} else if ("G1GC".equalsIgnoreCase(jvmGc)) {
+				vmArg("-XX:+UseG1GC")
+				vmArg("-XX:+ParallelRefProcEnabled")
+				vmArg("-XX:MaxGCPauseMillis=50")
+			}
+
+			def user = providers.environmentVariable("BASALT_USERNAME").orNull
+			if (user != null && !user.trim().isEmpty()) {
+				programArg("--username")
+				programArg(user.trim())
+			}
+
+			def uuid = providers.environmentVariable("BASALT_UUID").orNull
+			if (uuid != null && !uuid.trim().isEmpty()) {
+				programArg("--uuid")
+				programArg(uuid.trim())
+			}
+
+			def qpSp = providers.environmentVariable("BASALT_QUICK_PLAY_SP").orNull
+			if (qpSp != null && !qpSp.trim().isEmpty()) {
+				programArg("--quickPlaySingleplayer")
+				programArg(qpSp.trim())
+			}
+
+			def qpMp = providers.environmentVariable("BASALT_QUICK_PLAY_MP").orNull
+			if (qpMp != null && !qpMp.trim().isEmpty()) {
+				programArg("--quickPlayMultiplayer")
+				programArg(qpMp.trim())
+			}
+		}
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+processResources {
+	inputs.property "version", project.version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 21
+	it.options.encoding = "UTF-8"
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
+}
