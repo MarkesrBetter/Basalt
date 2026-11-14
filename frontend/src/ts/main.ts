@@ -271,7 +271,7 @@ function getEffectiveAccent(): AccentTone {
 
 function getEffectiveCustomHex(): string {
   const raw = new URLSearchParams(window.location.search).get("customHex");
-  return normalizeHex(raw) ?? normalizeHex(state?.config.custom_accent_hex) ?? "#a47cff";
+  return normalizeHex(raw) ?? normalizeHex(state?.config.custom_accent_hex) ?? "#e07d44";
 }
 
 function getEffectiveCorner(): CornerStyle {

@@ -1284,13 +1284,13 @@ dialog p {
   flex: 0 0 auto;
 }
 
-.dot-auto { background: conic-gradient(#a47cff 0 90deg, #56c27e 90deg 180deg, #53b8ec 180deg 270deg, #ea6b66 270deg 360deg); }
+.dot-auto { background: conic-gradient(#e07d44 0 90deg, #56c27e 90deg 180deg, #53b8ec 180deg 270deg, #ea6b66 270deg 360deg); }
 .dot-copper { background: #e0824a; }
 .dot-emerald { background: #56c27e; }
 .dot-cyan { background: #53b8ec; }
 .dot-amber { background: #e5a93b; }
 .dot-crimson { background: #ea6b66; }
-.dot-amethyst { background: #a98bff; }
+.dot-amethyst { background: #6495ed; }
 
 .accent-custom-chip {
   display: inline-flex;
@@ -1375,15 +1375,15 @@ dialog p {
   background: var(--accent);
 }
 
-.sw-dark-canvas { background: #131118; }
-.sw-dark-rail { background: #18151f; }
-.sw-dark-surface { background: #272233; }
-.sw-dark-accent { background: #a47cff; }
+.sw-dark-canvas { background: #111316; }
+.sw-dark-rail { background: #15181c; }
+.sw-dark-surface { background: #21262e; }
+.sw-dark-accent { background: #e07d44; }
 
-.sw-ember-canvas { background: #121417; }
-.sw-ember-rail { background: #171a1e; }
-.sw-ember-surface { background: #232830; }
-.sw-ember-accent { background: #e0824a; }
+.sw-ember-canvas { background: #131412; }
+.sw-ember-rail { background: #181a17; }
+.sw-ember-surface { background: #262923; }
+.sw-ember-accent { background: #df9f3a; }
 
 .sw-light-canvas { background: #f3f1ec; }
 .sw-light-rail { background: #eae7e0; }

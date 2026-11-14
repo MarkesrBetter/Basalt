@@ -17,20 +17,20 @@ interface CalibratedAccent {
 
 const DARK_THEME_DEFAULTS: Record<Exclude<ThemeMode, "Light" | "Frost" | "Cherry">, CalibratedAccent> = {
   Dark: {
-    accent: "#a47cff",
-    hover: "#b594ff",
-    text: "#0e091b",
-    fg: "#b593ff",
-    focus: "#cebaff",
-    soft: "rgba(164, 124, 255, 0.15)",
+    accent: "#e07d44",
+    hover: "#ec8f58",
+    text: "#140a04",
+    fg: "#eb915c",
+    focus: "#f2aa7e",
+    soft: "rgba(224, 125, 68, 0.14)",
   },
   Ember: {
-    accent: "#e0824a",
-    hover: "#ec935e",
-    text: "#140b06",
-    fg: "#eb9560",
-    focus: "#f2ad7e",
-    soft: "rgba(224, 130, 74, 0.14)",
+    accent: "#df9f3a",
+    hover: "#ebb050",
+    text: "#170f02",
+    fg: "#eab052",
+    focus: "#f3c476",
+    soft: "rgba(223, 159, 58, 0.14)",
   },
   Spruce: {
     accent: "#56c27e",
@@ -102,19 +102,19 @@ const LIGHT_THEME_DEFAULTS: Record<Extract<ThemeMode, "Light" | "Frost" | "Cherr
 };
 
 const DARK_ACCENT_PRESETS: Record<Exclude<AccentTone, "Auto" | "Custom">, CalibratedAccent> = {
-  Copper: DARK_THEME_DEFAULTS.Ember,
+  Copper: DARK_THEME_DEFAULTS.Dark,
   Emerald: DARK_THEME_DEFAULTS.Spruce,
   Cyan: DARK_THEME_DEFAULTS.Cobalt,
-  Amber: {
-    accent: "#e5a93b",
-    hover: "#eeb955",
-    text: "#171002",
-    fg: "#edb953",
-    focus: "#f5cb78",
-    soft: "rgba(229, 169, 59, 0.14)",
-  },
+  Amber: DARK_THEME_DEFAULTS.Ember,
   Crimson: DARK_THEME_DEFAULTS.Nether,
-  Amethyst: DARK_THEME_DEFAULTS.Dark,
+  Amethyst: {
+    accent: "#6495ed",
+    hover: "#7ba6f2",
+    text: "#071021",
+    fg: "#7ca7f5",
+    focus: "#a3c2f9",
+    soft: "rgba(100, 149, 237, 0.14)",
+  },
 };
 
 const LIGHT_ACCENT_PRESETS: Record<Exclude<AccentTone, "Auto" | "Custom">, CalibratedAccent> = {
@@ -152,12 +152,12 @@ const LIGHT_ACCENT_PRESETS: Record<Exclude<AccentTone, "Auto" | "Custom">, Calib
     soft: "rgba(180, 43, 38, 0.11)",
   },
   Amethyst: {
-    accent: "#693cc4",
-    hover: "#572fa8",
+    accent: "#2956a8",
+    hover: "#1f4487",
     text: "#ffffff",
-    fg: "#5a2eb2",
-    focus: "#693cc4",
-    soft: "rgba(105, 60, 196, 0.11)",
+    fg: "#234b94",
+    focus: "#2956a8",
+    soft: "rgba(41, 86, 168, 0.11)",
   },
 };
 
@@ -280,7 +280,7 @@ export function applyDynamicDesignTokens(
 
   let resolved: CalibratedAccent;
   if (accent === "Custom") {
-    const valid = normalizeHex(customHex) ?? (light ? "#693cc4" : "#a47cff");
+    const valid = normalizeHex(customHex) ?? (light ? "#b34c19" : "#e07d44");
     resolved = computeCustomAccent(valid, light);
   } else {
     resolved = (light ? LIGHT_ACCENT_PRESETS : DARK_ACCENT_PRESETS)[accent];
