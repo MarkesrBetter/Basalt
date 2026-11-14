@@ -5,7 +5,8 @@ use crate::config::GraphicsSettings;
 
 /// Converts Minecraft's FOV slider scale (`70 deg` = `0.0`, `110 deg` = `1.0`, `30 deg` = `-1.0`).
 pub fn fov_degrees_to_options_value(degrees: f32) -> f32 {
-    ((degrees.clamp(30.0, 110.0) - 70.0) / 40.0).clamp(-1.0, 1.0)
+    let safe = if degrees.is_finite() { degrees } else { 75.0 };
+    ((safe.clamp(30.0, 110.0) - 70.0) / 40.0).clamp(-1.0, 1.0)
 }
 
 /// Writes Basalt's hardware-tuned graphics parameters into Minecraft `run/options.txt`
@@ -38,7 +39,12 @@ pub fn sync_minecraft_options_with_pack(
     let existing = fs::read_to_string(&options_path).unwrap_or_default();
 
     let fov_val = format!("{:.4}", fov_degrees_to_options_value(gfx.fov_degrees));
-    let sens_val = format!("{:.4}", gfx.mouse_sensitivity.clamp(0.0, 1.0));
+    let sens = if gfx.mouse_sensitivity.is_finite() {
+        gfx.mouse_sensitivity.clamp(0.0, 1.0)
+    } else {
+        0.5
+    };
+    let sens_val = format!("{sens:.4}");
     let graphics_mode = if gfx.fancy_graphics { "1" } else { "0" };
 
     let managed: [(&str, String); 9] = [
@@ -120,8 +126,10 @@ mod tests {
     fn writes_numeric_graphics_mode_for_1_21_4() {
         let dir = std::env::temp_dir().join("basalt_options_txt_test");
         let _ = fs::remove_dir_all(&dir);
-        let mut gfx = GraphicsSettings::default();
-        gfx.fancy_graphics = true;
+        let mut gfx = GraphicsSettings {
+            fancy_graphics: true,
+            ..Default::default()
+        };
         sync_minecraft_options(&dir, &gfx).unwrap();
         let written = fs::read_to_string(dir.join("options.txt")).unwrap();
         assert!(written.contains("graphicsMode:1\n"));

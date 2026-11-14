@@ -225,10 +225,26 @@ impl AppPaths {
 }
 
 impl AppConfig {
+    pub fn sanitize(&mut self) {
+        if !self.graphics.fov_degrees.is_finite() {
+            self.graphics.fov_degrees = 75.0;
+        }
+        self.graphics.fov_degrees = self.graphics.fov_degrees.clamp(30.0, 110.0);
+        if !self.graphics.mouse_sensitivity.is_finite() {
+            self.graphics.mouse_sensitivity = 0.5;
+        }
+        self.graphics.mouse_sensitivity = self.graphics.mouse_sensitivity.clamp(0.0, 1.0);
+        self.graphics.render_distance = self.graphics.render_distance.clamp(2, 32);
+        self.graphics.simulation_distance = self.graphics.simulation_distance.clamp(5, 32);
+        self.graphics.max_fps = self.graphics.max_fps.clamp(10, 260);
+        self.graphics.jvm_ram_mb = self.graphics.jvm_ram_mb.clamp(1024, 16384);
+    }
+
     pub fn load(path: &Path) -> Self {
         match fs::read_to_string(path) {
             Ok(text) => {
                 let mut cfg: Self = toml::from_str(&text).unwrap_or_default();
+                cfg.sanitize();
                 // Migrate pre-v1 configs so desktop starts windowed & quiet while Console Mode activates sound/fullscreen cleanly.
                 if cfg.config_version == 0 {
                     cfg.config_version = 1;

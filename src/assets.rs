@@ -83,21 +83,21 @@ fn convert_legacy_64x32_to_64x64(src: &RgbaImage) -> RgbaImage {
             dst.put_pixel(x, y, *src.get_pixel(x, y));
         }
     }
-    copy_region(src, &mut dst, 0, 16, 16, 48, 16, 16);
-    copy_region(src, &mut dst, 40, 16, 32, 48, 16, 16);
+    copy_region(src, &mut dst, (0, 16), (16, 48), (16, 16));
+    copy_region(src, &mut dst, (40, 16), (32, 48), (16, 16));
     dst
 }
 
 fn copy_region(
     src: &RgbaImage,
     dst: &mut RgbaImage,
-    sx: u32,
-    sy: u32,
-    dx: u32,
-    dy: u32,
-    w: u32,
-    h: u32,
+    src_pos: (u32, u32),
+    dst_pos: (u32, u32),
+    size: (u32, u32),
 ) {
+    let (sx, sy) = src_pos;
+    let (dx, dy) = dst_pos;
+    let (w, h) = size;
     for y in 0..h {
         for x in 0..w {
             dst.put_pixel(dx + x, dy + y, *src.get_pixel(sx + x, sy + y));

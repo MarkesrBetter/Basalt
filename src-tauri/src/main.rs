@@ -252,19 +252,23 @@ fn load_active_skin_png_bytes(skin_file: Option<&Path>) -> Vec<u8> {
     default_skin_png_bytes().to_vec()
 }
 
+struct SessionDirs<'a> {
+    vanilla: &'a Path,
+    run: &'a Path,
+    saves: &'a Path,
+    runtime: &'a Path,
+}
+
 fn emit_session_ended(
     app: &tauri::AppHandle,
     kind: String,
     exit_code: Option<i32>,
     error: Option<String>,
-    vanilla_dir: &Path,
-    run_dir: &Path,
-    saves_dir: &Path,
-    runtime_dir: &Path,
+    dirs: &SessionDirs<'_>,
 ) {
-    let saves = scan_saves(saves_dir).unwrap_or_default();
+    let saves = scan_saves(dirs.saves).unwrap_or_default();
     let vanilla =
-        inspect_vanilla_environment_with_runtime(vanilla_dir, run_dir, Some(runtime_dir));
+        inspect_vanilla_environment_with_runtime(dirs.vanilla, dirs.run, Some(dirs.runtime));
     let _ = app.emit(
         "basalt://session-ended",
         SessionEndedPayload {
@@ -829,7 +833,7 @@ fn open_java_download_page() -> Result<(), String> {
             .args(["url.dll,FileProtocolHandler", ADOPTIUM_JDK21_URL])
             .spawn()
             .map_err(|e| format!("Failed to open browser: {e}"))?;
-        return Ok(());
+        Ok(())
     }
     #[cfg(not(windows))]
     {
@@ -902,6 +906,15 @@ fn install_java21_blocking(app: &tauri::AppHandle, runtime_dir: &Path) -> Result
     let _ = fs::remove_file(&zip_path);
     let _ = fs::remove_dir_all(&ext_dir);
 
+    struct TempInstallGuard<'a>(&'a Path, &'a Path);
+    impl Drop for TempInstallGuard<'_> {
+        fn drop(&mut self) {
+            let _ = fs::remove_file(self.0);
+            let _ = fs::remove_dir_all(self.1);
+        }
+    }
+    let _temp_guard = TempInstallGuard(&zip_path, &ext_dir);
+
     log("Downloading JDK 21 archive, please wait...".to_string(), false);
     let mut dl_cmd = Command::new("curl.exe");
     dl_cmd
@@ -967,10 +980,24 @@ fn install_java21_blocking(app: &tauri::AppHandle, runtime_dir: &Path) -> Result
 
     let target = runtime_dir.join("jdk-21");
     let _ = fs::remove_dir_all(&target);
-    fs::rename(&jdk_src, &target)
-        .map_err(|e| format!("Failed to move JDK 21 into runtime directory: {e}"))?;
-    let _ = fs::remove_file(&zip_path);
-    let _ = fs::remove_dir_all(&ext_dir);
+    let mut rename_err = None;
+    for attempt in 0..10 {
+        match fs::rename(&jdk_src, &target) {
+            Ok(()) => {
+                rename_err = None;
+                break;
+            }
+            Err(e) => {
+                rename_err = Some(e);
+                if attempt < 9 {
+                    thread::sleep(std::time::Duration::from_millis(200));
+                }
+            }
+        }
+    }
+    if let Some(e) = rename_err {
+        return Err(format!("Failed to move JDK 21 into runtime directory: {e}"));
+    }
 
     let ver_line = fs::read_to_string(target.join("release"))
         .ok()
@@ -1041,10 +1068,12 @@ fn install_java_21(
                 "java-install".to_string(),
                 exit_code,
                 error,
-                &vanilla_dir,
-                &run_dir,
-                &saves_dir,
-                &runtime_dir,
+                &SessionDirs {
+                    vanilla: &vanilla_dir,
+                    run: &run_dir,
+                    saves: &saves_dir,
+                    runtime: &runtime_dir,
+                },
             );
         });
 
@@ -1090,10 +1119,12 @@ fn prepare_vanilla_client(
             "prepare".to_string(),
             exit_code,
             error,
-            &vanilla_dir,
-            &run_dir,
-            &saves_dir,
-            &runtime_dir,
+            &SessionDirs {
+                vanilla: &vanilla_dir,
+                run: &run_dir,
+                saves: &saves_dir,
+                runtime: &runtime_dir,
+            },
         );
     });
 
@@ -1106,15 +1137,26 @@ fn launch_client(
     state: tauri::State<AppState>,
     input: LaunchInput,
 ) -> Result<RunningSessionDto, String> {
-    {
-        let running = state
-            .running
-            .lock()
-            .map_err(|_| "Failed to unlock session state".to_string())?;
-        if running.is_some() {
-            return Err("Minecraft or setup is already running.".to_string());
+    struct SessionReservation<'a> {
+        running: Option<&'a Mutex<Option<RunningSessionDto>>>,
+    }
+    impl Drop for SessionReservation<'_> {
+        fn drop(&mut self) {
+            if let Some(arc) = self.running {
+                finish_running_session(arc);
+            }
         }
     }
+
+    let initial_session = RunningSessionDto {
+        pid: std::process::id(),
+        kind: "launch".to_string(),
+        label: "Minecraft 1.21.4 (Vanilla)".to_string(),
+    };
+    begin_running_session(&state.running, initial_session)?;
+    let mut reservation = SessionReservation {
+        running: Some(&state.running),
+    };
 
     let (java_home, _) = discover_java21_home_with_runtime(&state.paths.runtime_dir).ok_or_else(|| {
         "Java 21 runtime was not found. Use 'Install Java 21' on the Play screen to install it."
@@ -1187,7 +1229,10 @@ fn launch_client(
         kind: "launch".to_string(),
         label,
     };
-    begin_running_session(&state.running, session.clone())?;
+    if let Ok(mut guard) = state.running.lock() {
+        *guard = Some(session.clone());
+    }
+    reservation.running = None;
 
     let launch_cfg = VanillaLaunchConfig {
         username: config_snapshot.username,
@@ -1239,10 +1284,12 @@ fn launch_client(
             "launch".to_string(),
             exit_code,
             error,
-            &vanilla_dir,
-            &run_dir,
-            &saves_dir,
-            &runtime_dir,
+            &SessionDirs {
+                vanilla: &vanilla_dir,
+                run: &run_dir,
+                saves: &saves_dir,
+                runtime: &runtime_dir,
+            },
         );
     });
 

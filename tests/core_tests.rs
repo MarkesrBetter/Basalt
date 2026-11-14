@@ -14,7 +14,8 @@ use basalt::options_txt::{
 };
 use basalt::protocol::{
     LocalHandshakeResult, MINECRAFT_1_21_4_PROTOCOL, PacketBuffer, local_player_uuid_dashed,
-    ping_server_1_21_4, probe_local_dev_login_1_21_4, read_framed_packet, write_framed_packet,
+    parse_host_port, ping_server_1_21_4, probe_local_dev_login_1_21_4, read_framed_packet,
+    write_framed_packet,
 };
 use basalt::saves::{delete_save, list_saves, resolve_save_dir};
 use basalt::sounds::{encode_base64, load_local_minecraft_sounds};
@@ -115,14 +116,16 @@ fn options_txt_sync_preserves_custom_lines() {
     )
     .unwrap();
 
-    let mut gfx = GraphicsSettings::default();
-    gfx.render_distance = 14;
-    gfx.simulation_distance = 10;
-    gfx.fov_degrees = 90.0;
-    gfx.fancy_graphics = false;
-    gfx.smooth_lighting = false;
-    gfx.max_fps = 180;
-    gfx.vsync = false;
+    let gfx = GraphicsSettings {
+        render_distance: 14,
+        simulation_distance: 10,
+        fov_degrees: 90.0,
+        fancy_graphics: false,
+        smooth_lighting: false,
+        max_fps: 180,
+        vsync: false,
+        ..Default::default()
+    };
     sync_minecraft_options(&tmp_dir, &gfx).unwrap();
 
     let written = fs::read_to_string(tmp_dir.join("options.txt")).unwrap();
@@ -222,11 +225,13 @@ fn hardware_and_launch_env_builder() {
     assert_eq!(migrated.ui_language, UiLanguage::En);
     assert!(!migrated.ui_sounds);
 
-    let mut styled = AppConfig::default();
-    styled.theme = ThemeMode::Sculk;
-    styled.ui_layout = LayoutMode::RightRail;
-    styled.ui_sounds = true;
-    styled.ui_language = UiLanguage::De;
+    let mut styled = AppConfig {
+        theme: ThemeMode::Sculk,
+        ui_layout: LayoutMode::RightRail,
+        ui_sounds: true,
+        ui_language: UiLanguage::De,
+        ..Default::default()
+    };
     let styled_path = cfg_tmp_dir.join("cfg_v1.toml");
     styled.save(&styled_path).unwrap();
     let styled_decoded = AppConfig::load(&styled_path);
@@ -287,7 +292,7 @@ fn hardware_and_launch_env_builder() {
     fs::write(jdk17_dir.join("bin").join(bin_name), b"").unwrap();
     fs::write(jdk17_dir.join("release"), "JAVA_VERSION=\"17.0.9\"\n").unwrap();
 
-    let only_17 = evaluate_jdk_candidates(&[jdk17_dir.clone()]);
+    let only_17 = evaluate_jdk_candidates(std::slice::from_ref(&jdk17_dir));
     assert!(only_17.java21.is_none());
     assert_eq!(only_17.older_detected.as_deref(), Some("Java 17.0.9"));
 
@@ -335,6 +340,77 @@ fn minecraft_sounds_local_cache_and_base64() {
     assert!(dto.sounds["click"].starts_with("data:audio/ogg;base64,T2dnUw"));
     assert!(sounds_dir.join("click.ogg").is_file());
     assert!(sounds_dir.join("toggleOn.ogg").is_file());
+
+    let _ = fs::remove_dir_all(&tmp);
+}
+
+#[test]
+fn offline_uuid_ipv6_host_port_bounds_and_float_sanitization() {
+    // Official Mojang UUID.nameUUIDFromBytes("OfflinePlayer:<name>") parity
+    assert_eq!(
+        local_player_uuid_dashed("Notch"),
+        "b50ad385-829d-3141-a216-7e7d7539ba7f"
+    );
+    assert_eq!(
+        local_player_uuid_dashed("Player"),
+        "a01e3843-e521-3998-958a-f459800e4d11"
+    );
+
+    // IPv4, IPv6 bracketed/unbracketed, and default port parsing
+    assert_eq!(parse_host_port("127.0.0.1:25565"), ("127.0.0.1".to_string(), 25565));
+    assert_eq!(parse_host_port(" [::1]:25570 "), ("::1".to_string(), 25570));
+    assert_eq!(parse_host_port("[::1]"), ("::1".to_string(), 25565));
+    assert_eq!(parse_host_port("::1"), ("::1".to_string(), 25565));
+    assert_eq!(parse_host_port("2001:db8::1"), ("2001:db8::1".to_string(), 25565));
+    assert_eq!(parse_host_port("mc.example.org"), ("mc.example.org".to_string(), 25565));
+
+    // Compressed packet with negative data_len must return Err cleanly instead of panicking on cast
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let addr = listener.local_addr().unwrap();
+    let sender = thread::spawn(move || {
+        use std::io::Write;
+        let mut s = std::net::TcpStream::connect(addr).unwrap();
+        let mut frame = PacketBuffer::new();
+        frame.write_varint(-5);
+        let mut outer = PacketBuffer::new();
+        outer.write_varint(frame.data.len() as i32);
+        outer.data.extend_from_slice(&frame.data);
+        s.write_all(&outer.data).unwrap();
+    });
+    let (mut server_stream, _) = listener.accept().unwrap();
+    let err = read_framed_packet(&mut server_stream, Some(256)).unwrap_err();
+    assert!(err.contains("Invalid decompressed packet size"));
+    sender.join().unwrap();
+
+    // Non-finite floats must never leak NaN or Infinity into Minecraft options.txt or config load
+    let tmp = std::env::temp_dir().join(format!("basalt_nan_guard_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&tmp);
+    fs::create_dir_all(&tmp).unwrap();
+    let gfx = GraphicsSettings {
+        fov_degrees: f32::NAN,
+        mouse_sensitivity: f32::INFINITY,
+        ..Default::default()
+    };
+    sync_minecraft_options(&tmp, &gfx).unwrap();
+    let opts = fs::read_to_string(tmp.join("options.txt")).unwrap();
+    assert!(!opts.contains("NaN"));
+    assert!(!opts.contains("inf"));
+    assert!(opts.contains("fov:0.1250\n"));
+    assert!(opts.contains("mouseSensitivity:0.5000\n"));
+
+    let cfg_path = tmp.join("config.toml");
+    fs::write(
+        &cfg_path,
+        "[graphics]\npreset = \"Custom\"\nrender_distance = 100\nsimulation_distance = 1\nfov_degrees = nan\nvsync = true\nmax_fps = 500\nmouse_sensitivity = inf\nsmooth_lighting = true\nfancy_graphics = true\njvm_ram_mb = 99999\njvm_gc = \"G1GC\"\nshow_fps_hud = true\nauto_configured = false\n",
+    )
+    .unwrap();
+    let loaded_cfg = AppConfig::load(&cfg_path);
+    assert!(loaded_cfg.graphics.fov_degrees.is_finite());
+    assert!(loaded_cfg.graphics.mouse_sensitivity.is_finite());
+    assert_eq!(loaded_cfg.graphics.render_distance, 32);
+    assert_eq!(loaded_cfg.graphics.simulation_distance, 5);
+    assert_eq!(loaded_cfg.graphics.max_fps, 260);
+    assert_eq!(loaded_cfg.graphics.jvm_ram_mb, 16384);
 
     let _ = fs::remove_dir_all(&tmp);
 }

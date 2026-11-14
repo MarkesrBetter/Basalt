@@ -3,7 +3,7 @@ use flate2::read::ZlibDecoder;
 use flate2::write::ZlibEncoder;
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
-use std::net::{TcpStream, ToSocketAddrs};
+use std::net::{IpAddr, SocketAddr, TcpStream, ToSocketAddrs};
 use std::time::{Duration, Instant};
 
 pub const MINECRAFT_1_21_4_NAME: &str = "1.21.4";
@@ -93,7 +93,7 @@ impl PacketBuffer {
 
     pub fn read_string(&mut self) -> Result<String, String> {
         let len = self.read_varint()?;
-        if len < 0 || len > 32767 * 4 {
+        if !(0..=32767 * 4).contains(&len) {
             return Err(format!("Invalid String length: {len}"));
         }
         let bytes = self.read_exact(len as usize)?.to_vec();
@@ -101,17 +101,85 @@ impl PacketBuffer {
     }
 }
 
-/// Deterministic offline/local player UUID bytes for a username.
-pub fn local_player_uuid_bytes(username: &str) -> [u8; 16] {
-    let mut hash = [0u8; 16];
-    let seed = format!("OfflinePlayer:{username}");
-    let mut state: u64 = 0x9E37_79B9_7F4A_7C15;
-    for (i, &b) in seed.as_bytes().iter().enumerate() {
-        state = state
-            .wrapping_mul(6_364_136_223_846_793_005)
-            .wrapping_add(b as u64 + i as u64);
-        hash[i % 16] ^= (state >> 24) as u8;
+/// Pure-Rust RFC 1321 MD5 digest matching Java `MessageDigest.getInstance("MD5")`.
+fn md5_digest(input: &[u8]) -> [u8; 16] {
+    const SHIFTS: [u32; 64] = [
+        7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+        5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20,
+        4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
+        6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
+    ];
+    const K: [u32; 64] = [
+        0xD76AA478, 0xE8C7B756, 0x242070DB, 0xC1BDCEEE,
+        0xF57C0FAF, 0x4787C62A, 0xA8304613, 0xFD469501,
+        0x698098D8, 0x8B44F7AF, 0xFFFF5BB1, 0x895CD7BE,
+        0x6B901122, 0xFD987193, 0xA679438E, 0x49B40821,
+        0xF61E2562, 0xC040B340, 0x265E5A51, 0xE9B6C7AA,
+        0xD62F105D, 0x02441453, 0xD8A1E681, 0xE7D3FBC8,
+        0x21E1CDE6, 0xC33707D6, 0xF4D50D87, 0x455A14ED,
+        0xA9E3E905, 0xFCEFA3F8, 0x676F02D9, 0x8D2A4C8A,
+        0xFFFA3942, 0x8771F681, 0x6D9D6122, 0xFDE5380C,
+        0xA4BEEA44, 0x4BDECFA9, 0xF6BB4B60, 0xBEBFBC70,
+        0x289B7EC6, 0xEAA127FA, 0xD4EF3085, 0x04881D05,
+        0xD9D4D039, 0xE6DB99E5, 0x1FA27CF8, 0xC4AC5665,
+        0xF4292244, 0x432AFF97, 0xAB9423A7, 0xFC93A039,
+        0x655B59C3, 0x8F0CCC92, 0xFFEFF47D, 0x85845DD1,
+        0x6FA87E4F, 0xFE2CE6E0, 0xA3014314, 0x4E0811A1,
+        0xF7537E82, 0xBD3AF235, 0x2AD7D2BB, 0xEB86D391,
+    ];
+
+    let bit_len = (input.len() as u64).wrapping_mul(8);
+    let mut padded = Vec::with_capacity((input.len() + 72) & !63);
+    padded.extend_from_slice(input);
+    padded.push(0x80);
+    while padded.len() % 64 != 56 {
+        padded.push(0);
     }
+    padded.extend_from_slice(&bit_len.to_le_bytes());
+
+    let mut a0: u32 = 0x6745_2301;
+    let mut b0: u32 = 0xEFCD_AB89;
+    let mut c0: u32 = 0x98BA_DCFE;
+    let mut d0: u32 = 0x1032_5476;
+
+    for chunk in padded.chunks_exact(64) {
+        let mut m = [0u32; 16];
+        for (i, word) in chunk.chunks_exact(4).enumerate() {
+            m[i] = u32::from_le_bytes([word[0], word[1], word[2], word[3]]);
+        }
+        let (mut a, mut b, mut c, mut d) = (a0, b0, c0, d0);
+        for i in 0..64 {
+            let (f, g) = match i {
+                0..=15 => ((b & c) | ((!b) & d), i),
+                16..=31 => ((d & b) | ((!d) & c), (5 * i + 1) % 16),
+                32..=47 => (b ^ c ^ d, (3 * i + 5) % 16),
+                _ => (c ^ (b | (!d)), (7 * i) % 16),
+            };
+            let temp = d;
+            d = c;
+            c = b;
+            let sum = a.wrapping_add(f).wrapping_add(K[i]).wrapping_add(m[g]);
+            b = b.wrapping_add(sum.rotate_left(SHIFTS[i]));
+            a = temp;
+        }
+        a0 = a0.wrapping_add(a);
+        b0 = b0.wrapping_add(b);
+        c0 = c0.wrapping_add(c);
+        d0 = d0.wrapping_add(d);
+    }
+
+    let mut out = [0u8; 16];
+    out[0..4].copy_from_slice(&a0.to_le_bytes());
+    out[4..8].copy_from_slice(&b0.to_le_bytes());
+    out[8..12].copy_from_slice(&c0.to_le_bytes());
+    out[12..16].copy_from_slice(&d0.to_le_bytes());
+    out
+}
+
+/// Deterministic offline/local player UUID bytes matching Java `UUID.nameUUIDFromBytes("OfflinePlayer:<username>")`.
+pub fn local_player_uuid_bytes(username: &str) -> [u8; 16] {
+    let seed = format!("OfflinePlayer:{username}");
+    let mut hash = md5_digest(seed.as_bytes());
     hash[6] = (hash[6] & 0x0F) | 0x30;
     hash[8] = (hash[8] & 0x3F) | 0x80;
     hash
@@ -211,17 +279,25 @@ pub fn read_framed_packet(
         .read_exact(&mut raw)
         .map_err(|e| format!("Failed to read packet body: {e}"))?;
 
+    const MAX_UNCOMPRESSED_PACKET: i32 = 16 * 1024 * 1024;
     let mut buf = PacketBuffer::from_bytes(raw);
     if compression_threshold.is_some() {
         let data_len = buf.read_varint()?;
+        if !(0..=MAX_UNCOMPRESSED_PACKET).contains(&data_len) {
+            return Err(format!("Invalid decompressed packet size: {data_len}"));
+        }
         let payload = if data_len == 0 {
             buf.data[buf.cursor..].to_vec()
         } else {
-            let mut decoder = ZlibDecoder::new(&buf.data[buf.cursor..]);
-            let mut decompressed = Vec::with_capacity(data_len as usize);
-            decoder
+            let decoder = ZlibDecoder::new(&buf.data[buf.cursor..]);
+            let mut limited = decoder.take((MAX_UNCOMPRESSED_PACKET as u64) + 1);
+            let mut decompressed = Vec::with_capacity((data_len as usize).min(64 * 1024));
+            limited
                 .read_to_end(&mut decompressed)
                 .map_err(|e| format!("Zlib decompression error: {e}"))?;
+            if decompressed.len() > MAX_UNCOMPRESSED_PACKET as usize {
+                return Err("Decompressed packet exceeded 16 MiB limit".to_string());
+            }
             decompressed
         };
         let mut inner = PacketBuffer::from_bytes(payload);
@@ -244,42 +320,104 @@ pub struct ServerPingInfo {
     pub latency_ms: u64,
 }
 
-#[derive(Deserialize)]
+#[derive(Default, Deserialize)]
 struct SlpResponse {
+    #[serde(default)]
     version: SlpVersion,
+    #[serde(default)]
     players: SlpPlayers,
+    #[serde(default)]
     description: serde_json::Value,
 }
 
-#[derive(Deserialize)]
+#[derive(Default, Deserialize)]
 struct SlpVersion {
+    #[serde(default)]
     name: String,
+    #[serde(default)]
     protocol: i32,
 }
 
-#[derive(Deserialize)]
+#[derive(Default, Deserialize)]
 struct SlpPlayers {
+    #[serde(default)]
     max: i32,
+    #[serde(default)]
     online: i32,
 }
 
-fn parse_host_port(addr: &str) -> (String, u16) {
-    if let Some((h, p)) = addr.rsplit_once(':')
-        && let Ok(port) = p.parse::<u16>()
+pub fn parse_host_port(addr: &str) -> (String, u16) {
+    let trimmed = addr.trim();
+    if let Some(rest) = trimmed.strip_prefix('[')
+        && let Some(end_bracket) = rest.find(']')
     {
-        return (h.to_string(), port);
+        let host = rest[..end_bracket].trim();
+        let after = &rest[end_bracket + 1..];
+        if let Some(port_str) = after.strip_prefix(':')
+            && let Ok(port) = port_str.trim().parse::<u16>()
+        {
+            return (host.to_string(), port);
+        }
+        return (host.to_string(), 25565);
     }
-    (addr.to_string(), 25565)
+    if let Ok(ip) = trimmed.parse::<IpAddr>() {
+        return (ip.to_string(), 25565);
+    }
+    if let Some((h, p)) = trimmed.rsplit_once(':')
+        && !h.contains(':')
+        && let Ok(port) = p.trim().parse::<u16>()
+    {
+        return (h.trim().to_string(), port);
+    }
+    (trimmed.to_string(), 25565)
+}
+
+fn connect_first_reachable(host: &str, port: u16, timeout: Duration) -> Result<TcpStream, String> {
+    let addrs: Vec<SocketAddr> = (host, port)
+        .to_socket_addrs()
+        .map_err(|e| format!("Failed to resolve address: {e}"))?
+        .collect();
+    if addrs.is_empty() {
+        return Err("No valid network address found".to_string());
+    }
+    let mut last_err = None;
+    for sock_addr in addrs {
+        match TcpStream::connect_timeout(&sock_addr, timeout) {
+            Ok(stream) => return Ok(stream),
+            Err(e) => last_err = Some(e),
+        }
+    }
+    Err(format!(
+        "Connection failed: {}",
+        last_err
+            .map(|e| e.to_string())
+            .unwrap_or_else(|| "Unknown error".to_string())
+    ))
 }
 
 fn extract_description_text(val: &serde_json::Value) -> String {
     if let Some(s) = val.as_str() {
         return s.to_string();
     }
+    if let Some(arr) = val.as_array() {
+        let mut out = String::new();
+        for item in arr {
+            out.push_str(&extract_description_text(item));
+        }
+        return out;
+    }
     if let Some(obj) = val.as_object() {
         let mut out = String::new();
         if let Some(t) = obj.get("text").and_then(|v| v.as_str()) {
             out.push_str(t);
+        } else if let Some(tr) = obj.get("translate").and_then(|v| v.as_str()) {
+            out.push_str(tr);
+            if let Some(with) = obj.get("with").and_then(|v| v.as_array()) {
+                for item in with {
+                    out.push(' ');
+                    out.push_str(&extract_description_text(item));
+                }
+            }
         }
         if let Some(extra) = obj.get("extra").and_then(|v| v.as_array()) {
             for item in extra {
@@ -293,14 +431,7 @@ fn extract_description_text(val: &serde_json::Value) -> String {
 
 pub fn ping_server_1_21_4(address: &str) -> Result<ServerPingInfo, String> {
     let (host, port) = parse_host_port(address);
-    let sock_addr = format!("{host}:{port}")
-        .to_socket_addrs()
-        .map_err(|e| format!("Failed to resolve address: {e}"))?
-        .next()
-        .ok_or_else(|| "No valid network address found".to_string())?;
-
-    let mut stream = TcpStream::connect_timeout(&sock_addr, Duration::from_secs(3))
-        .map_err(|e| format!("Connection failed: {e}"))?;
+    let mut stream = connect_first_reachable(&host, port, Duration::from_secs(3))?;
     stream.set_read_timeout(Some(Duration::from_secs(3))).ok();
     stream.set_write_timeout(Some(Duration::from_secs(3))).ok();
 
@@ -357,14 +488,7 @@ pub fn probe_local_dev_login_1_21_4(
     username: &str,
 ) -> Result<LocalHandshakeResult, String> {
     let (host, port) = parse_host_port(address);
-    let sock_addr = format!("{host}:{port}")
-        .to_socket_addrs()
-        .map_err(|e| format!("Failed to resolve address: {e}"))?
-        .next()
-        .ok_or_else(|| "No valid network address found".to_string())?;
-
-    let mut stream = TcpStream::connect_timeout(&sock_addr, Duration::from_secs(3))
-        .map_err(|e| format!("Failed to connect to server: {e}"))?;
+    let mut stream = connect_first_reachable(&host, port, Duration::from_secs(3))?;
     stream.set_read_timeout(Some(Duration::from_secs(3))).ok();
 
     let mut handshake = PacketBuffer::new();

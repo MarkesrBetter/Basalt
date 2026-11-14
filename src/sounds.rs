@@ -239,6 +239,8 @@ pub fn fetch_missing_minecraft_sounds(sounds_dir: &Path) -> usize {
             && status.success()
             && let Ok(bytes) = fs::read(&tmp)
             && is_valid_ogg(&bytes)
+            && crate::vanilla::compute_sha1_hex(std::io::Cursor::new(&bytes))
+                .is_ok_and(|actual| actual.eq_ignore_ascii_case(hash))
             && fs::rename(&tmp, &dest).is_ok()
         {
             downloaded += 1;

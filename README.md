@@ -6,9 +6,9 @@ Native Windows 10/11 desktop launcher powered by **Tauri 2 + TypeScript WebUI** 
 
 ## Download & Website
 
-- Single-file Windows executable (`basalt.exe`, `13.58 MB` / `14,239,744 bytes`): [GitHub Releases](https://github.com/MarkesrBetter/Basalt/releases/latest)
+- Single-file Windows executable (`basalt.exe`, `13.60 MB` / `14,257,664 bytes`): [GitHub Releases](https://github.com/MarkesrBetter/Basalt/releases/latest)
 - Live product page (GitHub Pages): [markesrbetter.github.io/Basalt](https://markesrbetter.github.io/Basalt/) ([site/index.html](./site/index.html))
-- Verification (`v0.1.0` SHA-256): `a3ff90d28fe84ebdcdfc4c0ce516d3124c00c78917eb062e387cdcaba7aa93a0`
+- Verification (`v0.1.0` SHA-256): `17baf62be2677b643e537d2092193c8e9b7594be7aec643069c22c29ea35961a`
 
 ## Features
 

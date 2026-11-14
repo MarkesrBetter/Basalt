@@ -237,6 +237,9 @@ function validateUsername(raw: string): string | null {
 function setSelectNumericValue(select: HTMLSelectElement, targetValue: number): void {
   const lang = getEffectiveLanguage();
   const strVal = String(targetValue);
+  for (const existing of Array.from(select.querySelectorAll('option[data-synthetic="true"]'))) {
+    existing.remove();
+  }
   let exists = false;
   for (const option of Array.from(select.options)) {
     if (option.value === strVal) {
@@ -247,6 +250,7 @@ function setSelectNumericValue(select: HTMLSelectElement, targetValue: number): 
   if (!exists) {
     const opt = document.createElement("option");
     opt.value = strVal;
+    opt.dataset.synthetic = "true";
     opt.textContent = `${targetValue} MB (${tr(lang, "system.ramRecommended", { mb: targetValue }).replace(`${targetValue} MB `, "").replace(/^\(|\)$/g, "")})`;
     select.appendChild(opt);
   }
@@ -1398,6 +1402,8 @@ async function handlePrepareVanilla(): Promise<void> {
     state.running_session = session;
     renderTopbarAndSession();
     renderPlayView();
+    renderWorldsView();
+    renderServersList();
     playMcSound("launch");
     setBanner(feedback, tr(getEffectiveLanguage(), "play.prebuildStarted"), "neutral");
   } catch (err) {
@@ -1418,6 +1424,8 @@ async function handleInstallJava21(): Promise<void> {
     state.running_session = session;
     renderTopbarAndSession();
     renderPlayView();
+    renderWorldsView();
+    renderServersList();
     setBanner(feedback, tr(getEffectiveLanguage(), "play.javaInstallStarted"), "neutral");
   } catch (err) {
     setBanner(feedback, errorMessage(err), "error");
@@ -1478,6 +1486,8 @@ async function handleLaunchClient(
     setActiveView("play");
     renderTopbarAndSession();
     renderPlayView();
+    renderWorldsView();
+    renderServersList();
     playMcSound("launch");
     setBanner(
       feedback,
@@ -1642,6 +1652,8 @@ async function saveAccessibilityPrefs(
       ui_language: patch.ui_language ?? state.config.ui_language,
     });
     if (patch.ui_language !== undefined || getEffectiveLanguage() !== prevLang) {
+      byId<HTMLSpanElement>("gfx-save-status").textContent = "";
+      byId<HTMLSpanElement>("profile-save-status").textContent = "";
       renderAll();
       updateMaximizeIconState(lastMaximizedState);
     } else {
@@ -1719,6 +1731,7 @@ async function handleAutoOptimize(): Promise<void> {
     const res = await ipc.autoOptimizeGraphics();
     state.config.graphics = res.graphics;
     state.hardware_notice = res.reason;
+    byId<HTMLSpanElement>("gfx-save-status").textContent = "";
     renderPlayView();
     renderSystemView();
     showToast(tr(getEffectiveLanguage(), "system.autoOptToast"), "success");
@@ -2025,8 +2038,11 @@ function pollGamepadFrame(): void {
 
     if (pressedEdge(0)) {
       unlockAudioContext();
+      const active = document.activeElement as HTMLElement | null;
       const target =
-        (document.activeElement as HTMLElement | null) ?? byId<HTMLElement>("btn-deck-primary");
+        active && active !== document.body && active !== document.documentElement
+          ? active
+          : byId<HTMLElement>("btn-deck-primary");
       target.click();
     }
     if (pressedEdge(1)) {

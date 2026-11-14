@@ -242,7 +242,7 @@ fn parse_java_major(home: &Path) -> Option<(u32, String)> {
         for line in content.lines() {
             if let Some(rest) = line.strip_prefix("JAVA_VERSION=") {
                 let ver = rest.trim().trim_matches('"');
-                let first = ver.split(['.', '-', '_']).next()?;
+                let first = ver.split(['.', '-', '_', '+']).next()?;
                 if let Ok(major) = first.parse::<u32>() {
                     return Some((major, ver.to_string()));
                 }
@@ -317,7 +317,10 @@ pub fn probe_java21_environment(runtime_dir: Option<&Path>) -> JavaDiscovery {
     }
 
     if let Ok(env_jh) = std::env::var("JAVA_HOME") {
-        candidates.push(PathBuf::from(env_jh.trim()));
+        let cleaned = env_jh.trim().trim_matches('"');
+        if !cleaned.is_empty() {
+            candidates.push(PathBuf::from(cleaned));
+        }
     }
 
     if let Ok(path_var) = std::env::var("PATH") {
@@ -633,7 +636,14 @@ fn client_jar_path(vanilla_dir: &Path) -> PathBuf {
 
 fn load_cached_version_manifest(vanilla_dir: &Path) -> Option<MojangVersionManifest> {
     let raw = fs::read_to_string(version_json_path(vanilla_dir)).ok()?;
-    serde_json::from_str(&raw).ok()
+    let manifest: MojangVersionManifest = serde_json::from_str(&raw).ok()?;
+    if manifest.id != MINECRAFT_1_21_4_NAME
+        || manifest.libraries.is_empty()
+        || manifest.main_class.trim().is_empty()
+    {
+        return None;
+    }
+    Some(manifest)
 }
 
 fn check_file_size(path: &Path, expected_size: u64) -> bool {
@@ -694,18 +704,15 @@ fn check_vanilla_assets_ready(vanilla_dir: &Path) -> bool {
     if !check_file_size(&idx_path, manifest.asset_index.size) {
         return false;
     }
-    let stamp = vanilla_dir
-        .join("assets")
-        .join(format!(".verified-{}.ok", manifest.asset_index.id));
-    if stamp.is_file() {
-        return true;
-    }
     let Ok(idx_raw) = fs::read_to_string(&idx_path) else {
         return false;
     };
     let Ok(idx) = serde_json::from_str::<MojangAssetIndexFile>(&idx_raw) else {
         return false;
     };
+    if idx.objects.is_empty() {
+        return false;
+    }
     let mut seen = HashSet::new();
     for obj in idx.objects.values() {
         if obj.hash.len() < 4 || !seen.insert(obj.hash.clone()) {
@@ -764,69 +771,115 @@ fn escape_curl_config_value(s: &str) -> String {
     s.replace('\\', "/").replace('"', "\\\"")
 }
 
+fn commit_verified_part(part_path: &Path, dest: &Path) -> Result<(), String> {
+    if let Some(parent) = dest.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create parent folder {}: {e}", parent.display()))?;
+    }
+    let _ = fs::remove_file(dest);
+    if fs::rename(part_path, dest).is_ok() {
+        return Ok(());
+    }
+    fs::copy(part_path, dest).map_err(|e| {
+        format!(
+            "Failed to move verified file into {}: {e}",
+            dest.display()
+        )
+    })?;
+    let _ = fs::remove_file(part_path);
+    Ok(())
+}
+
 fn download_batch_with_curl(tasks: &[&DownloadTask], temp_dir: &Path) -> Result<(), String> {
     if tasks.is_empty() {
         return Ok(());
     }
     fs::create_dir_all(temp_dir)
         .map_err(|e| format!("Failed to create temp download dir: {e}"))?;
-    let cfg_path = temp_dir.join(format!("curl-batch-{}.cfg", std::process::id()));
-    let mut cfg = String::with_capacity(tasks.len() * 192);
-    for t in tasks {
-        if let Some(parent) = t.dest.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| format!("Failed to create parent folder for {}: {e}", t.label))?;
-        }
-        let _ = fs::remove_file(&t.dest);
-        cfg.push_str(&format!(
-            "url = \"{}\"\noutput = \"{}\"\n",
-            escape_curl_config_value(&t.url),
-            escape_curl_config_value(&t.dest.to_string_lossy())
-        ));
-    }
-    fs::write(&cfg_path, cfg.as_bytes())
-        .map_err(|e| format!("Failed to write curl batch config: {e}"))?;
 
-    let mut cmd = Command::new("curl.exe");
-    cmd.args([
-        "-sS",
-        "-fL",
-        "--parallel",
-        "--parallel-max",
-        "16",
-        "--retry",
-        "2",
-        "--connect-timeout",
-        "20",
-        "--create-dirs",
-        "-K",
-    ])
-    .arg(&cfg_path)
-    .stdin(Stdio::null());
-    hide_window(&mut cmd);
-    let out = cmd
-        .output()
-        .map_err(|e| format!("Failed to invoke curl.exe parallel batch: {e}"))?;
-    let _ = fs::remove_file(&cfg_path);
+    let mut pending: Vec<usize> = (0..tasks.len()).collect();
+    let mut last_err = String::new();
 
-    if !out.status.success() {
-        let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
-        return Err(format!(
-            "Parallel download failed (curl exit code {:?}): {stderr}",
-            out.status.code()
-        ));
-    }
-
-    for t in tasks {
-        if !check_file_size_and_sha1(&t.dest, t.size, &t.sha1) {
-            let _ = fs::remove_file(&t.dest);
-            return Err(format!(
-                "SHA-1 integrity check failed after downloading {}.",
-                t.label
+    for attempt in 0..3 {
+        let cfg_path = temp_dir.join(format!("curl-batch-{}-{attempt}.cfg", std::process::id()));
+        let mut cfg = String::with_capacity(pending.len() * 192);
+        for &idx in &pending {
+            let t = tasks[idx];
+            let part_path = temp_dir.join(format!("dl-{idx:04}.part"));
+            let _ = fs::remove_file(&part_path);
+            cfg.push_str(&format!(
+                "url = \"{}\"\noutput = \"{}\"\n",
+                escape_curl_config_value(&t.url),
+                escape_curl_config_value(&part_path.to_string_lossy())
             ));
         }
+        fs::write(&cfg_path, cfg.as_bytes())
+            .map_err(|e| format!("Failed to write curl batch config: {e}"))?;
+
+        let parallel_max = if attempt == 0 { "16" } else { "4" };
+        let mut cmd = Command::new("curl.exe");
+        cmd.args([
+            "-sS",
+            "-fL",
+            "--parallel",
+            "--parallel-max",
+            parallel_max,
+            "--retry",
+            "2",
+            "--connect-timeout",
+            "20",
+            "--create-dirs",
+            "-K",
+        ])
+        .arg(&cfg_path)
+        .stdin(Stdio::null());
+        hide_window(&mut cmd);
+        let out = cmd
+            .output()
+            .map_err(|e| format!("Failed to invoke curl.exe parallel batch: {e}"))?;
+        let _ = fs::remove_file(&cfg_path);
+
+        if !out.status.success() {
+            let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+            last_err = format!(
+                "curl exit code {:?}{}",
+                out.status.code(),
+                if stderr.is_empty() {
+                    String::new()
+                } else {
+                    format!(": {stderr}")
+                }
+            );
+        }
+
+        let mut still_pending = Vec::new();
+        for &idx in &pending {
+            let t = tasks[idx];
+            let part_path = temp_dir.join(format!("dl-{idx:04}.part"));
+            if check_file_size_and_sha1(&part_path, t.size, &t.sha1) {
+                commit_verified_part(&part_path, &t.dest)?;
+            } else {
+                let _ = fs::remove_file(&part_path);
+                still_pending.push(idx);
+            }
+        }
+
+        if still_pending.is_empty() {
+            return Ok(());
+        }
+        pending = still_pending;
     }
-    Ok(())
+
+    let first_failed = tasks[pending[0]].label.clone();
+    Err(format!(
+        "Failed to download/verify {} file(s) starting with {first_failed}{}",
+        pending.len(),
+        if last_err.is_empty() {
+            String::new()
+        } else {
+            format!(" ({last_err})")
+        }
+    ))
 }
 
 fn local_seed_roots() -> Vec<PathBuf> {
@@ -1122,7 +1175,12 @@ where
         );
     }
 
+    let stamp = vanilla_dir
+        .join("assets")
+        .join(format!(".verified-{}.ok", manifest.asset_index.id));
+
     if !missing_tasks.is_empty() {
+        let _ = fs::remove_file(&stamp);
         let total = missing_tasks.len();
         log(
             &format!(
@@ -1150,9 +1208,6 @@ where
         );
     }
 
-    let stamp = vanilla_dir
-        .join("assets")
-        .join(format!(".verified-{}.ok", manifest.asset_index.id));
     let _ = fs::write(&stamp, b"1.21.4\n");
 
     Ok(manifest)
@@ -1363,10 +1418,14 @@ pub fn build_vanilla_launch_args(
             ]);
         }
         JvmGcMode::ZGC => {
-            args.extend([
-                "-XX:+UseZGC".to_string(),
-                "-XX:+ZGenerational".to_string(),
-            ]);
+            let java_major = parse_java_major(&cfg.java_home)
+                .map(|(m, _)| m)
+                .unwrap_or(21);
+            args.push("-XX:+UseZGC".to_string());
+            // -XX:+ZGenerational is required on JDK 21-22 for generational ZGC, deprecated on 23, removed on 24+.
+            if (21..=22).contains(&java_major) {
+                args.push("-XX:+ZGenerational".to_string());
+            }
         }
     }
 
@@ -1827,12 +1886,14 @@ mod tests {
     use std::path::{Path, PathBuf};
 
     use super::{
-        DEFAULT_SKIN_PATHS, MojangAssetIndexInfo, MojangArtifactInfo, MojangLibDownloads,
-        MojangLibrary, MojangLoggingClient, MojangLoggingFile, MojangLoggingSection, MojangRule,
-        MojangRuleOs, MojangVersionDownloads, MojangVersionManifest, VanillaLaunchConfig,
-        align_uuid_for_skin_model, build_stored_zip, build_vanilla_launch_args, compute_sha1_hex,
+        DEFAULT_SKIN_PATHS, MINECRAFT_1_21_4_NAME, MojangAssetIndexInfo, MojangArtifactInfo,
+        MojangLibDownloads, MojangLibrary, MojangLoggingClient, MojangLoggingFile,
+        MojangLoggingSection, MojangRule, MojangRuleOs, MojangVersionDownloads,
+        MojangVersionManifest, VanillaLaunchConfig, align_uuid_for_skin_model, build_stored_zip,
+        build_vanilla_launch_args, check_vanilla_assets_ready, compute_sha1_hex,
         compute_sha256_hex, default_skin_slot, evaluate_jdk_candidates, is_ascii_path,
-        is_library_allowed_for_target, summarize_process_failure, write_basalt_skin_resource_pack,
+        is_library_allowed_for_target, load_cached_version_manifest, parse_java_major,
+        summarize_process_failure, write_basalt_skin_resource_pack,
     };
     use crate::config::{GraphicsSettings, JvmGcMode};
     use crate::protocol::local_player_uuid_bytes;
@@ -1986,9 +2047,11 @@ mod tests {
             }],
         };
 
-        let mut gfx = GraphicsSettings::default();
-        gfx.jvm_ram_mb = 4096;
-        gfx.jvm_gc = JvmGcMode::ZGC;
+        let gfx = GraphicsSettings {
+            jvm_ram_mb: 4096,
+            jvm_gc: JvmGcMode::ZGC,
+            ..Default::default()
+        };
 
         let args = build_vanilla_launch_args(
             &vanilla_dir,
@@ -2046,6 +2109,123 @@ mod tests {
         }
         let disc = evaluate_jdk_candidates(&[j26.clone(), j21.clone()]);
         assert_eq!(disc.java21.unwrap().1, "21.0.5");
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn zgc_flag_adapts_to_jdk_major_and_validates_manifest_and_assets() {
+        let tmp = std::env::temp_dir().join(format!("basalt_vanilla_audit_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&tmp);
+        let j21 = tmp.join("jdk-21");
+        let j24 = tmp.join("jdk-24");
+        fs::create_dir_all(&j21).unwrap();
+        fs::create_dir_all(&j24).unwrap();
+        fs::write(j21.join("release"), "JAVA_VERSION=\"21+35\"\n").unwrap();
+        fs::write(j24.join("release"), "JAVA_VERSION=\"24.0.1+9\"\n").unwrap();
+        assert_eq!(parse_java_major(&j21).map(|(m, _)| m), Some(21));
+        assert_eq!(parse_java_major(&j24).map(|(m, _)| m), Some(24));
+
+        let manifest = MojangVersionManifest {
+            id: MINECRAFT_1_21_4_NAME.to_string(),
+            main_class: "net.minecraft.client.main.Main".to_string(),
+            asset_index: MojangAssetIndexInfo {
+                id: "19".to_string(),
+                sha1: "0000000000000000000000000000000000000000".to_string(),
+                size: 80,
+                url: "https://example.invalid/19.json".to_string(),
+            },
+            downloads: MojangVersionDownloads {
+                client: MojangArtifactInfo {
+                    sha1: "0".repeat(40),
+                    size: 100,
+                    url: "https://example.invalid/client.jar".to_string(),
+                    path: None,
+                },
+            },
+            libraries: vec![MojangLibrary {
+                name: "org.example:dummy:1.0".to_string(),
+                downloads: MojangLibDownloads {
+                    artifact: Some(MojangArtifactInfo {
+                        sha1: "0".repeat(40),
+                        size: 10,
+                        url: "https://example.invalid/dummy.jar".to_string(),
+                        path: Some("org/example/dummy/1.0/dummy-1.0.jar".to_string()),
+                    }),
+                },
+                rules: Vec::new(),
+            }],
+            logging: None,
+        };
+
+        let vanilla_dir = tmp.join("vanilla");
+        let run_dir = tmp.join("run");
+        fs::create_dir_all(&vanilla_dir).unwrap();
+        fs::create_dir_all(&run_dir).unwrap();
+
+        let gfx = GraphicsSettings {
+            jvm_ram_mb: 4096,
+            jvm_gc: JvmGcMode::ZGC,
+            ..Default::default()
+        };
+
+        let args_21 = build_vanilla_launch_args(
+            &vanilla_dir,
+            &run_dir,
+            &manifest,
+            &VanillaLaunchConfig {
+                username: "Player".to_string(),
+                player_uuid: "a01e3843-e521-3998-958a-f459800e4d11".to_string(),
+                graphics: gfx.clone(),
+                quick_play_singleplayer: None,
+                quick_play_multiplayer: None,
+                java_home: j21,
+            },
+        );
+        assert!(args_21.contains(&"-XX:+UseZGC".to_string()));
+        assert!(args_21.contains(&"-XX:+ZGenerational".to_string()));
+
+        let args_24 = build_vanilla_launch_args(
+            &vanilla_dir,
+            &run_dir,
+            &manifest,
+            &VanillaLaunchConfig {
+                username: "Player".to_string(),
+                player_uuid: "a01e3843-e521-3998-958a-f459800e4d11".to_string(),
+                graphics: gfx,
+                quick_play_singleplayer: None,
+                quick_play_multiplayer: None,
+                java_home: j24,
+            },
+        );
+        assert!(args_24.contains(&"-XX:+UseZGC".to_string()));
+        assert!(!args_24.contains(&"-XX:+ZGenerational".to_string()));
+
+        // Reject corrupt/wrong-version cached manifest JSON
+        let ver_dir = vanilla_dir.join("versions").join("1.21.4");
+        fs::create_dir_all(&ver_dir).unwrap();
+        fs::write(
+            ver_dir.join("1.21.4.json"),
+            r#"{"id":"1.20.4","mainClass":"x","assetIndex":{"id":"19","sha1":"0","size":10,"url":"u"},"downloads":{"client":{"sha1":"0","size":10,"url":"u"}},"libraries":[]}"#,
+        )
+        .unwrap();
+        assert!(load_cached_version_manifest(&vanilla_dir).is_none());
+
+        // Even if .verified-19.ok stamp exists, missing asset object must make check_vanilla_assets_ready return false
+        let idx_payload = r#"{"objects":{"minecraft/lang/en_us.json":{"hash":"abcd000000000000000000000000000000000000","size":12}}}"#;
+        fs::write(
+            ver_dir.join("1.21.4.json"),
+            format!(
+                r#"{{"id":"1.21.4","mainClass":"net.minecraft.client.main.Main","assetIndex":{{"id":"19","sha1":"0","size":{},"url":"u"}},"downloads":{{"client":{{"sha1":"0","size":10,"url":"u"}}}},"libraries":[{{"name":"org.example:dummy:1.0","downloads":{{"artifact":{{"sha1":"0","size":10,"url":"u","path":"org/example/dummy/1.0/dummy-1.0.jar"}}}}}}]}}"#,
+                idx_payload.len()
+            ),
+        )
+        .unwrap();
+        assert!(load_cached_version_manifest(&vanilla_dir).is_some());
+        fs::create_dir_all(vanilla_dir.join("assets").join("indexes")).unwrap();
+        fs::write(vanilla_dir.join("assets").join("indexes").join("19.json"), idx_payload).unwrap();
+        fs::write(vanilla_dir.join("assets").join(".verified-19.ok"), b"1.21.4\n").unwrap();
+        assert!(!check_vanilla_assets_ready(&vanilla_dir));
+
         let _ = fs::remove_dir_all(&tmp);
     }
 }
