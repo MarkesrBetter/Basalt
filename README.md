@@ -1,33 +1,33 @@
 # Basalt
 
-> **Yasal Uyari / Disclaimer:** Resmi bir Minecraft urunu degildir. Mojang veya Microsoft tarafindan onaylanmamistir ve bunlarla iliskili degildir.  
-> *NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.*
+> **Disclaimer:** *NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.*
 
-Windows 10/11 uzerinde **Tauri 2 + TypeScript WebUI** ve **Rust** cekirdegiyle calisan; Fabric Loom uzerinden **Minecraft Java Edition 1.21.4** baslatan masaustu istemci baslaticisi.
+Native Windows 10/11 desktop launcher powered by **Tauri 2 + TypeScript WebUI** and a **Rust** core, running authentic **Minecraft Java Edition 1.21.4** via Fabric Loom.
 
-## Indirme ve Web Sitesi
+## Download & Website
 
-- Hazir tek calistirilabilir Windows paketi (`basalt.exe`): [GitHub Releases](https://github.com/MarkesrBetter/Basalt/releases/latest)
-- Canli tanitim sitesi (GitHub Pages): [markesrbetter.github.io/Basalt](https://markesrbetter.github.io/Basalt/) ([site/index.html](./site/index.html))
-- Dogrulama (`v0.1.0` SHA-256): `213d6de37c87bfeee122f6572ed61fd33598250f11c69dc30669c98225e1f134`
+- Single-file Windows executable (`basalt.exe`, `13.31 MB` / `13,957,632 bytes`): [GitHub Releases](https://github.com/MarkesrBetter/Basalt/releases/latest)
+- Live product page (GitHub Pages): [markesrbetter.github.io/Basalt](https://markesrbetter.github.io/Basalt/) ([site/index.html](./site/index.html))
+- Verification (`v0.1.0` SHA-256): `7b19a68f23669ccfaf75a5b7e3efd516e93debf31a019468271fce08336ce6a4`
 
-## Neler Sunar
+## Features
 
-- **Tek Dosya Masaustu Uygulamasi (`basalt.exe`):** Kurulum sihirbazi gerektirmeden calisir; `client-gradle/` calisma sablonunu ilk calistirmada kullanicinin yerel veri klasorune (`%LOCALAPPDATA%\Basalt\Basalt\data\client-gradle`) acar.
-- **Donanima Gore Hiz ve FPS Kalibrasyonu:** `sysinfo` + guvenli bas-siz `wgpu` DX12 yoklamasiyla CPU cekirdegi, RAM ve GPU sinifini okur; `-Xmx`, `G1GC`/`ZGC` ve `options.txt` ayarlarini otomatik kalibre eder.
-- **Otomatik Java 21 Kurulumu:** Sistemde Java `>= 21` yoksa uygulama icinden imzali `curl.exe` ile Adoptium Temurin 21 JDK paketini indirir, saf Rust SHA-256 dogrulamasiyla kontrol edip yerel ortama kurar.
-- **10 Mineral Temasi ve Tam Ekran Konsol Modu:** 7 koyu ve 3 acik mineral temasi, ozel `#RRGGBB` vurgu kalibrasyonu, 3 kose profili, 5 masaustu duzeni (`Sidebar`, `Topbar`, `CompactDeck`, `RightRail`, `MinimalRail`) ve Steam Deck / kontrolcu odakli tam ekran **Konsol Modu**.
-- **Skin ve Dunya Yonetimi:** Yerel `64x64` / `64x32` PNG skin yukleme, `Slim (3 px)` / `Classic (4 px)` kol secimi, yerel `run/saves` dunyalarini yonetme ve tek tikla Quick Play baslatma.
+- **Single-Binary Portable Windows App (`basalt.exe`):** Runs without an installer wizard; extracts the `client-gradle/` Fabric template into local app data (`%LOCALAPPDATA%\Basalt\Basalt\data\client-gradle`) on first launch.
+- **Global English Default + 3 Live Languages:** Defaults to English across the desktop launcher, product website, and documentation, with live switching between **English**, **Türkçe**, and **Deutsch**.
+- **Hardware-Calibrated Speed & FPS:** Reads CPU cores, RAM, and GPU tier via `sysinfo` and headless `wgpu` DX12 detection, calibrating `-Xmx`, `G1GC`/`ZGC`, and `options.txt` automatically.
+- **Automatic Java 21 Setup:** If no Java `>= 21` runtime is found, downloads Eclipse Temurin 21 via signed Windows `curl.exe`, verifies its SHA-256 digest in pure Rust, and installs locally without admin privileges.
+- **10 Mineral Themes & Fullscreen Console Mode:** 7 dark and 3 light palettes, custom `#RRGGBB` accent contrast calibration, 3 corner profiles, 5 desktop layouts (`Sidebar`, `Topbar`, `CompactDeck`, `RightRail`, `MinimalRail`), plus fullscreen **Console Mode** with gamepad support.
+- **Skins & World Management:** Import local `64x64` / `64x32` PNG skins with `Slim (3 px)` / `Classic (4 px)` arm models, inspect singleplayer saves, and launch directly via Quick Play.
 
-## Kapsam ve Guvenlik Ilkeleri
+## Scope & Safety Guarantees
 
-- **Telifli Dosya Barindirmaz:** Resmi Mojang/Minecraft oyun JAR dosyalari, kaynak paketleri ve `.ogg` arayuz sesleri Git deposuna veya `basalt.exe` ikilisine gomulmez. Ilk oyun baslatmasinda kullanicinin bilgisayarinda resmi Gradle, Fabric ve Mojang kaynak uclarindan yerel onbellege indirilir (`%LOCALAPPDATA%\Basalt\Basalt\data\`).
-- **Kimlik Dogrulama Atlama Yok:** Yalnizca yerel tek oyunculu (`--quickPlaySingleplayer`) ve `online-mode=false` yerel gelistirme sunuculari desteklenir. Sunucu yoklayicisi `EncryptionRequest (0x01)` paketi geldiginde baglantiyi keser; Microsoft lisans dogrulamasini atlatmaz.
-- **Acik Kaynak Seffafligi:** Release varliklari (`basalt.exe`) Git history icinde degil, **GitHub Releases** uzerinden SHA-256 dogrulama ozetiyle yayinlanir.
+- **Zero Copyrighted Assets Bundled:** Official Mojang/Minecraft client JARs, resource packs, and `.ogg` interface sounds are never committed to Git or embedded inside `basalt.exe`. They are cached locally from official Gradle, Fabric, and Mojang endpoints (`%LOCALAPPDATA%\Basalt\Basalt\data\`) on first launch.
+- **No Authentication Bypass:** Supports singleplayer saves (`--quickPlaySingleplayer`) and local offline-mode (`online-mode=false`) development servers only. The Protocol 769 server probe disconnects on `EncryptionRequest (0x01)` and never bypasses Microsoft account authentication.
+- **Open-Source Release Verification:** Release binaries (`basalt.exe`) are distributed via **GitHub Releases** alongside verifiable SHA-256 digests rather than checked into Git history.
 
-## Kaynak Koddan Derleme
+## Build from Source
 
-Gereksinimler: **Rust (`cargo`)**, **Node.js (`npm`)**, **Java 21 JDK** ve **Windows Edge WebView2 Runtime** (Windows 10/11 ile yerlesik gelir).
+Prerequisites: **Rust (`cargo`)**, **Node.js (`npm`)**, **Java 21 JDK**, and **Windows Edge WebView2 Runtime** (preinstalled on Windows 10/11).
 
 ```powershell
 cd frontend
@@ -41,9 +41,9 @@ cargo build --release --workspace
 .\target\release\basalt.exe
 ```
 
-## Lisanslar ve Ucuncu Taraf Bilesenler
+## Licenses & Third-Party Notices
 
-- Basalt kaynak kodu: [MIT License](./LICENSE)
+- Basalt source code: [MIT License](./LICENSE)
 - Gradle Wrapper (`client-gradle/gradle/wrapper/`): Apache License 2.0
-- Masaustu kabugu: Tauri 2 (MIT / Apache-2.0)
-- Varsayilan skin sablonu (`assets/default_skin.png`): Depoyu catallamadan / yayinlamadan once kendi orijinal skin dokunuzla degistirebilirsiniz.
+- Desktop shell: Tauri 2 (MIT / Apache-2.0)
+- Default skin asset (`assets/default_skin.png`): Replace with your own original artwork before redistributing forks.

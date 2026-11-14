@@ -952,7 +952,7 @@ body.compact .world-row {
   }
 }
 
-/* ---------- Ince Dock (Minimal Icon-First Dock Rail) ---------- */
+/* ---------- Minimal Rail (Minimal Icon-First Dock Rail) ---------- */
 
 :root[data-layout="minimal-rail"] .app-shell {
   display: grid;

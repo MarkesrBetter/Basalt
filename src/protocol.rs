@@ -57,7 +57,7 @@ impl PacketBuffer {
 
     pub fn read_u8(&mut self) -> Result<u8, String> {
         if self.cursor >= self.data.len() {
-            return Err("Paket sonuna ulaşıldı (u8)".to_string());
+            return Err("Reached end of packet (u8)".to_string());
         }
         let b = self.data[self.cursor];
         self.cursor += 1;
@@ -66,7 +66,7 @@ impl PacketBuffer {
 
     pub fn read_exact(&mut self, len: usize) -> Result<&[u8], String> {
         if self.cursor + len > self.data.len() {
-            return Err(format!("Yetersiz paket verisi: {len} bayt istendi"));
+            return Err(format!("Insufficient packet data: requested {len} bytes"));
         }
         let slice = &self.data[self.cursor..self.cursor + len];
         self.cursor += len;
@@ -82,7 +82,7 @@ impl PacketBuffer {
             result |= value << (7 * num_read);
             num_read += 1;
             if num_read > 5 {
-                return Err("Geçersiz VarInt (> 5 bayt)".to_string());
+                return Err("Invalid VarInt (> 5 bytes)".to_string());
             }
             if (byte & 0x80) == 0 {
                 break;
@@ -94,10 +94,10 @@ impl PacketBuffer {
     pub fn read_string(&mut self) -> Result<String, String> {
         let len = self.read_varint()?;
         if len < 0 || len > 32767 * 4 {
-            return Err(format!("Geçersiz String uzunluğu: {len}"));
+            return Err(format!("Invalid String length: {len}"));
         }
         let bytes = self.read_exact(len as usize)?.to_vec();
-        String::from_utf8(bytes).map_err(|e| format!("UTF-8 çözümleme hatası: {e}"))
+        String::from_utf8(bytes).map_err(|e| format!("UTF-8 decode error: {e}"))
     }
 }
 
@@ -154,10 +154,10 @@ pub fn write_framed_packet(
                 let mut encoder = ZlibEncoder::new(Vec::new(), Compression::fast());
                 encoder
                     .write_all(&inner.data)
-                    .map_err(|e| format!("Zlib sıkıştırma hatası: {e}"))?;
+                    .map_err(|e| format!("Zlib compression error: {e}"))?;
                 let compressed = encoder
                     .finish()
-                    .map_err(|e| format!("Zlib bitiş hatası: {e}"))?;
+                    .map_err(|e| format!("Zlib finish error: {e}"))?;
                 out.data.extend_from_slice(&compressed);
             } else {
                 out.write_varint(0);
@@ -173,7 +173,7 @@ pub fn write_framed_packet(
 
     stream
         .write_all(&packet.data)
-        .map_err(|e| format!("Ağ yazma hatası: {e}"))
+        .map_err(|e| format!("Network write error: {e}"))
 }
 
 fn read_varint_stream(stream: &mut TcpStream) -> Result<i32, String> {
@@ -183,13 +183,13 @@ fn read_varint_stream(stream: &mut TcpStream) -> Result<i32, String> {
     loop {
         stream
             .read_exact(&mut buf)
-            .map_err(|e| format!("Ağ okuma hatası: {e}"))?;
+            .map_err(|e| format!("Network read error: {e}"))?;
         let byte = buf[0];
         let value = (byte & 0x7F) as i32;
         result |= value << (7 * num_read);
         num_read += 1;
         if num_read > 5 {
-            return Err("Ağ akışında geçersiz VarInt".to_string());
+            return Err("Invalid VarInt in network stream".to_string());
         }
         if (byte & 0x80) == 0 {
             break;
@@ -204,12 +204,12 @@ pub fn read_framed_packet(
 ) -> Result<(i32, PacketBuffer), String> {
     let packet_len = read_varint_stream(stream)?;
     if packet_len <= 0 || packet_len > 8 * 1024 * 1024 {
-        return Err(format!("Geçersiz paket boyutu: {packet_len}"));
+        return Err(format!("Invalid packet size: {packet_len}"));
     }
     let mut raw = vec![0u8; packet_len as usize];
     stream
         .read_exact(&mut raw)
-        .map_err(|e| format!("Paket gövdesi okunamadı: {e}"))?;
+        .map_err(|e| format!("Failed to read packet body: {e}"))?;
 
     let mut buf = PacketBuffer::from_bytes(raw);
     if compression_threshold.is_some() {
@@ -221,7 +221,7 @@ pub fn read_framed_packet(
             let mut decompressed = Vec::with_capacity(data_len as usize);
             decoder
                 .read_to_end(&mut decompressed)
-                .map_err(|e| format!("Zlib açma hatası: {e}"))?;
+                .map_err(|e| format!("Zlib decompression error: {e}"))?;
             decompressed
         };
         let mut inner = PacketBuffer::from_bytes(payload);
@@ -288,19 +288,19 @@ fn extract_description_text(val: &serde_json::Value) -> String {
         }
         return out;
     }
-    "Sunucu".to_string()
+    "Server".to_string()
 }
 
 pub fn ping_server_1_21_4(address: &str) -> Result<ServerPingInfo, String> {
     let (host, port) = parse_host_port(address);
     let sock_addr = format!("{host}:{port}")
         .to_socket_addrs()
-        .map_err(|e| format!("Adres çözümlenemedi: {e}"))?
+        .map_err(|e| format!("Failed to resolve address: {e}"))?
         .next()
-        .ok_or_else(|| "Geçerli ağ adresi bulunamadı".to_string())?;
+        .ok_or_else(|| "No valid network address found".to_string())?;
 
     let mut stream = TcpStream::connect_timeout(&sock_addr, Duration::from_secs(3))
-        .map_err(|e| format!("Bağlantı başarısız: {e}"))?;
+        .map_err(|e| format!("Connection failed: {e}"))?;
     stream.set_read_timeout(Some(Duration::from_secs(3))).ok();
     stream.set_write_timeout(Some(Duration::from_secs(3))).ok();
 
@@ -315,11 +315,11 @@ pub fn ping_server_1_21_4(address: &str) -> Result<ServerPingInfo, String> {
 
     let (id, mut body) = read_framed_packet(&mut stream, None)?;
     if id != 0x00 {
-        return Err(format!("Beklenmeyen SLP paket kimliği: 0x{id:02X}"));
+        return Err(format!("Unexpected SLP packet ID: 0x{id:02X}"));
     }
     let json_str = body.read_string()?;
     let parsed: SlpResponse =
-        serde_json::from_str(&json_str).map_err(|e| format!("SLP JSON hatası: {e}"))?;
+        serde_json::from_str(&json_str).map_err(|e| format!("SLP JSON error: {e}"))?;
 
     let start = Instant::now();
     let mut ping = PacketBuffer::new();
@@ -359,12 +359,12 @@ pub fn probe_local_dev_login_1_21_4(
     let (host, port) = parse_host_port(address);
     let sock_addr = format!("{host}:{port}")
         .to_socket_addrs()
-        .map_err(|e| format!("Adres çözümlenemedi: {e}"))?
+        .map_err(|e| format!("Failed to resolve address: {e}"))?
         .next()
-        .ok_or_else(|| "Geçerli ağ adresi bulunamadı".to_string())?;
+        .ok_or_else(|| "No valid network address found".to_string())?;
 
     let mut stream = TcpStream::connect_timeout(&sock_addr, Duration::from_secs(3))
-        .map_err(|e| format!("Sunucuya bağlanılamadı: {e}"))?;
+        .map_err(|e| format!("Failed to connect to server: {e}"))?;
     stream.set_read_timeout(Some(Duration::from_secs(3))).ok();
 
     let mut handshake = PacketBuffer::new();
@@ -382,7 +382,7 @@ pub fn probe_local_dev_login_1_21_4(
         let (pkt_id, mut body) = read_framed_packet(&mut stream, compression)?;
         match pkt_id {
             0x00 => {
-                let reason = body.read_string().unwrap_or_else(|_| "Bağlantı kesildi".into());
+                let reason = body.read_string().unwrap_or_else(|_| "Disconnected".into());
                 return Ok(LocalHandshakeResult::Disconnected(reason));
             }
             0x01 => return Ok(LocalHandshakeResult::RequiresOfficialAuth),
@@ -390,7 +390,7 @@ pub fn probe_local_dev_login_1_21_4(
                 write_framed_packet(&mut stream, 0x03, &[], compression)?;
                 return Ok(LocalHandshakeResult::ReadyInPlay {
                     server_info: format!(
-                        "{MINECRAFT_1_21_4_NAME} (Protokol {MINECRAFT_1_21_4_PROTOCOL}) Configuration aşamasına geçti"
+                        "{MINECRAFT_1_21_4_NAME} (Protocol {MINECRAFT_1_21_4_PROTOCOL}) entered Configuration phase"
                     ),
                     keep_alive_tested: true,
                 });
@@ -408,6 +408,6 @@ pub fn probe_local_dev_login_1_21_4(
     }
 
     Ok(LocalHandshakeResult::Disconnected(
-        "Oturum açma zaman aşımına uğradı".to_string(),
+        "Login timed out".to_string(),
     ))
 }

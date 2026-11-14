@@ -50,13 +50,13 @@ fn strip_verbatim_prefix(path: PathBuf) -> PathBuf {
 
 pub fn ensure_embedded_gradle_workspace(target_dir: &Path) -> Result<PathBuf, String> {
     fs::create_dir_all(target_dir)
-        .map_err(|e| format!("Gradle çalışma dizini oluşturulamadı: {e}"))?;
+        .map_err(|e| format!("Failed to create Gradle working directory: {e}"))?;
 
     for (rel, bytes) in EMBEDDED_GRADLE_FILES {
         let dest = target_dir.join(rel.replace('/', std::path::MAIN_SEPARATOR_STR));
         if let Some(parent) = dest.parent() {
             fs::create_dir_all(parent)
-                .map_err(|e| format!("Gradle alt klasörü oluşturulamadı ({rel}): {e}"))?;
+                .map_err(|e| format!("Failed to create Gradle subfolder ({rel}): {e}"))?;
         }
         let needs_write = match fs::read(&dest) {
             Ok(existing) => existing.as_slice() != *bytes,
@@ -64,13 +64,13 @@ pub fn ensure_embedded_gradle_workspace(target_dir: &Path) -> Result<PathBuf, St
         };
         if needs_write {
             fs::write(&dest, bytes)
-                .map_err(|e| format!("Gömülü Gradle dosyası yazılamadı ({rel}): {e}"))?;
+                .map_err(|e| format!("Failed to write embedded Gradle file ({rel}): {e}"))?;
         }
     }
 
     fs::canonicalize(target_dir)
         .map(strip_verbatim_prefix)
-        .map_err(|e| format!("Gradle çalışma dizini çözümlenemedi: {e}"))
+        .map_err(|e| format!("Failed to resolve Gradle working directory: {e}"))
 }
 
 pub fn resolve_or_extract_gradle_workspace(app_root_dir: &Path) -> Result<PathBuf, String> {
@@ -79,7 +79,7 @@ pub fn resolve_or_extract_gradle_workspace(app_root_dir: &Path) -> Result<PathBu
         if is_valid_gradle_workspace(&candidate) {
             return fs::canonicalize(&candidate)
                 .map(strip_verbatim_prefix)
-                .map_err(|e| format!("Gradle çalışma dizini çözümlenemedi: {e}"));
+                .map_err(|e| format!("Failed to resolve Gradle working directory: {e}"));
         }
     }
 
@@ -91,7 +91,7 @@ pub fn resolve_gradle_workspace() -> Result<PathBuf, String> {
         let candidate = PathBuf::from(raw.trim());
         if is_valid_gradle_workspace(&candidate) {
             return fs::canonicalize(&candidate)
-                .map_err(|e| format!("Gradle çalışma dizini çözümlenemedi: {e}"));
+                .map_err(|e| format!("Failed to resolve Gradle working directory: {e}"));
         }
     }
 
@@ -122,11 +122,11 @@ pub fn resolve_gradle_workspace() -> Result<PathBuf, String> {
     for candidate in roots {
         if is_valid_gradle_workspace(&candidate) {
             return fs::canonicalize(&candidate)
-                .map_err(|e| format!("Gradle çalışma dizini çözümlenemedi: {e}"));
+                .map_err(|e| format!("Failed to resolve Gradle working directory: {e}"));
         }
     }
 
-    Err("client-gradle dizini (gradlew.bat / build.gradle) bulunamadı. BASALT_GRADLE_DIR ayarlayın veya proje kökünden çalıştırın.".to_string())
+    Err("client-gradle directory (gradlew.bat / build.gradle) was not found. Set BASALT_GRADLE_DIR or run from the project root.".to_string())
 }
 
 fn java_executable_name() -> &'static str {
@@ -294,9 +294,9 @@ pub fn inspect_gradle_environment_with_runtime(
         Some((p, ver)) => {
             let is_portable = runtime_dir.is_some_and(|rt| p.starts_with(rt));
             let hint = if is_portable {
-                "Basalt taşınabilir Java 21 kurulumu algılandı ve kullanıma hazır.".to_string()
+                "Portable Basalt Java 21 installation detected and ready.".to_string()
             } else {
-                "Sistemde uyumlu Java 21+ JDK kurulumu algılandı.".to_string()
+                "Compatible system Java 21+ JDK installation detected.".to_string()
             };
             (
                 true,
@@ -308,15 +308,15 @@ pub fn inspect_gradle_environment_with_runtime(
         None => {
             let (label, hint) = if let Some(older) = discovery.older_detected {
                 (
-                    format!("Eksik ({older} yetersiz)"),
+                    format!("Missing ({older} too old)"),
                     format!(
-                        "Sistemde yalnızca {older} bulundu; Minecraft 1.21.4 + Fabric için Java 21 JDK gerekir. Aşağıdan tek tıkla kurabilirsiniz."
+                        "Only {older} was found on this system; Minecraft 1.21.4 + Fabric requires Java 21 JDK. Install it in one click below."
                     ),
                 )
             } else {
                 (
-                    "Java 21 JDK bulunamadı".to_string(),
-                    "Bu bilgisayarda Java 21 JDK algılanmadı. Yönetici izni gerektirmeden Otomatik Java 21 Kur ile yükleyebilirsiniz."
+                    "Java 21 JDK not found".to_string(),
+                    "No Java 21 JDK was detected on this PC. Click Install Java 21 below to set up a portable runtime without administrator rights."
                         .to_string(),
                 )
             };
@@ -499,9 +499,9 @@ pub fn compute_sha256_hex<R: std::io::Read>(mut reader: R) -> std::io::Result<St
 }
 
 pub fn compute_file_sha256_hex(path: &Path) -> Result<String, String> {
-    let file = fs::File::open(path).map_err(|e| format!("SHA-256 için dosya açılamadı: {e}"))?;
+    let file = fs::File::open(path).map_err(|e| format!("Failed to open file for SHA-256: {e}"))?;
     compute_sha256_hex(std::io::BufReader::new(file))
-        .map_err(|e| format!("SHA-256 hesaplanamadı: {e}"))
+        .map_err(|e| format!("Failed to compute SHA-256: {e}"))
 }
 
 #[cfg(test)]

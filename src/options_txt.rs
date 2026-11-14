@@ -12,7 +12,7 @@ pub fn fov_degrees_to_options_value(degrees: f32) -> f32 {
 /// while preserving unrelated user lines (keybinds, sound levels, language, packs).
 pub fn sync_minecraft_options(run_dir: &Path, gfx: &GraphicsSettings) -> Result<(), String> {
     fs::create_dir_all(run_dir)
-        .map_err(|e| format!("Minecraft run klasörü oluşturulamadı: {e}"))?;
+        .map_err(|e| format!("Failed to create Minecraft run directory: {e}"))?;
 
     let options_path = run_dir.join("options.txt");
     let existing = fs::read_to_string(&options_path).unwrap_or_default();
@@ -68,5 +68,5 @@ pub fn sync_minecraft_options(run_dir: &Path, gfx: &GraphicsSettings) -> Result<
     }
 
     fs::write(&options_path, output)
-        .map_err(|e| format!("Minecraft options.txt dosyasına yazılamadı: {e}"))
+        .map_err(|e| format!("Failed to write Minecraft options.txt: {e}"))
 }

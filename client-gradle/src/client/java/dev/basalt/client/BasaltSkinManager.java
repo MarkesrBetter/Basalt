@@ -72,22 +72,22 @@ public final class BasaltSkinManager {
 			Path skinPath = Path.of(rawPath.trim());
 			if (Files.isRegularFile(skinPath)) {
 				BasaltClientMod.LOGGER.info(
-						"Yerel Basalt skini yukleniyor: {} (model: {})",
+						"Loading local Basalt skin: {} (model: {})",
 						skinPath.getFileName(),
 						TARGET_MODEL.getName()
 				);
 				return NativeImage.read(Files.readAllBytes(skinPath));
 			}
-			BasaltClientMod.LOGGER.warn("Yerel skin dosyasi bulunamadi, varsayilan skine donuluyor: {}", skinPath);
+			BasaltClientMod.LOGGER.warn("Local skin file not found, falling back to default skin: {}", skinPath);
 		}
 
 		try (InputStream stream = BasaltSkinManager.class.getResourceAsStream(BUNDLED_DEFAULT_SKIN_RESOURCE)) {
 			if (stream == null) {
-				BasaltClientMod.LOGGER.warn("Dahili varsayilan skin kaynagi bulunamadi: {}", BUNDLED_DEFAULT_SKIN_RESOURCE);
+				BasaltClientMod.LOGGER.warn("Bundled default skin resource not found: {}", BUNDLED_DEFAULT_SKIN_RESOURCE);
 				return null;
 			}
 			BasaltClientMod.LOGGER.info(
-					"Dahili varsayilan Basalt skini yukleniyor (model: {})",
+					"Loading bundled default Basalt skin (model: {})",
 					TARGET_MODEL.getName()
 			);
 			return NativeImage.read(stream);
@@ -109,7 +109,7 @@ public final class BasaltSkinManager {
 			client.getTextureManager().registerTexture(LOCAL_SKIN_ID, texture);
 			loaded = true;
 		} catch (Exception ex) {
-			BasaltClientMod.LOGGER.error("Yerel skin yuklenirken hata olustu", ex);
+			BasaltClientMod.LOGGER.error("Failed to load local skin", ex);
 		}
 	}
 }

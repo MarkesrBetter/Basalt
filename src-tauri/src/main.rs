@@ -17,7 +17,7 @@ use basalt::assets::{
 };
 use basalt::config::{
     AccentTone, AppConfig, AppPaths, CornerStyle, GraphicsSettings, LayoutMode, SavedServer,
-    SkinModel, ThemeMode, normalize_hex_color,
+    SkinModel, ThemeMode, UiLanguage, normalize_hex_color,
 };
 use basalt::gradle::{
     GradleEnvStatus, LaunchEnvConfig, build_launch_env, compute_file_sha256_hex,
@@ -106,6 +106,8 @@ struct ProfileInput {
     ui_reduced_motion: bool,
     #[serde(default)]
     ui_sounds: bool,
+    #[serde(default)]
+    ui_language: Option<UiLanguage>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -140,7 +142,7 @@ impl AppState {
             config.graphics = recommended;
             if let Err(err) = config.save(&paths.config_file) {
                 hardware_notice = Some(format!(
-                    "{reason} (Uyarı: ilk çalıştırma ayarı diske yazılamadı: {err})"
+                    "{reason} (Warning: failed to save initial calibration to disk: {err})"
                 ));
             } else {
                 hardware_notice = Some(reason);
@@ -177,14 +179,14 @@ impl AppState {
 fn validate_username(raw: &str) -> Result<String, String> {
     let clean = raw.trim();
     if clean.is_empty() || clean.len() > 16 {
-        return Err("Kullanıcı adı 1 ile 16 karakter arasında olmalıdır.".to_string());
+        return Err("Username must be between 1 and 16 characters.".to_string());
     }
     if !clean
         .chars()
         .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
     {
         return Err(
-            "Kullanıcı adı yalnızca İngilizce harf, rakam, '_' veya '-' içerebilir.".to_string(),
+            "Username may only contain ASCII letters, digits, '_' or '-'.".to_string(),
         );
     }
     Ok(clean.to_string())
@@ -192,7 +194,7 @@ fn validate_username(raw: &str) -> Result<String, String> {
 
 fn validate_graphics(mut gfx: GraphicsSettings) -> Result<GraphicsSettings, String> {
     if !gfx.fov_degrees.is_finite() || !gfx.mouse_sensitivity.is_finite() {
-        return Err("Grafik ayarlarında geçersiz sayısal değer bulundu.".to_string());
+        return Err("Invalid numeric value in graphics settings.".to_string());
     }
     gfx.render_distance = gfx.render_distance.clamp(2, 32);
     gfx.simulation_distance = gfx.simulation_distance.clamp(5, 32);
@@ -206,10 +208,10 @@ fn validate_graphics(mut gfx: GraphicsSettings) -> Result<GraphicsSettings, Stri
 fn validate_server_address(raw: &str) -> Result<String, String> {
     let clean = raw.trim();
     if clean.is_empty() || clean.len() > 128 {
-        return Err("Sunucu adresi boş veya 128 karakterden uzun olamaz.".to_string());
+        return Err("Server address cannot be empty or longer than 128 characters.".to_string());
     }
     if clean.chars().any(|c| c.is_control() || c.is_whitespace()) {
-        return Err("Sunucu adresi boşluk veya kontrol karakteri içeremez.".to_string());
+        return Err("Server address cannot contain spaces or control characters.".to_string());
     }
     Ok(clean.to_string())
 }
@@ -280,7 +282,7 @@ fn spawn_gradle_command(
     }
 
     cmd.spawn()
-        .map_err(|e| format!("Gradle işlemi başlatılamadı: {e}"))
+        .map_err(|e| format!("Failed to start Gradle process: {e}"))
 }
 
 fn monitor_child_process(
@@ -387,8 +389,8 @@ fn monitor_child_process(
                         .unwrap_or_default();
                     let msg = if snippet.is_empty() {
                         format!(
-                            "Gradle / Minecraft süreci hata koduyla sonlandı (kod: {}).",
-                            code.map(|c| c.to_string()).unwrap_or_else(|| "yok".into())
+                            "Gradle / Minecraft process exited with error status (code: {}).",
+                            code.map(|c| c.to_string()).unwrap_or_else(|| "none".into())
                         )
                     } else {
                         snippet
@@ -396,7 +398,7 @@ fn monitor_child_process(
                     (code, Some(msg))
                 }
             }
-            Err(e) => (None, Some(format!("Süreç izleme hatası: {e}"))),
+            Err(e) => (None, Some(format!("Process monitor error: {e}"))),
         };
 
         let _ = app.emit(
@@ -417,22 +419,22 @@ fn get_bootstrap_state(state: tauri::State<AppState>) -> Result<BootstrapDto, St
     let config = state
         .config
         .lock()
-        .map_err(|_| "Yapılandırma kilidi açılamadı".to_string())?
+        .map_err(|_| "Failed to unlock configuration".to_string())?
         .clone();
     let hardware = state
         .hardware
         .lock()
-        .map_err(|_| "Donanım kilidi açılamadı".to_string())?
+        .map_err(|_| "Failed to unlock hardware profile".to_string())?
         .clone();
     let hardware_notice = state
         .hardware_notice
         .lock()
-        .map_err(|_| "Bildirim kilidi açılamadı".to_string())?
+        .map_err(|_| "Failed to unlock notice state".to_string())?
         .take();
     let running_session = state
         .running
         .lock()
-        .map_err(|_| "Oturum kilidi açılamadı".to_string())?
+        .map_err(|_| "Failed to unlock session state".to_string())?
         .clone();
 
     let saves = scan_saves(&state.saves_dir())?;
@@ -465,7 +467,7 @@ fn select_save(state: tauri::State<AppState>, save_id: Option<String>) -> Result
     let mut config = state
         .config
         .lock()
-        .map_err(|_| "Yapılandırma kilidi açılamadı".to_string())?;
+        .map_err(|_| "Failed to unlock configuration".to_string())?;
     config.last_save_id = save_id;
     config.save(&state.paths.config_file)?;
     Ok(())
@@ -480,10 +482,10 @@ fn delete_save(
         let running = state
             .running
             .lock()
-            .map_err(|_| "Oturum kilidi açılamadı".to_string())?;
+            .map_err(|_| "Failed to unlock session state".to_string())?;
         if running.is_some() {
             return Err(
-                "Minecraft veya Gradle çalışırken dünya silinemez; önce oyunu kapatın.".to_string(),
+                "Cannot delete a world while Minecraft or Gradle is running; close the game first.".to_string(),
             );
         }
     }
@@ -494,7 +496,7 @@ fn delete_save(
     let mut config = state
         .config
         .lock()
-        .map_err(|_| "Yapılandırma kilidi açılamadı".to_string())?;
+        .map_err(|_| "Failed to unlock configuration".to_string())?;
     if config.last_save_id.as_deref() == Some(save_id.as_str()) {
         config.last_save_id = saves.first().map(|s| s.id.clone());
         config.save(&state.paths.config_file)?;
@@ -512,7 +514,7 @@ fn save_profile_settings(
     let clean_hex = match input.custom_accent_hex.as_deref() {
         Some(raw) if !raw.trim().is_empty() => {
             let normalized = normalize_hex_color(raw)
-                .ok_or_else(|| "Özel vurgu rengi geçerli bir #RRGGBB hex kodu olmalıdır.".to_string())?;
+                .ok_or_else(|| "Custom accent color must be a valid #RRGGBB hex code.".to_string())?;
             Some(normalized)
         }
         _ => None,
@@ -521,7 +523,7 @@ fn save_profile_settings(
     let mut config = state
         .config
         .lock()
-        .map_err(|_| "Yapılandırma kilidi açılamadı".to_string())?;
+        .map_err(|_| "Failed to unlock configuration".to_string())?;
     config.username = username;
     config.theme = input.theme;
     config.ui_accent = input.ui_accent;
@@ -534,6 +536,9 @@ fn save_profile_settings(
     config.ui_reduced_motion = input.ui_reduced_motion;
     config.config_version = 1;
     config.ui_sounds = input.ui_sounds;
+    if let Some(lang) = input.ui_language {
+        config.ui_language = lang;
+    }
     config.save(&state.paths.config_file)?;
     Ok(config.clone())
 }
@@ -542,14 +547,14 @@ fn save_profile_settings(
 fn set_fullscreen(window: tauri::Window, fullscreen: bool) -> Result<(), String> {
     window
         .set_fullscreen(fullscreen)
-        .map_err(|e| format!("Tam ekran modu ayarlanamadı: {e}"))
+        .map_err(|e| format!("Failed to set fullscreen mode: {e}"))
 }
 
 #[tauri::command]
 fn window_minimize(window: tauri::Window) -> Result<(), String> {
     window
         .minimize()
-        .map_err(|e| format!("Pencere küçültülemedi: {e}"))
+        .map_err(|e| format!("Failed to minimize window: {e}"))
 }
 
 #[tauri::command]
@@ -558,12 +563,12 @@ fn window_toggle_maximize(window: tauri::Window) -> Result<bool, String> {
     if is_max {
         window
             .unmaximize()
-            .map_err(|e| format!("Pencere eski boyutuna dönemedi: {e}"))?;
+            .map_err(|e| format!("Failed to restore window size: {e}"))?;
         Ok(false)
     } else {
         window
             .maximize()
-            .map_err(|e| format!("Pencere büyütülemedi: {e}"))?;
+            .map_err(|e| format!("Failed to maximize window: {e}"))?;
         Ok(true)
     }
 }
@@ -577,14 +582,14 @@ fn window_is_maximized(window: tauri::Window) -> Result<bool, String> {
 fn window_close(window: tauri::Window) -> Result<(), String> {
     window
         .close()
-        .map_err(|e| format!("Pencere kapatılamadı: {e}"))
+        .map_err(|e| format!("Failed to close window: {e}"))
 }
 
 #[tauri::command]
 fn window_start_drag(window: tauri::Window) -> Result<(), String> {
     window
         .start_dragging()
-        .map_err(|e| format!("Pencere taşınamadı: {e}"))
+        .map_err(|e| format!("Failed to drag window: {e}"))
 }
 
 fn spawn_missing_sounds_fetch(
@@ -633,7 +638,7 @@ fn save_graphics_settings(
     let mut config = state
         .config
         .lock()
-        .map_err(|_| "Yapılandırma kilidi açılamadı".to_string())?;
+        .map_err(|_| "Failed to unlock configuration".to_string())?;
     config.graphics = validated;
     config.save(&state.paths.config_file)?;
     let _ = sync_minecraft_options(&state.run_dir(), &config.graphics);
@@ -646,14 +651,14 @@ fn auto_optimize_graphics(state: tauri::State<AppState>) -> Result<OptimizeResul
     let mut hw_guard = state
         .hardware
         .lock()
-        .map_err(|_| "Donanım kilidi açılamadı".to_string())?;
+        .map_err(|_| "Failed to unlock hardware profile".to_string())?;
     *hw_guard = hardware.clone();
     drop(hw_guard);
 
     let mut config = state
         .config
         .lock()
-        .map_err(|_| "Yapılandırma kilidi açılamadı".to_string())?;
+        .map_err(|_| "Failed to unlock configuration".to_string())?;
     let (recommended, reason) = hardware.recommend_settings(&config.graphics);
     config.graphics = recommended.clone();
     config.save(&state.paths.config_file)?;
@@ -671,12 +676,12 @@ async fn pick_and_import_skin(
 ) -> Result<Option<SkinResultDto>, String> {
     let picked = tauri::async_runtime::spawn_blocking(|| {
         rfd::FileDialog::new()
-            .set_title("Yerel Skin PNG Dosyası Seçin")
-            .add_filter("PNG Görseli", &["png"])
+            .set_title("Select Local Skin PNG File")
+            .add_filter("PNG Image", &["png"])
             .pick_file()
     })
     .await
-    .map_err(|e| format!("Dosya iletişim penceresi başarısız: {e}"))?;
+    .map_err(|e| format!("File dialog failed: {e}"))?;
 
     let Some(src_path) = picked else {
         return Ok(None);
@@ -686,10 +691,10 @@ async fn pick_and_import_skin(
     let (img, saved_path, file_label) = tauri::async_runtime::spawn_blocking(move || {
         let img = load_skin_from_file(&src_path)?;
         fs::create_dir_all(&skins_dir)
-            .map_err(|e| format!("Skin klasörü hazırlanamadı: {e}"))?;
+            .map_err(|e| format!("Failed to prepare skins directory: {e}"))?;
         let dest = skins_dir.join("active_skin.png");
         img.save(&dest)
-            .map_err(|e| format!("Normalize edilmiş skin diske kaydedilemedi: {e}"))?;
+            .map_err(|e| format!("Failed to save normalized skin to disk: {e}"))?;
         let file_label = src_path
             .file_name()
             .and_then(|n| n.to_str())
@@ -698,18 +703,18 @@ async fn pick_and_import_skin(
         Ok::<_, String>((img, dest, file_label))
     })
     .await
-    .map_err(|e| format!("Skin yükleme iş parçacığı hatası: {e}"))??;
+    .map_err(|e| format!("Skin loader task failed: {e}"))??;
 
     let mut config = state
         .config
         .lock()
-        .map_err(|_| "Yapılandırma kilidi açılamadı".to_string())?;
+        .map_err(|_| "Failed to unlock configuration".to_string())?;
     let saved_str = saved_path.to_string_lossy().into_owned();
     config.skin_file = Some(saved_path);
     config.save(&state.paths.config_file)?;
     let skin_is_slim = resolve_skin_is_slim(config.skin_model, &img);
-    let model_text = if skin_is_slim { "İnce / Slim (3 px)" } else { "Klasik / Wide (4 px)" };
-    let note = format!("{file_label} içe aktarıldı (64x64 PNG · {model_text}).");
+    let model_text = if skin_is_slim { "Slim (3 px)" } else { "Classic / Wide (4 px)" };
+    let note = format!("Imported {file_label} (64x64 PNG, {model_text}).");
 
     Ok(Some(SkinResultDto {
         rgba: img.into_raw(),
@@ -730,7 +735,7 @@ fn reset_skin(state: tauri::State<AppState>) -> Result<SkinResultDto, String> {
     let mut config = state
         .config
         .lock()
-        .map_err(|_| "Yapılandırma kilidi açılamadı".to_string())?;
+        .map_err(|_| "Failed to unlock configuration".to_string())?;
     config.skin_file = None;
     config.skin_model = SkinModel::Auto;
     config.save(&state.paths.config_file)?;
@@ -743,7 +748,7 @@ fn reset_skin(state: tauri::State<AppState>) -> Result<SkinResultDto, String> {
         path: None,
         skin_model: config.skin_model,
         skin_is_slim,
-        note: "Varsayılan Basalt ince (Slim) skini geri yüklendi.".to_string(),
+        note: "Restored default Basalt Slim skin.".to_string(),
     })
 }
 
@@ -755,7 +760,7 @@ fn save_skin_model(
     let mut config = state
         .config
         .lock()
-        .map_err(|_| "Yapılandırma kilidi açılamadı".to_string())?;
+        .map_err(|_| "Failed to unlock configuration".to_string())?;
     config.skin_model = skin_model;
     config.save(&state.paths.config_file)?;
 
@@ -777,7 +782,7 @@ fn add_server(
     let clean_name = {
         let n = name.trim();
         if n.is_empty() {
-            "Yerel Sunucu".to_string()
+            "Local Server".to_string()
         } else {
             n.chars().take(48).collect()
         }
@@ -786,7 +791,7 @@ fn add_server(
     let mut config = state
         .config
         .lock()
-        .map_err(|_| "Yapılandırma kilidi açılamadı".to_string())?;
+        .map_err(|_| "Failed to unlock configuration".to_string())?;
     config.saved_servers.push(SavedServer {
         name: clean_name,
         address: clean_addr,
@@ -803,9 +808,9 @@ fn remove_server(
     let mut config = state
         .config
         .lock()
-        .map_err(|_| "Yapılandırma kilidi açılamadı".to_string())?;
+        .map_err(|_| "Failed to unlock configuration".to_string())?;
     if index >= config.saved_servers.len() {
-        return Err("Silinecek sunucu kaydı bulunamadı.".to_string());
+        return Err("Server entry to delete was not found.".to_string());
     }
     config.saved_servers.remove(index);
     config.save(&state.paths.config_file)?;
@@ -817,7 +822,7 @@ async fn ping_server_cmd(address: String) -> Result<ServerPingInfo, String> {
     let clean_addr = validate_server_address(&address)?;
     tauri::async_runtime::spawn_blocking(move || ping_server_1_21_4(&clean_addr))
         .await
-        .map_err(|e| format!("Ping iş parçacığı hatası: {e}"))?
+        .map_err(|e| format!("Ping worker thread error: {e}"))?
 }
 
 #[tauri::command]
@@ -831,7 +836,7 @@ async fn probe_local_server_cmd(
         probe_local_dev_login_1_21_4(&clean_addr, &clean_user)
     })
     .await
-    .map_err(|e| format!("El sıkışma iş parçacığı hatası: {e}"))?
+    .map_err(|e| format!("Handshake worker thread error: {e}"))?
 }
 
 #[tauri::command]
@@ -851,12 +856,12 @@ fn open_java_download_page() -> Result<(), String> {
         Command::new("rundll32.exe")
             .args(["url.dll,FileProtocolHandler", ADOPTIUM_JDK21_URL])
             .spawn()
-            .map_err(|e| format!("Tarayıcı açılamadı: {e}"))?;
+            .map_err(|e| format!("Failed to open browser: {e}"))?;
         return Ok(());
     }
     #[cfg(not(windows))]
     {
-        Err(format!("Lütfen şu adresten Java 21 kurun: {ADOPTIUM_JDK21_URL}"))
+        Err(format!("Please install Java 21 from: {ADOPTIUM_JDK21_URL}"))
     }
 }
 
@@ -874,9 +879,9 @@ fn install_java21_blocking(app: &tauri::AppHandle, runtime_dir: &Path) -> Result
     };
 
     fs::create_dir_all(runtime_dir)
-        .map_err(|e| format!("Çalışma zamanı klasörü oluşturulamadı: {e}"))?;
+        .map_err(|e| format!("Failed to create runtime directory: {e}"))?;
     log(
-        "Adoptium resmi API üzerinden Eclipse Temurin JDK 21 (Windows x64) sorgulanıyor...".to_string(),
+        "Querying Adoptium official API for Eclipse Temurin JDK 21 (Windows x64)...".to_string(),
         false,
     );
 
@@ -889,27 +894,27 @@ fn install_java21_blocking(app: &tauri::AppHandle, runtime_dir: &Path) -> Result
     hide_console_window(&mut meta_cmd);
     let meta_out = meta_cmd
         .output()
-        .map_err(|e| format!("curl.exe ile Adoptium API sorgulanamadı: {e}"))?;
+        .map_err(|e| format!("Failed to query Adoptium API via curl.exe: {e}"))?;
     if !meta_out.status.success() {
         return Err(format!(
-            "Adoptium API yanıt vermedi (curl çıkış kodu: {}).",
+            "Adoptium API did not respond (curl exit code: {}).",
             meta_out.status.code().unwrap_or(-1)
         ));
     }
 
     let releases: serde_json::Value = serde_json::from_slice(&meta_out.stdout)
-        .map_err(|e| format!("Adoptium JSON yanıtı ayrıştırılamadı: {e}"))?;
+        .map_err(|e| format!("Failed to parse Adoptium JSON response: {e}"))?;
     let pkg = releases
         .as_array()
         .and_then(|arr| arr.first())
         .and_then(|item| item.get("binary"))
         .and_then(|bin| bin.get("package"))
-        .ok_or_else(|| "Adoptium yanıtında JDK 21 paketi bulunamadı.".to_string())?;
+        .ok_or_else(|| "No JDK 21 package found in Adoptium response.".to_string())?;
 
     let link = pkg
         .get("link")
         .and_then(|v| v.as_str())
-        .ok_or_else(|| "Adoptium paket indirme bağlantısı eksik.".to_string())?;
+        .ok_or_else(|| "Adoptium package download link is missing.".to_string())?;
     let name = pkg
         .get("name")
         .and_then(|v| v.as_str())
@@ -918,14 +923,14 @@ fn install_java21_blocking(app: &tauri::AppHandle, runtime_dir: &Path) -> Result
     let expected_sha = pkg.get("checksum").and_then(|v| v.as_str()).map(|s| s.to_ascii_lowercase());
 
     let size_mb = (size_bytes as f64) / 1_048_576.0;
-    log(format!("Paket bulundu: {name} ({size_mb:.1} MB)"), false);
+    log(format!("Found package: {name} ({size_mb:.1} MB)"), false);
 
     let zip_path = runtime_dir.join("temurin-jdk21-tmp.zip");
     let ext_dir = runtime_dir.join("extract-tmp");
     let _ = fs::remove_file(&zip_path);
     let _ = fs::remove_dir_all(&ext_dir);
 
-    log("JDK 21 arşivi indiriliyor, lütfen bekleyin...".to_string(), false);
+    log("Downloading JDK 21 archive, please wait...".to_string(), false);
     let mut dl_cmd = Command::new("curl.exe");
     dl_cmd
         .args([
@@ -944,27 +949,27 @@ fn install_java21_blocking(app: &tauri::AppHandle, runtime_dir: &Path) -> Result
     hide_console_window(&mut dl_cmd);
     let dl_out = dl_cmd
         .output()
-        .map_err(|e| format!("JDK 21 indirme başlatılamadı: {e}"))?;
+        .map_err(|e| format!("Failed to start JDK 21 download: {e}"))?;
     if !dl_out.status.success() {
         let err_tail = String::from_utf8_lossy(&dl_out.stderr).trim().to_string();
         return Err(format!(
-            "JDK 21 indirilemedi (kod: {}). {err_tail}",
+            "Failed to download JDK 21 (code: {}). {err_tail}",
             dl_out.status.code().unwrap_or(-1)
         ));
     }
 
     if let Some(ref expected) = expected_sha {
-        log("SHA-256 bütünlük kontrolü yapılıyor...".to_string(), false);
+        log("Verifying SHA-256 integrity checksum...".to_string(), false);
         let actual = compute_file_sha256_hex(&zip_path)?;
         if &actual != expected {
             let _ = fs::remove_file(&zip_path);
-            return Err("İndirilen Java 21 dosyasının SHA-256 özeti eşleşmedi.".to_string());
+            return Err("Downloaded Java 21 archive SHA-256 checksum mismatch.".to_string());
         }
     }
 
-    log("Java 21 arşivi çıkarılıyor...".to_string(), false);
+    log("Extracting Java 21 archive...".to_string(), false);
     fs::create_dir_all(&ext_dir)
-        .map_err(|e| format!("Geçici açma klasörü oluşturulamadı: {e}"))?;
+        .map_err(|e| format!("Failed to create temporary extraction directory: {e}"))?;
     let mut tar_cmd = Command::new("tar.exe");
     tar_cmd
         .args(["-xf"])
@@ -975,23 +980,23 @@ fn install_java21_blocking(app: &tauri::AppHandle, runtime_dir: &Path) -> Result
     hide_console_window(&mut tar_cmd);
     let tar_out = tar_cmd
         .output()
-        .map_err(|e| format!("tar.exe ile arşiv açılamadı: {e}"))?;
+        .map_err(|e| format!("Failed to unpack archive via tar.exe: {e}"))?;
     if !tar_out.status.success() {
         let err_tail = String::from_utf8_lossy(&tar_out.stderr).trim().to_string();
-        return Err(format!("Java 21 arşivi çıkarılamadı: {err_tail}"));
+        return Err(format!("Failed to extract Java 21 archive: {err_tail}"));
     }
 
     let jdk_src = fs::read_dir(&ext_dir)
-        .map_err(|e| format!("Açılan klasör okunamadı: {e}"))?
+        .map_err(|e| format!("Failed to read extracted directory: {e}"))?
         .flatten()
         .map(|entry| entry.path())
         .find(|p| p.is_dir() && p.join("bin").join("java.exe").is_file())
-        .ok_or_else(|| "Açılan arşiv içinde bin\\java.exe bulunamadı.".to_string())?;
+        .ok_or_else(|| "bin\\java.exe was not found inside the extracted archive.".to_string())?;
 
     let target = runtime_dir.join("jdk-21");
     let _ = fs::remove_dir_all(&target);
     fs::rename(&jdk_src, &target)
-        .map_err(|e| format!("JDK 21 hedef klasöre taşınamadı: {e}"))?;
+        .map_err(|e| format!("Failed to move JDK 21 into runtime directory: {e}"))?;
     let _ = fs::remove_file(&zip_path);
     let _ = fs::remove_dir_all(&ext_dir);
 
@@ -1000,7 +1005,7 @@ fn install_java21_blocking(app: &tauri::AppHandle, runtime_dir: &Path) -> Result
         .and_then(|txt| txt.lines().find(|l| l.starts_with("JAVA_VERSION=")).map(str::to_string))
         .unwrap_or_else(|| "JDK 21".to_string());
     log(
-        format!("Java 21 hazır ({ver_line}): {}", target.display()),
+        format!("Java 21 ready ({ver_line}): {}", target.display()),
         false,
     );
     Ok(())
@@ -1014,7 +1019,7 @@ fn install_java_21(
     #[cfg(not(windows))]
     {
         let _ = (app, state);
-        return Err("Otomatik taşınabilir Java 21 kurucusu şu an yalnızca Windows'ta desteklenir.".to_string());
+        return Err("Automatic portable Java 21 installer is currently only supported on Windows.".to_string());
     }
 
     #[cfg(windows)]
@@ -1023,10 +1028,10 @@ fn install_java_21(
             let running = state
                 .running
                 .lock()
-                .map_err(|_| "Oturum kilidi açılamadı".to_string())?;
+                .map_err(|_| "Failed to unlock session state".to_string())?;
             if running.is_some() {
                 return Err(
-                    "Şu anda başka bir işlem (Minecraft, Gradle veya Java kurulumu) çalışıyor."
+                    "Another operation (Minecraft, Gradle, or Java setup) is currently running."
                         .to_string(),
                 );
             }
@@ -1035,14 +1040,14 @@ fn install_java_21(
         let session = RunningSessionDto {
             pid: std::process::id(),
             kind: "java-install".to_string(),
-            label: "Eclipse Temurin Java 21 Kurulumu".to_string(),
+            label: "Eclipse Temurin Java 21 Setup".to_string(),
         };
 
         {
             let mut running = state
                 .running
                 .lock()
-                .map_err(|_| "Oturum kilidi açılamadı".to_string())?;
+                .map_err(|_| "Failed to unlock session state".to_string())?;
             *running = Some(session.clone());
         }
 
@@ -1087,14 +1092,14 @@ fn prepare_gradle_client(
         let running = state
             .running
             .lock()
-            .map_err(|_| "Oturum kilidi açılamadı".to_string())?;
+            .map_err(|_| "Failed to unlock session state".to_string())?;
         if running.is_some() {
-            return Err("Şu anda çalışan bir Gradle veya Minecraft süreci zaten var.".to_string());
+            return Err("A Gradle or Minecraft process is already running.".to_string());
         }
     }
 
     let (java_home, _) = discover_java21_home_with_runtime(&state.paths.runtime_dir).ok_or_else(|| {
-        "Java 21 JDK bulunamadı. Oyna ekranından 'Otomatik Java 21 Kur' butonunu kullanarak kurabilirsiniz."
+        "Java 21 JDK was not found. Use 'Install Java 21' on the Play screen to set up a portable runtime."
             .to_string()
     })?;
 
@@ -1104,14 +1109,14 @@ fn prepare_gradle_client(
     let session = RunningSessionDto {
         pid: child.id(),
         kind: "prepare".to_string(),
-        label: "Gradle Fabric 1.21.4 Ön Hazırlık".to_string(),
+        label: "Gradle Fabric 1.21.4 Prebuild".to_string(),
     };
 
     {
         let mut running = state
             .running
             .lock()
-            .map_err(|_| "Oturum kilidi açılamadı".to_string())?;
+            .map_err(|_| "Failed to unlock session state".to_string())?;
         *running = Some(session.clone());
     }
 
@@ -1138,14 +1143,14 @@ fn launch_client(
         let running = state
             .running
             .lock()
-            .map_err(|_| "Oturum kilidi açılamadı".to_string())?;
+            .map_err(|_| "Failed to unlock session state".to_string())?;
         if running.is_some() {
-            return Err("Minecraft veya Gradle şu anda zaten çalışıyor.".to_string());
+            return Err("Minecraft or Gradle is already running.".to_string());
         }
     }
 
     let (java_home, _) = discover_java21_home_with_runtime(&state.paths.runtime_dir).ok_or_else(|| {
-        "Java 21 JDK bulunamadı. Oyna ekranındaki 'Otomatik Java 21 Kur' ile kurun."
+        "Java 21 JDK was not found. Use 'Install Java 21' on the Play screen to install it."
             .to_string()
     })?;
 
@@ -1153,7 +1158,7 @@ fn launch_client(
         let mut config = state
             .config
             .lock()
-            .map_err(|_| "Yapılandırma kilidi açılamadı".to_string())?;
+            .map_err(|_| "Failed to unlock configuration".to_string())?;
 
         match input.mode.as_str() {
             "singleplayer" => {
@@ -1162,7 +1167,7 @@ fn launch_client(
                     .as_deref()
                     .map(str::trim)
                     .filter(|s| !s.is_empty())
-                    .ok_or_else(|| "Tek oyunculu hızlı giriş için bir kayıt seçin.".to_string())?
+                    .ok_or_else(|| "Select a world save to quick-launch singleplayer.".to_string())?
                     .to_string();
                 let _ = resolve_save_dir(&state.saves_dir(), &save_id)?;
                 config.last_save_id = Some(save_id.clone());
@@ -1178,7 +1183,7 @@ fn launch_client(
                 let raw_addr = input
                     .server_address
                     .as_deref()
-                    .ok_or_else(|| "Sunucu adresi belirtilmedi.".to_string())?;
+                    .ok_or_else(|| "No server address specified.".to_string())?;
                 let addr = validate_server_address(raw_addr)?;
                 (
                     config.clone(),
@@ -1193,7 +1198,7 @@ fn launch_client(
                 None,
                 None,
             ),
-            _ => return Err("Geçersiz başlatma modu.".to_string()),
+            _ => return Err("Invalid launch mode.".to_string()),
         }
     };
 
@@ -1228,7 +1233,7 @@ fn launch_client(
         let mut running = state
             .running
             .lock()
-            .map_err(|_| "Oturum kilidi açılamadı".to_string())?;
+            .map_err(|_| "Failed to unlock session state".to_string())?;
         *running = Some(session.clone());
     }
 
@@ -1293,17 +1298,17 @@ fn show_windows_alert(_title: &str, body: &str, _ask_yes_no: bool) -> bool {
 
 fn main() {
     std::panic::set_hook(Box::new(|info| {
-        let msg = format!("Basalt beklenmeyen bir başlangıç hatasıyla karşılaştı:\n{info}");
+        let msg = format!("Basalt encountered an unexpected startup error:\n{info}");
         write_startup_log(&msg);
-        show_windows_alert("Basalt Başlatma Hatası", &msg, false);
+        show_windows_alert("Basalt Startup Error", &msg, false);
     }));
 
     let app_state = match AppState::initialize() {
         Ok(s) => s,
         Err(err) => {
-            let msg = format!("Basalt çalışma alanı başlatılamadı:\n{err}");
+            let msg = format!("Failed to initialize Basalt workspace:\n{err}");
             write_startup_log(&msg);
-            show_windows_alert("Basalt Başlatma Hatası", &msg, false);
+            show_windows_alert("Basalt Startup Error", &msg, false);
             std::process::exit(1);
         }
     };
@@ -1340,21 +1345,21 @@ fn main() {
         ])
         .setup(|app| {
             if let Some(win) = app.get_webview_window("main") {
-                let _ = win.set_title("Basalt - Minecraft 1.21.4 Gradle İstemcisi");
+                let _ = win.set_title("Basalt - Minecraft 1.21.4 Gradle Client");
             }
             Ok(())
         })
         .run(tauri::generate_context!());
 
     if let Err(err) = run_res {
-        let log_note = format!("Tauri/WebView2 başlatılamadı: {err}");
+        let log_note = format!("Failed to initialize Tauri/WebView2: {err}");
         write_startup_log(&log_note);
         let msg = format!(
-            "Basalt penceresi açılamadı ({err}).\n\n\
-             Temiz Windows kurulumlarında Microsoft Edge WebView2 Çalışma Zamanı eksik olabilir.\n\
-             Resmi Microsoft WebView2 indiricisini tarayıcıda açmak ister misiniz?"
+            "Basalt could not open its window ({err}).\n\n\
+             Fresh Windows installations may be missing the Microsoft Edge WebView2 Runtime.\n\
+             Would you like to open the official Microsoft WebView2 download page in your browser?"
         );
-        if show_windows_alert("Basalt - WebView2 Gerekli", &msg, true) {
+        if show_windows_alert("Basalt - WebView2 Required", &msg, true) {
             let _ = Command::new("rundll32.exe")
                 .args([
                     "url.dll,FileProtocolHandler",

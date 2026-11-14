@@ -1,4 +1,15 @@
 import { applyDynamicDesignTokens, normalizeHex } from "./colors";
+import {
+  ACCENT_LABELS,
+  CORNER_LABELS,
+  GPU_TIER_LABELS,
+  LANG_INTL_LOCALE,
+  LAYOUT_SHORT_LABELS,
+  THEME_SHORT_LABELS,
+  UI_LANGUAGE_ORDER,
+  applyStaticI18n,
+  tr,
+} from "./i18n";
 import * as ipc from "./ipc";
 import {
   drawSkinPreview,
@@ -21,6 +32,7 @@ import type {
   ServerPingInfo,
   SkinModel,
   ThemeMode,
+  UiLanguage,
 } from "./types";
 
 type ViewId = "play" | "worlds" | "profile" | "system";
@@ -31,13 +43,6 @@ interface ServerCheckState {
   ping?: ServerPingInfo;
   message?: string;
 }
-
-const VIEW_LABELS: Record<ViewId, string> = {
-  play: "01 · Oyna",
-  worlds: "02 · Kayıtlar",
-  profile: "03 · Profil ve Skin",
-  system: "04 · Sistem ve Ağ",
-};
 
 const VALID_USERNAME_RE = /^[A-Za-z0-9_-]{1,16}$/;
 const MAX_LOG_LINES = 60;
@@ -65,18 +70,6 @@ const THEME_ATTRS: Record<ThemeMode, string> = {
   Sculk: "sculk",
   End: "end",
   Cherry: "cherry",
-};
-const THEME_SHORT_LABELS: Record<ThemeMode, string> = {
-  Dark: "Mor",
-  Ember: "Bakır",
-  Light: "Kireç",
-  Spruce: "Ladin",
-  Cobalt: "Lapis",
-  Nether: "Kızıl",
-  Frost: "Buzul",
-  Sculk: "Sculk",
-  End: "End",
-  Cherry: "Kiraz",
 };
 
 const ACCENT_ORDER: readonly AccentTone[] = [
@@ -109,14 +102,6 @@ const LAYOUT_ATTRS: Record<LayoutMode, string> = {
   RightRail: "right-rail",
   MinimalRail: "minimal-rail",
   DeckMode: "deck",
-};
-const LAYOUT_SHORT_LABELS: Record<LayoutMode, string> = {
-  Sidebar: "Sol Ray",
-  Topbar: "Üst Şerit",
-  CompactDeck: "Kompakt",
-  RightRail: "Sağ Ray",
-  MinimalRail: "İnce Dock",
-  DeckMode: "Konsol",
 };
 
 type DeckCardKind = "launch" | "world" | "server" | "nav";
@@ -157,15 +142,24 @@ let deckClockTimer: number | null = null;
 function byId<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
   if (!node) {
-    throw new Error(`Eksik arayüz öğesi: #${id}`);
+    throw new Error(`Missing UI element: #${id}`);
   }
   return node as T;
+}
+
+function getEffectiveLanguage(): UiLanguage {
+  const raw = new URLSearchParams(window.location.search).get("lang")?.toLowerCase();
+  if (raw === "tr") return "Tr";
+  if (raw === "de") return "De";
+  if (raw === "en") return "En";
+  const cfg = state?.config.ui_language;
+  return cfg === "Tr" || cfg === "De" || cfg === "En" ? cfg : "En";
 }
 
 function errorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;
-  return "Beklenmeyen bir hata oluştu.";
+  return tr(getEffectiveLanguage(), "err.unexpected");
 }
 
 function showToast(message: string, tone: "neutral" | "success" | "error" = "neutral"): void {
@@ -216,9 +210,10 @@ function formatBytes(bytes: number): string {
 }
 
 function formatEpoch(secs: number): string {
-  if (!Number.isFinite(secs) || secs <= 0) return "Bilinmiyor";
+  const lang = getEffectiveLanguage();
+  if (!Number.isFinite(secs) || secs <= 0) return tr(lang, "misc.unknownDate");
   try {
-    return new Intl.DateTimeFormat("tr-TR", {
+    return new Intl.DateTimeFormat(LANG_INTL_LOCALE[lang], {
       dateStyle: "short",
       timeStyle: "short",
     }).format(new Date(secs * 1000));
@@ -228,17 +223,19 @@ function formatEpoch(secs: number): string {
 }
 
 function validateUsername(raw: string): string | null {
+  const lang = getEffectiveLanguage();
   const trimmed = raw.trim();
   if (!trimmed) {
-    return "Kullanıcı adı boş bırakılamaz.";
+    return tr(lang, "val.usernameEmpty");
   }
   if (!VALID_USERNAME_RE.test(trimmed)) {
-    return "Yalnızca 1-16 karakter arası İngilizce harf, rakam, '_' veya '-' kullanın.";
+    return tr(lang, "val.usernameChars");
   }
   return null;
 }
 
 function setSelectNumericValue(select: HTMLSelectElement, targetValue: number): void {
+  const lang = getEffectiveLanguage();
   const strVal = String(targetValue);
   let exists = false;
   for (const option of Array.from(select.options)) {
@@ -250,7 +247,7 @@ function setSelectNumericValue(select: HTMLSelectElement, targetValue: number): 
   if (!exists) {
     const opt = document.createElement("option");
     opt.value = strVal;
-    opt.textContent = `${targetValue} MB (Önerilen)`;
+    opt.textContent = `${targetValue} MB (${tr(lang, "system.ramRecommended", { mb: targetValue }).replace(`${targetValue} MB `, "").replace(/^\(|\)$/g, "")})`;
     select.appendChild(opt);
   }
   select.value = strVal;
@@ -306,7 +303,7 @@ function updateDeckClock(): void {
   const el = document.getElementById("deck-clock");
   if (!el) return;
   const now = new Date();
-  el.textContent = now.toLocaleTimeString("tr-TR", {
+  el.textContent = now.toLocaleTimeString(LANG_INTL_LOCALE[getEffectiveLanguage()], {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -324,7 +321,40 @@ function syncDeckClock(active: boolean): void {
   }
 }
 
+function currentActiveViewId(): ViewId {
+  const activeBtn = document.querySelector<HTMLButtonElement>(".nav-btn.active[data-nav]");
+  const nav = activeBtn?.dataset.nav as ViewId | undefined;
+  return nav && VIEW_ORDER.includes(nav) ? nav : "play";
+}
+
 function applyPreferences(): void {
+  const lang = getEffectiveLanguage();
+  applyStaticI18n(lang);
+
+  for (const btn of Array.from(document.querySelectorAll<HTMLButtonElement>("[data-lang-choice]"))) {
+    const active = btn.dataset.langChoice === lang;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-pressed", active ? "true" : "false");
+  }
+  for (const btn of Array.from(document.querySelectorAll<HTMLButtonElement>("[data-corner-choice]"))) {
+    const key = btn.dataset.cornerChoice as CornerStyle | undefined;
+    if (key) btn.textContent = CORNER_LABELS[lang][key];
+  }
+  for (const span of Array.from(document.querySelectorAll<HTMLElement>("[data-accent-label]"))) {
+    const key = span.dataset.accentLabel as AccentTone | undefined;
+    if (key) span.textContent = ACCENT_LABELS[lang][key];
+  }
+
+  const srvNameInput = document.getElementById("srv-name");
+  if (srvNameInput instanceof HTMLInputElement && document.activeElement !== srvNameInput) {
+    const val = srvNameInput.value.trim();
+    if (val === "Yerel Sunucu" || val === "Local Server" || val === "Lokaler Server" || !val) {
+      srvNameInput.value = tr(lang, "servers.defaultName");
+    }
+  }
+
+  byId<HTMLElement>("topbar-crumb").textContent = tr(lang, `view.${currentActiveViewId()}`);
+
   if (!state) return;
   if (state.config.ui_layout !== "DeckMode") {
     lastDesktopLayout = state.config.ui_layout;
@@ -344,9 +374,12 @@ function applyPreferences(): void {
   document.body.classList.toggle("compact", state.config.ui_compact);
   document.body.classList.toggle("reduce-motion", state.config.ui_reduced_motion);
 
-  byId<HTMLSpanElement>("rail-theme-label").textContent = THEME_SHORT_LABELS[theme];
-  byId<HTMLSpanElement>("rail-layout-label").textContent = LAYOUT_SHORT_LABELS[layout];
-  byId<HTMLSpanElement>("rail-sound-label").textContent = sounds ? "Ses Açık" : "Sessiz";
+  byId<HTMLSpanElement>("rail-theme-label").textContent = THEME_SHORT_LABELS[lang][theme];
+  byId<HTMLSpanElement>("rail-layout-label").textContent = LAYOUT_SHORT_LABELS[lang][layout];
+  byId<HTMLSpanElement>("rail-sound-label").textContent = tr(
+    lang,
+    sounds ? "rail.soundOn" : "rail.soundOff"
+  );
   byId<HTMLButtonElement>("btn-rail-sound").setAttribute("aria-pressed", sounds ? "true" : "false");
 
   const isDeck = layout === "DeckMode";
@@ -382,7 +415,7 @@ function setActiveView(view: ViewId, updateHash = true, withSound = false): void
     section.hidden = section.dataset.view !== view;
   }
 
-  byId<HTMLElement>("topbar-crumb").textContent = VIEW_LABELS[view];
+  byId<HTMLElement>("topbar-crumb").textContent = tr(getEffectiveLanguage(), `view.${view}`);
 
   if (updateHash && window.location.hash !== `#${view}`) {
     window.history.replaceState(null, "", `#${view}`);
@@ -419,6 +452,7 @@ function appendLogLine(line: string, isErr: boolean): void {
 
 function renderTopbarAndSession(): void {
   if (!state) return;
+  const lang = getEffectiveLanguage();
   byId<HTMLSpanElement>("preview-mode-badge").hidden = ipc.isTauriRuntime();
   byId<HTMLSpanElement>("topbar-username").textContent = state.config.username;
   byId<HTMLSpanElement>("deck-username").textContent = state.config.username;
@@ -442,13 +476,15 @@ function renderTopbarAndSession(): void {
     const isPrepare = kind === "prepare";
     const isJavaInstall = kind === "java-install";
     railStatusRow.setAttribute("data-state", "ready");
-    railStatusText.textContent = isJavaInstall ? "Java 21 indiriliyor" : "Gradle oturumu aktif";
+    railStatusText.textContent = tr(
+      lang,
+      isJavaInstall ? "rail.statusDownloadingJava" : "rail.statusSessionActive"
+    );
     pill.setAttribute("data-state", "running");
-    pill.textContent = isJavaInstall
-      ? "Java 21 kuruluyor"
-      : isPrepare
-      ? "Gradle derleniyor"
-      : "Minecraft çalışıyor";
+    pill.textContent = tr(
+      lang,
+      isJavaInstall ? "pill.javaInstalling" : isPrepare ? "pill.building" : "pill.running"
+    );
     launchBtn.disabled = true;
     prepareBtn.disabled = true;
     openMcBtn.disabled = true;
@@ -456,11 +492,10 @@ function renderTopbarAndSession(): void {
     recheckJavaBtn.disabled = true;
     sysInstallJavaBtn.disabled = true;
     sysRecheckJavaBtn.disabled = true;
-    launchLabel.textContent = isJavaInstall
-      ? "Java 21 Kuruluyor..."
-      : isPrepare
-      ? "Derleme sürüyor..."
-      : "Minecraft çalışıyor...";
+    launchLabel.textContent = tr(
+      lang,
+      isJavaInstall ? "btn.installingJava" : isPrepare ? "btn.building" : "btn.mcRunning"
+    );
   } else {
     installJavaBtn.disabled = false;
     recheckJavaBtn.disabled = false;
@@ -468,30 +503,35 @@ function renderTopbarAndSession(): void {
     sysRecheckJavaBtn.disabled = false;
     if (!state.gradle.java_ready) {
       railStatusRow.setAttribute("data-state", "warning");
-      railStatusText.textContent = "Java 21 JDK eksik";
+      railStatusText.textContent = tr(lang, "rail.statusJavaMissing");
       pill.setAttribute("data-state", "warning");
-      pill.textContent = "Java 21 gerekli";
+      pill.textContent = tr(lang, "pill.javaRequired");
       launchBtn.disabled = true;
       prepareBtn.disabled = true;
       openMcBtn.disabled = true;
-      launchLabel.textContent = "Önce Java 21 Kurun";
+      launchLabel.textContent = tr(lang, "btn.installJavaFirst");
     } else {
       railStatusRow.setAttribute("data-state", "ready");
-      railStatusText.textContent = "Gradle Fabric hazır";
+      railStatusText.textContent = tr(lang, "rail.statusReady");
       pill.setAttribute("data-state", "idle");
-      pill.textContent = state.gradle.mod_jar_built ? "Hazır" : "İlk derleme bekleniyor";
+      pill.textContent = tr(
+        lang,
+        state.gradle.mod_jar_built ? "pill.ready" : "pill.awaitFirstBuild"
+      );
       launchBtn.disabled = false;
       prepareBtn.disabled = false;
       openMcBtn.disabled = false;
-      launchLabel.textContent = state.config.last_save_id
-        ? "Seçili Dünya ile Başlat"
-        : "Minecraft'ı Başlat";
+      launchLabel.textContent = tr(
+        lang,
+        state.config.last_save_id ? "btn.launchSelected" : "btn.launchMc"
+      );
     }
   }
 }
 
 function renderPlayView(): void {
   if (!state) return;
+  const lang = getEffectiveLanguage();
   const { config, saves, hardware, gradle } = state;
 
   const selectedSave = saves.find((s) => s.id === config.last_save_id) ?? null;
@@ -500,10 +540,12 @@ function renderPlayView(): void {
     config.last_save_id = activeSaveId;
   }
 
-  byId<HTMLHeadingElement>("play-world-title").textContent = activeSaveId ?? "Minecraft Ana Menü";
-  byId<HTMLDivElement>("stage-biome-tag").textContent = activeSaveId
-    ? "TEK OYUNCULU QUICK PLAY · 1.21.4"
-    : "FABRIC 1.21.4 · GRADLE";
+  byId<HTMLHeadingElement>("play-world-title").textContent =
+    activeSaveId ?? tr(lang, "play.mainMenuTitle");
+  byId<HTMLDivElement>("stage-biome-tag").textContent = tr(
+    lang,
+    activeSaveId ? "play.stageTagSp" : "play.stageTagDefault"
+  );
 
   const stratumSvg = document.getElementById("stratum-svg");
   if (stratumSvg instanceof SVGSVGElement) {
@@ -514,7 +556,7 @@ function renderPlayView(): void {
   select.innerHTML = "";
   const titleOpt = document.createElement("option");
   titleOpt.value = "";
-  titleOpt.textContent = "Minecraft Ana Menü (Normal Giriş)";
+  titleOpt.textContent = tr(lang, "play.mainMenuOpt");
   select.appendChild(titleOpt);
 
   for (const save of saves) {
@@ -525,15 +567,21 @@ function renderPlayView(): void {
   }
   select.value = activeSaveId ?? "";
 
-  byId<HTMLElement>("play-spec-jdk").textContent = gradle.java_ready ? "Java 21" : "Eksik";
+  byId<HTMLElement>("play-spec-jdk").textContent = gradle.java_ready
+    ? "Java 21"
+    : tr(lang, "play.specJdkMissing");
   byId<HTMLElement>("play-spec-ram").textContent = `${config.graphics.jvm_ram_mb} MB (${config.graphics.jvm_gc})`;
   byId<HTMLElement>("play-spec-chunks").textContent = `${config.graphics.render_distance} chunk`;
-  byId<HTMLElement>("play-spec-mod").textContent = gradle.mod_jar_built ? "Derli" : "Otomatik derlenir";
+  byId<HTMLElement>("play-spec-mod").textContent = tr(
+    lang,
+    gradle.mod_jar_built ? "play.specModReady" : "play.specModAuto"
+  );
 
   const javaPanel = byId<HTMLDivElement>("java-setup-panel");
   if (!gradle.java_ready) {
     javaPanel.hidden = false;
-    byId<HTMLParagraphElement>("java-setup-desc").textContent = gradle.java_hint;
+    byId<HTMLParagraphElement>("java-setup-desc").textContent =
+      lang === "En" ? gradle.java_hint : tr(lang, "play.javaSetupDesc");
   } else {
     javaPanel.hidden = true;
   }
@@ -547,9 +595,10 @@ function renderPlayView(): void {
     playUsername.value = config.username;
   }
 
-  byId<HTMLSpanElement>("prepare-status-hint").textContent = gradle.mod_jar_built
-    ? "Mod JAR önbellekte hazır; tekrar hızlı açılır"
-    : "İsteğe bağlı: açılıştan önce Gradle önbelleğini derle";
+  byId<HTMLSpanElement>("prepare-status-hint").textContent = tr(
+    lang,
+    gradle.mod_jar_built ? "play.prepareHintReady" : "play.prepareHintWait"
+  );
 
   if (getEffectiveLayout() === "DeckMode") {
     renderConsoleHome();
@@ -558,19 +607,23 @@ function renderPlayView(): void {
 
 function buildDeckCards(): DeckCard[] {
   if (!state) return [];
+  const lang = getEffectiveLanguage();
   const { config, saves, hardware, gradle } = state;
   const cards: DeckCard[] = [
     {
       id: "main-menu",
       kind: "launch",
-      kicker: "FABRIC 1.21.4 · PROTOKOL 769",
-      title: "Minecraft Ana Menü",
-      meta: gradle.mod_jar_built ? "Mod JAR hazır" : "İlk derleme otomatik",
-      sub: `${config.username} profili ile Minecraft 1.21.4 başlatılır; ${config.graphics.preset} profili options.txt içine işlenir.`,
-      tag: "FABRIC 1.21.4 · KONSOL",
+      kicker: tr(lang, "deck.cardMainKicker"),
+      title: tr(lang, "play.mainMenuTitle"),
+      meta: tr(lang, gradle.mod_jar_built ? "deck.cardMainMetaReady" : "deck.cardMainMetaAuto"),
+      sub: tr(lang, "deck.cardMainSub", {
+        user: config.username,
+        preset: config.graphics.preset,
+      }),
+      tag: tr(lang, "deck.cardMainTag"),
       seedKey: "basalt-console-home",
-      primaryLabel: "Oyunu Başlat",
-      secondaryLabel: "Kayıtları Yönet",
+      primaryLabel: tr(lang, "deck.cardMainPrimary"),
+      secondaryLabel: tr(lang, "play.manageSaves"),
       launchMode: "title",
       saveId: null,
       targetView: "worlds",
@@ -582,14 +635,22 @@ function buildDeckCards(): DeckCard[] {
     cards.push({
       id: `world:${save.id}`,
       kind: "world",
-      kicker: isActive ? "SEÇİLİ DÜNYA · QUICK PLAY" : "TEK OYUNCULU KAYIT",
+      kicker: tr(
+        lang,
+        isActive ? "deck.cardWorldKickerActive" : "deck.cardWorldKicker"
+      ),
       title: save.id,
       meta: formatBytes(save.size_bytes),
-      sub: `Son kayıt: ${formatEpoch(save.modified_epoch_secs)}. Quick Play ile doğrudan dünya içine girer.`,
+      sub: tr(lang, "deck.cardWorldSub", {
+        date: formatEpoch(save.modified_epoch_secs),
+      }),
       tag: `QUICK PLAY · ${save.id}`,
       seedKey: save.id,
-      primaryLabel: "Dünyaya Gir",
-      secondaryLabel: isActive ? "Seçili Hedef" : "Hedef Seç",
+      primaryLabel: tr(lang, "deck.cardWorldPrimary"),
+      secondaryLabel: tr(
+        lang,
+        isActive ? "deck.cardWorldSecActive" : "deck.cardWorldSecPick"
+      ),
       secondaryDisabled: isActive,
       launchMode: "singleplayer",
       saveId: save.id,
@@ -605,14 +666,14 @@ function buildDeckCards(): DeckCard[] {
     cards.push({
       id: `server:${srv.address}`,
       kind: "server",
-      kicker: "YEREL / LAN SUNUCU",
+      kicker: tr(lang, "deck.cardServerKicker"),
       title: srv.name,
       meta: metaText,
-      sub: `${srv.address} sunucusuna çevrimdışı Quick Play bağlantısı (online-mode=false geliştirme sunucuları).`,
-      tag: `SUNUCU · ${srv.address}`,
+      sub: tr(lang, "deck.cardServerSub", { addr: srv.address }),
+      tag: tr(lang, "deck.cardServerTag", { addr: srv.address }),
       seedKey: `srv-${srv.address}`,
-      primaryLabel: "Sunucuya Bağlan",
-      secondaryLabel: "Sistem ve Ağ",
+      primaryLabel: tr(lang, "deck.cardServerPrimary"),
+      secondaryLabel: tr(lang, "nav.system"),
       launchMode: "multiplayer",
       serverAddress: srv.address,
       targetView: "system",
@@ -623,40 +684,42 @@ function buildDeckCards(): DeckCard[] {
     {
       id: "nav:worlds",
       kind: "nav",
-      kicker: "KÜTÜPHANE",
-      title: "Kayıt Yönetimi",
-      meta: `${saves.length} kayıt`,
-      sub: "Tek oyunculu dünyaları inceleyin, aktif başlatma hedefi belirleyin veya eski kayıtları temizleyin.",
-      tag: "KÜTÜPHANE · DÜNYALAR",
+      kicker: tr(lang, "worlds.heading").toUpperCase(),
+      title: tr(lang, "worlds.heading"),
+      meta: tr(lang, "worlds.countLabel", { count: saves.length }),
+      sub: tr(lang, "deck.cardNavWorldsSub"),
+      tag: tr(lang, "deck.cardNavWorldsTag"),
       seedKey: "nav-worlds",
-      primaryLabel: "Kayıtları Aç",
-      secondaryLabel: "Profil & Skin",
+      primaryLabel: tr(lang, "deck.cardNavWorldsPrimary"),
+      secondaryLabel: tr(lang, "nav.profile"),
       targetView: "worlds",
     },
     {
       id: "nav:profile",
       kind: "nav",
-      kicker: "ÖZELLEŞTİRME",
-      title: "Profil, Skin & Tema",
-      meta: `${THEME_SHORT_LABELS[getEffectiveTheme()]} Tema`,
-      sub: "64x64 Slim/Klasik skin, 10 tema, özel vurgu rengi ve ses seçeneklerini ayarlayın.",
-      tag: "PROFİL VE SKIN",
+      kicker: tr(lang, "deck.cardNavProfileKicker"),
+      title: tr(lang, "deck.cardNavProfileTitle"),
+      meta: tr(lang, "deck.cardNavProfileMeta", {
+        theme: THEME_SHORT_LABELS[lang][getEffectiveTheme()],
+      }),
+      sub: tr(lang, "deck.cardNavProfileSub"),
+      tag: tr(lang, "nav.profile").toUpperCase(),
       seedKey: "nav-profile",
-      primaryLabel: "Profili Aç",
-      secondaryLabel: "Kayıtları Yönet",
+      primaryLabel: tr(lang, "deck.cardNavProfilePrimary"),
+      secondaryLabel: tr(lang, "play.manageSaves"),
       targetView: "profile",
     },
     {
       id: "nav:system",
       kind: "nav",
-      kicker: "DONANIM & AĞ",
-      title: "Sistem, Java 21 & Sunucular",
+      kicker: tr(lang, "system.heading").toUpperCase(),
+      title: tr(lang, "deck.cardNavSystemTitle"),
       meta: `${hardware.physical_cores}C/${hardware.logical_cores}T · ${Math.round(hardware.total_ram_mb / 1024)} GB`,
-      sub: "Donanım algılama, JVM bellek ayarı, Java 21 kurulumu ve Protokol 769 SLP sunucu testleri.",
-      tag: "SİSTEM VE AĞ",
+      sub: tr(lang, "deck.cardNavSystemSub"),
+      tag: tr(lang, "nav.system").toUpperCase(),
       seedKey: "nav-system",
-      primaryLabel: "Sistemi Aç",
-      secondaryLabel: "Profili Aç",
+      primaryLabel: tr(lang, "deck.cardNavSystemPrimary"),
+      secondaryLabel: tr(lang, "deck.cardNavProfilePrimary"),
       targetView: "system",
     }
   );
@@ -677,6 +740,7 @@ function appendHeroSpec(dl: HTMLElement, term: string, val: string): void {
 
 function renderConsoleHero(card: DeckCard): void {
   if (!state) return;
+  const lang = getEffectiveLanguage();
   const { config, gradle, hardware, running_session, skin_rgba, skin_is_slim } = state;
 
   const heroSvg = document.getElementById("deck-hero-svg");
@@ -686,19 +750,27 @@ function renderConsoleHero(card: DeckCard): void {
 
   byId<HTMLElement>("deck-hero-kicker").textContent = card.kicker;
   byId<HTMLElement>("deck-hero-tag").textContent = running_session
-    ? `ÇALIŞIYOR · PID ${running_session.pid}`
+    ? `PID ${running_session.pid}`
     : card.tag;
   byId<HTMLElement>("deck-hero-title").textContent = card.title;
   byId<HTMLElement>("deck-hero-sub").textContent = card.sub;
 
   const specsEl = byId<HTMLElement>("deck-hero-specs");
   specsEl.innerHTML = "";
-  appendHeroSpec(specsEl, "JDK", gradle.java_ready ? "Java 21" : "Eksik");
-  appendHeroSpec(specsEl, "JVM RAM", `${config.graphics.jvm_ram_mb} MB`);
-  appendHeroSpec(specsEl, "GÖRÜŞ", `${config.graphics.render_distance} chunk`);
   appendHeroSpec(
     specsEl,
-    card.kind === "world" ? "BOYUT" : "DONANIM",
+    "JDK",
+    gradle.java_ready ? "Java 21" : tr(lang, "play.specJdkMissing")
+  );
+  appendHeroSpec(specsEl, "JVM RAM", `${config.graphics.jvm_ram_mb} MB`);
+  appendHeroSpec(
+    specsEl,
+    tr(lang, "system.renderDist").toUpperCase(),
+    `${config.graphics.render_distance} chunk`
+  );
+  appendHeroSpec(
+    specsEl,
+    tr(lang, card.kind === "world" ? "deck.sizeLabel" : "deck.hwLabel"),
     card.kind === "world"
       ? card.meta
       : `${hardware.physical_cores}C/${hardware.logical_cores}T`
@@ -707,7 +779,7 @@ function renderConsoleHero(card: DeckCard): void {
   const primaryBtn = byId<HTMLButtonElement>("btn-deck-primary");
   const primaryLabel = byId<HTMLSpanElement>("deck-primary-label");
   const needsJava = !gradle.java_ready && Boolean(card.launchMode);
-  primaryLabel.textContent = needsJava ? "Java 21 Kur" : card.primaryLabel;
+  primaryLabel.textContent = needsJava ? tr(lang, "deck.installJavaBtn") : card.primaryLabel;
   primaryBtn.disabled = running_session !== null && Boolean(card.launchMode);
 
   const secondaryBtn = byId<HTMLButtonElement>("btn-deck-secondary");
@@ -719,20 +791,31 @@ function renderConsoleHero(card: DeckCard): void {
 
   const statusLine = byId<HTMLElement>("deck-status-line");
   if (running_session) {
-    statusLine.textContent = `Çalışıyor: ${running_session.label} (PID ${running_session.pid})`;
+    statusLine.textContent = tr(lang, "deck.statusRunning", {
+      label: running_session.label,
+      pid: running_session.pid,
+    });
   } else if (!gradle.java_ready) {
-    statusLine.textContent = "Java 21 eksik: İlk açılış için \"Java 21 Kur\" düğmesine basın.";
+    statusLine.textContent = tr(lang, "deck.statusMissingJava");
   } else if (config.last_save_id) {
-    statusLine.textContent = `Hazır · Aktif kayıt: ${config.last_save_id} · ${config.graphics.preset}`;
+    statusLine.textContent = tr(lang, "deck.statusReadyWorld", {
+      save: config.last_save_id,
+      preset: config.graphics.preset,
+    });
   } else {
-    statusLine.textContent = `Hazır · ${config.username} · ${config.graphics.preset} (${config.graphics.jvm_ram_mb} MB)`;
+    statusLine.textContent = tr(lang, "deck.statusReadyProfile", {
+      user: config.username,
+      preset: config.graphics.preset,
+      ram: config.graphics.jvm_ram_mb,
+    });
   }
 
   drawSkinPreview(byId<HTMLCanvasElement>("deck-skin-canvas"), skin_rgba, "front", skin_is_slim);
   byId<HTMLElement>("deck-skin-caption").textContent = config.username;
-  byId<HTMLElement>("deck-skin-model-badge").textContent = skin_is_slim
-    ? "Slim · 3 px"
-    : "Klasik · 4 px";
+  byId<HTMLElement>("deck-skin-model-badge").textContent = tr(
+    lang,
+    skin_is_slim ? "skin.slimShort" : "skin.classicShort"
+  );
 }
 
 function selectDeckCard(
@@ -805,6 +888,7 @@ function handleDeckSecondaryAction(card: DeckCard): void {
 
 function renderConsoleHome(): void {
   if (!state) return;
+  const lang = getEffectiveLanguage();
   const prevId = deckCards[selectedDeckIdx]?.id ?? null;
   deckCards = buildDeckCards();
   if (prevId) {
@@ -814,7 +898,9 @@ function renderConsoleHome(): void {
     selectedDeckIdx = 0;
   }
 
-  byId<HTMLElement>("deck-carousel-count").textContent = `${deckCards.length} öge`;
+  byId<HTMLElement>("deck-carousel-count").textContent = tr(lang, "deck.itemsCount", {
+    count: deckCards.length,
+  });
   const carousel = byId<HTMLDivElement>("deck-carousel");
   carousel.innerHTML = "";
 
@@ -924,9 +1010,12 @@ function toggleUiSound(desired?: boolean): void {
 
 function renderWorldsView(): void {
   if (!state) return;
+  const lang = getEffectiveLanguage();
   const { saves, config, gradle } = state;
 
-  byId<HTMLSpanElement>("worlds-count-label").textContent = `${saves.length} kayıt`;
+  byId<HTMLSpanElement>("worlds-count-label").textContent = tr(lang, "worlds.countLabel", {
+    count: saves.length,
+  });
   const banner = byId<HTMLDivElement>("worlds-state-banner");
   const list = byId<HTMLDivElement>("worlds-list");
   list.innerHTML = "";
@@ -934,7 +1023,7 @@ function renderWorldsView(): void {
   if (saves.length === 0) {
     setBanner(
       banner,
-      `Şu anda ${gradle.saves_dir} altında kayıtlı dünya bulunmuyor. "Minecraft içinde oluştur" ile 1.21.4'ü açıp yeni tek oyunculu dünya oluşturduğunuzda burada otomatik listelenir.`,
+      tr(lang, "worlds.emptyBanner", { dir: gradle.saves_dir }),
       "neutral"
     );
     return;
@@ -960,13 +1049,16 @@ function renderWorldsView(): void {
     if (isActive) {
       const tag = document.createElement("span");
       tag.className = "row-tag";
-      tag.textContent = "Seçili hedef";
+      tag.textContent = tr(lang, "worlds.selectedTag");
       title.appendChild(tag);
     }
 
     const sub = document.createElement("div");
     sub.className = "row-sub tabular";
-    sub.textContent = `Boyut: ${formatBytes(save.size_bytes)} · Son kayıt: ${formatEpoch(save.modified_epoch_secs)}`;
+    sub.textContent = tr(lang, "worlds.metaLine", {
+      size: formatBytes(save.size_bytes),
+      date: formatEpoch(save.modified_epoch_secs),
+    });
 
     main.append(title, sub);
 
@@ -976,7 +1068,7 @@ function renderWorldsView(): void {
     const selectBtn = document.createElement("button");
     selectBtn.type = "button";
     selectBtn.className = "btn-secondary btn-sm";
-    selectBtn.textContent = isActive ? "Seçili" : "Hedef seç";
+    selectBtn.textContent = tr(lang, isActive ? "worlds.btnSelected" : "worlds.btnSelect");
     selectBtn.disabled = isActive;
     selectBtn.addEventListener("click", () => {
       void handleSelectSave(save.id);
@@ -985,7 +1077,7 @@ function renderWorldsView(): void {
     const playBtn = document.createElement("button");
     playBtn.type = "button";
     playBtn.className = "btn-primary btn-sm";
-    playBtn.textContent = "Başlat";
+    playBtn.textContent = tr(lang, "worlds.btnLaunch");
     playBtn.disabled = state?.running_session !== null;
     playBtn.addEventListener("click", () => {
       void handleLaunchClient("singleplayer", save.id, null);
@@ -994,7 +1086,7 @@ function renderWorldsView(): void {
     const deleteBtn = document.createElement("button");
     deleteBtn.type = "button";
     deleteBtn.className = "btn-danger btn-sm";
-    deleteBtn.textContent = "Sil";
+    deleteBtn.textContent = tr(lang, "worlds.btnDelete");
     deleteBtn.disabled = state?.running_session !== null;
     deleteBtn.addEventListener("click", () => {
       openDeleteDialog(save, deleteBtn);
@@ -1008,6 +1100,7 @@ function renderWorldsView(): void {
 
 function renderProfileView(): void {
   if (!state) return;
+  const lang = getEffectiveLanguage();
   const { config, skin_rgba, skin_is_slim } = state;
 
   const usernameInput = byId<HTMLInputElement>("profile-username");
@@ -1045,12 +1138,13 @@ function renderProfileView(): void {
   byId<HTMLInputElement>("pref-reduced-motion").checked = config.ui_reduced_motion;
   byId<HTMLInputElement>("pref-sounds").checked = getEffectiveSounds();
 
-  byId<HTMLSpanElement>("skin-resolved-badge").textContent = skin_is_slim
-    ? "64×64 · İnce (Slim · 3 px)"
-    : "64×64 · Klasik (Wide · 4 px)";
+  byId<HTMLSpanElement>("skin-resolved-badge").textContent = tr(
+    lang,
+    skin_is_slim ? "skin.badgeSlim" : "skin.badgeClassic"
+  );
   byId<HTMLSelectElement>("skin-model-select").value = config.skin_model;
   byId<HTMLParagraphElement>("skin-file-label").textContent =
-    config.skin_file ?? "Yerleşik varsayılan Basalt skini (İnce / Slim)";
+    config.skin_file ?? tr(lang, "skin.defaultFileLabel");
 
   drawSkinPreview(byId<HTMLCanvasElement>("skin-preview-canvas"), skin_rgba, skinViewMode, skin_is_slim);
 
@@ -1061,18 +1155,27 @@ function renderProfileView(): void {
 }
 
 function renderGradleStatus(gradle: GradleEnvStatus): void {
+  const lang = getEffectiveLanguage();
   const ready = gradle.gradlew_ready && gradle.java_ready;
-  byId<HTMLSpanElement>("gradle-status-tag").textContent = !gradle.java_ready
-    ? "JAVA 21 EKSİK"
-    : ready
-    ? gradle.mod_jar_built
-      ? "HAZIR"
-      : "JAVA 21 HAZIR"
-    : "EKSİK BİLEŞEN";
-  byId<HTMLElement>("gradle-java-label").textContent = gradle.java_version_label;
-  byId<HTMLElement>("gradle-jar-status").textContent = gradle.mod_jar_built
-    ? "Derlenmiş (basalt-client.jar)"
-    : "İlk çalıştırmada otomatik derlenir";
+  byId<HTMLSpanElement>("gradle-status-tag").textContent = tr(
+    lang,
+    !gradle.java_ready
+      ? "system.tagMissingJava"
+      : ready
+      ? gradle.mod_jar_built
+        ? "system.tagReady"
+        : "system.tagJavaReady"
+      : "system.tagMissingComp"
+  );
+  byId<HTMLElement>("gradle-java-label").textContent = gradle.java_ready
+    ? gradle.java_version_label
+    : lang === "En"
+    ? gradle.java_version_label
+    : tr(lang, "play.specJdkMissing");
+  byId<HTMLElement>("gradle-jar-status").textContent = tr(
+    lang,
+    gradle.mod_jar_built ? "system.modJarBuilt" : "system.modJarAuto"
+  );
   byId<HTMLElement>("gradle-dir-label").textContent = gradle.gradle_dir;
   byId<HTMLElement>("gradle-saves-dir").textContent = gradle.saves_dir;
   byId<HTMLButtonElement>("btn-system-install-java").hidden = gradle.java_ready;
@@ -1080,6 +1183,7 @@ function renderGradleStatus(gradle: GradleEnvStatus): void {
 
 function renderServersList(): void {
   if (!state) return;
+  const lang = getEffectiveLanguage();
   const list = byId<HTMLDivElement>("servers-list");
   list.innerHTML = "";
   const servers = state.config.saved_servers;
@@ -1087,7 +1191,7 @@ function renderServersList(): void {
   if (servers.length === 0) {
     const empty = document.createElement("p");
     empty.className = "muted-copy";
-    empty.textContent = "Kayıtlı yerel sunucu yok. Yukarıdan adres ekleyip SLP ping veya Quick Play ile bağlanabilirsiniz.";
+    empty.textContent = tr(lang, "servers.empty");
     list.appendChild(empty);
     return;
   }
@@ -1115,18 +1219,23 @@ function renderServersList(): void {
     } else if (check.status === "error") {
       const tag = document.createElement("span");
       tag.className = "row-tag";
-      tag.textContent = "Yanıt yok";
+      tag.textContent = tr(lang, "servers.noResponse");
       title.appendChild(tag);
     }
 
     const sub = document.createElement("div");
     sub.className = "row-sub tabular";
     if (check.status === "online" && check.ping) {
-      sub.textContent = `${srv.address} · Sürüm: ${check.ping.version_name} (Protokol ${check.ping.protocol_version}) · ${check.ping.description}`;
+      sub.textContent = tr(lang, "servers.subOnline", {
+        addr: srv.address,
+        ver: check.ping.version_name,
+        proto: check.ping.protocol_version,
+        desc: check.ping.description,
+      });
     } else if (check.status === "error" && check.message) {
       sub.textContent = `${srv.address} · ${check.message}`;
     } else if (check.status === "checking") {
-      sub.textContent = `${srv.address} · Kontrol ediliyor...`;
+      sub.textContent = tr(lang, "servers.subChecking", { addr: srv.address });
     } else {
       sub.textContent = srv.address;
     }
@@ -1139,7 +1248,10 @@ function renderServersList(): void {
     const pingBtn = document.createElement("button");
     pingBtn.type = "button";
     pingBtn.className = "btn-secondary btn-sm";
-    pingBtn.textContent = check.status === "checking" ? "Sorgulanıyor..." : "Durum (SLP)";
+    pingBtn.textContent = tr(
+      lang,
+      check.status === "checking" ? "servers.btnChecking" : "servers.btnPing"
+    );
     pingBtn.disabled = check.status === "checking";
     pingBtn.addEventListener("click", () => {
       void handlePingServer(srv.address);
@@ -1148,7 +1260,7 @@ function renderServersList(): void {
     const probeBtn = document.createElement("button");
     probeBtn.type = "button";
     probeBtn.className = "btn-secondary btn-sm";
-    probeBtn.textContent = "El sıkışma";
+    probeBtn.textContent = tr(lang, "servers.btnProbe");
     probeBtn.addEventListener("click", () => {
       void handleProbeServer(srv.address);
     });
@@ -1156,7 +1268,7 @@ function renderServersList(): void {
     const connectBtn = document.createElement("button");
     connectBtn.type = "button";
     connectBtn.className = "btn-primary btn-sm";
-    connectBtn.textContent = "Bağlan";
+    connectBtn.textContent = tr(lang, "servers.btnConnect");
     connectBtn.disabled = state?.running_session !== null;
     connectBtn.addEventListener("click", () => {
       void handleLaunchClient("multiplayer", null, srv.address);
@@ -1165,7 +1277,7 @@ function renderServersList(): void {
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.className = "btn-danger btn-sm";
-    removeBtn.textContent = "Kaldır";
+    removeBtn.textContent = tr(lang, "servers.btnRemove");
     removeBtn.addEventListener("click", () => {
       void handleRemoveServer(index);
     });
@@ -1178,26 +1290,27 @@ function renderServersList(): void {
 
 function renderSystemView(): void {
   if (!state) return;
+  const lang = getEffectiveLanguage();
   const { hardware, config, gradle, hardware_notice } = state;
 
   setBanner(byId<HTMLDivElement>("hardware-optimize-notice"), hardware_notice, "neutral");
 
-  const tierLabel =
-    hardware.gpu_device_type === "Discrete"
-      ? "HARİCİ GPU"
-      : hardware.gpu_device_type === "Integrated"
-      ? "DAHİLİ GPU"
-      : "YAZILIM / SANAL";
+  const tierLabel = GPU_TIER_LABELS[lang][hardware.gpu_device_type];
   byId<HTMLSpanElement>("hw-tier-tag").textContent = tierLabel;
   byId<HTMLElement>("hw-cpu").textContent = hardware.cpu_name;
-  byId<HTMLElement>("hw-cores").textContent = `${hardware.physical_cores} çekirdek / ${hardware.logical_cores} iş parçacığı`;
+  byId<HTMLElement>("hw-cores").textContent = tr(lang, "system.coresVal", {
+    phys: hardware.physical_cores,
+    log: hardware.logical_cores,
+  });
   byId<HTMLElement>("hw-ram").textContent = `${hardware.available_ram_mb} MB / ${hardware.total_ram_mb} MB`;
   byId<HTMLElement>("hw-gpu").textContent = `${hardware.gpu_name} (${hardware.gpu_backend})`;
 
   const gfx = config.graphics;
-  byId<HTMLSpanElement>("gfx-preset-badge").textContent = gfx.auto_configured
-    ? `${gfx.preset} · OTO`
-    : `${gfx.preset} · MANUEL`;
+  byId<HTMLSpanElement>("gfx-preset-badge").textContent = tr(
+    lang,
+    gfx.auto_configured ? "system.presetAuto" : "system.presetManual",
+    { preset: gfx.preset }
+  );
 
   byId<HTMLInputElement>("gfx-render-dist").value = String(gfx.render_distance);
   byId<HTMLOutputElement>("gfx-render-dist-out").textContent = String(gfx.render_distance);
@@ -1269,6 +1382,7 @@ async function commitUsernameFromPlay(): Promise<boolean> {
     ui_compact: state.config.ui_compact,
     ui_reduced_motion: state.config.ui_reduced_motion,
     ui_sounds: state.config.ui_sounds,
+    ui_language: state.config.ui_language,
   });
   renderTopbarAndSession();
   renderProfileView();
@@ -1286,7 +1400,7 @@ async function handlePrepareGradle(): Promise<void> {
     renderTopbarAndSession();
     renderPlayView();
     playMcSound("launch");
-    setBanner(feedback, "Gradle + Fabric 1.21.4 ön derlemesi başlatıldı...", "neutral");
+    setBanner(feedback, tr(getEffectiveLanguage(), "play.prebuildStarted"), "neutral");
   } catch (err) {
     playMcSound("error");
     setBanner(feedback, errorMessage(err), "error");
@@ -1305,11 +1419,7 @@ async function handleInstallJava21(): Promise<void> {
     state.running_session = session;
     renderTopbarAndSession();
     renderPlayView();
-    setBanner(
-      feedback,
-      "Eclipse Temurin Java 21 (x64) indirilip Basalt içine kuruluyor...",
-      "neutral"
-    );
+    setBanner(feedback, tr(getEffectiveLanguage(), "play.javaInstallStarted"), "neutral");
   } catch (err) {
     setBanner(feedback, errorMessage(err), "error");
     showToast(errorMessage(err), "error");
@@ -1325,7 +1435,10 @@ async function handleRecheckJava21(): Promise<void> {
     renderPlayView();
     renderSystemView();
     if (status.java_ready) {
-      showToast(`Java 21 algılandı (${status.java_version_label}). Oyunu başlatabilirsiniz.`, "success");
+      showToast(
+        tr(getEffectiveLanguage(), "play.javaDetected", { ver: status.java_version_label }),
+        "success"
+      );
     } else {
       showToast(status.java_hint, "error");
     }
@@ -1369,7 +1482,10 @@ async function handleLaunchClient(
     playMcSound("launch");
     setBanner(
       feedback,
-      `${session.label} (PID ${session.pid}) başlatılıyor. İlk Gradle açılışında birkaç saniye sürebilir.`,
+      tr(getEffectiveLanguage(), "play.launchingNote", {
+        label: session.label,
+        pid: session.pid,
+      }),
       "neutral"
     );
   } catch (err) {
@@ -1389,7 +1505,7 @@ async function handleRefreshSaves(): Promise<void> {
     state.saves = await ipc.listSaves();
     renderPlayView();
     renderWorldsView();
-    showToast("Kayıt listesi yenilendi.", "success");
+    showToast(tr(getEffectiveLanguage(), "worlds.refreshed"), "success");
   } catch (err) {
     setBanner(byId<HTMLDivElement>("worlds-state-banner"), errorMessage(err), "error");
   } finally {
@@ -1401,8 +1517,15 @@ function openDeleteDialog(save: MinecraftSaveSummary, trigger: HTMLElement): voi
   pendingDeleteSaveId = save.id;
   lastDialogTrigger = trigger;
   const savesRoot = state?.gradle.saves_dir ?? "run/saves";
-  byId<HTMLParagraphElement>("delete-dialog-desc").textContent =
-    `"${save.id}" (${formatBytes(save.size_bytes)}) klasörü ${savesRoot} altından kalıcı olarak silinecek. Bu işlem geri alınamaz.`;
+  byId<HTMLParagraphElement>("delete-dialog-desc").textContent = tr(
+    getEffectiveLanguage(),
+    "worlds.deleteDesc",
+    {
+      id: save.id,
+      size: formatBytes(save.size_bytes),
+      root: savesRoot,
+    }
+  );
   byId<HTMLDialogElement>("delete-world-dialog").showModal();
 }
 
@@ -1422,7 +1545,7 @@ async function confirmDeleteSave(): Promise<void> {
     renderPlayView();
     renderWorldsView();
     renderTopbarAndSession();
-    showToast(`"${saveId}" diskten silindi.`, "success");
+    showToast(tr(getEffectiveLanguage(), "worlds.deletedToast", { id: saveId }), "success");
   } catch (err) {
     showToast(errorMessage(err), "error");
   } finally {
@@ -1459,13 +1582,15 @@ async function handleSaveProfileForm(e: SubmitEvent): Promise<void> {
       ui_compact: state.config.ui_compact,
       ui_reduced_motion: state.config.ui_reduced_motion,
       ui_sounds: state.config.ui_sounds,
+      ui_language: state.config.ui_language,
     });
     renderTopbarAndSession();
     renderPlayView();
     renderProfileView();
     playMcSound("click");
-    statusEl.textContent = "Kaydedildi";
-    showToast("Çevrimdışı kullanıcı adı kaydedildi.", "success");
+    const lang = getEffectiveLanguage();
+    statusEl.textContent = tr(lang, "profile.savedBadge");
+    showToast(tr(lang, "profile.savedToast"), "success");
   } catch (err) {
     playMcSound("error");
     showToast(errorMessage(err), "error");
@@ -1482,6 +1607,7 @@ async function saveAccessibilityPrefs(
     ui_compact?: boolean;
     ui_reduced_motion?: boolean;
     ui_sounds?: boolean;
+    ui_language?: UiLanguage;
   },
   silentSound = false
 ): Promise<void> {
@@ -1499,6 +1625,7 @@ async function saveAccessibilityPrefs(
       playMcSound("click");
     }
   }
+  const prevLang = getEffectiveLanguage();
   try {
     state.config = await ipc.saveProfileSettings({
       username: state.config.username,
@@ -1513,9 +1640,15 @@ async function saveAccessibilityPrefs(
       ui_compact: patch.ui_compact ?? state.config.ui_compact,
       ui_reduced_motion: patch.ui_reduced_motion ?? state.config.ui_reduced_motion,
       ui_sounds: patch.ui_sounds ?? state.config.ui_sounds,
+      ui_language: patch.ui_language ?? state.config.ui_language,
     });
-    applyPreferences();
-    renderProfileView();
+    if (patch.ui_language !== undefined || getEffectiveLanguage() !== prevLang) {
+      renderAll();
+      updateMaximizeIconState(lastMaximizedState);
+    } else {
+      applyPreferences();
+      renderProfileView();
+    }
   } catch (err) {
     playMcSound("error");
     showToast(errorMessage(err), "error");
@@ -1539,7 +1672,8 @@ async function handlePickSkin(): Promise<void> {
     setBanner(feedback, res.note, "success");
   } catch (err) {
     const msg = errorMessage(err);
-    if (!msg.toLowerCase().includes("iptal")) {
+    const low = msg.toLowerCase();
+    if (!low.includes("iptal") && !low.includes("cancel") && !low.includes("abgebrochen")) {
       setBanner(feedback, msg, "error");
     }
   }
@@ -1570,8 +1704,9 @@ async function handleSkinModelChange(model: SkinModel): Promise<void> {
     state.config.skin_model = res.skin_model;
     state.skin_is_slim = res.skin_is_slim;
     renderProfileView();
-    const label = res.skin_is_slim ? "İnce Kol (Slim · 3 px)" : "Klasik Kol (Wide · 4 px)";
-    setBanner(feedback, `Skin kol modeli güncellendi: ${label}.`, "success");
+    const lang = getEffectiveLanguage();
+    const label = tr(lang, res.skin_is_slim ? "skin.slimShort" : "skin.classicShort");
+    setBanner(feedback, tr(lang, "skin.modelUpdated", { label }), "success");
   } catch (err) {
     setBanner(feedback, errorMessage(err), "error");
   }
@@ -1587,7 +1722,7 @@ async function handleAutoOptimize(): Promise<void> {
     state.hardware_notice = res.reason;
     renderPlayView();
     renderSystemView();
-    showToast("Donanım profili uygulandı ve options.txt eşitlendi.", "success");
+    showToast(tr(getEffectiveLanguage(), "system.autoOptToast"), "success");
   } catch (err) {
     showToast(errorMessage(err), "error");
   } finally {
@@ -1619,8 +1754,9 @@ async function handleSaveGraphics(e: SubmitEvent): Promise<void> {
     state.config = await ipc.saveGraphicsSettings(nextGfx);
     renderPlayView();
     renderSystemView();
-    statusEl.textContent = "Kaydedildi ve options.txt güncellendi";
-    showToast("Grafik ve JVM ayarları kaydedildi.", "success");
+    const lang = getEffectiveLanguage();
+    statusEl.textContent = tr(lang, "system.gfxSavedInline");
+    showToast(tr(lang, "system.gfxSavedToast"), "success");
   } catch (err) {
     showToast(errorMessage(err), "error");
   }
@@ -1635,7 +1771,7 @@ async function handleAddServer(e: SubmitEvent): Promise<void> {
 
   const addr = addrInput.value.trim();
   if (!addr) {
-    errEl.textContent = "Sunucu adresi boş bırakılamaz.";
+    errEl.textContent = tr(getEffectiveLanguage(), "servers.addrEmpty");
     errEl.hidden = false;
     addrInput.focus();
     return;
@@ -1645,7 +1781,7 @@ async function handleAddServer(e: SubmitEvent): Promise<void> {
   try {
     state.config.saved_servers = await ipc.addServer(nameInput.value.trim(), addr);
     renderServersList();
-    showToast("Sunucu listeye eklendi.", "success");
+    showToast(tr(getEffectiveLanguage(), "servers.addedToast"), "success");
   } catch (err) {
     errEl.textContent = errorMessage(err);
     errEl.hidden = false;
@@ -1677,23 +1813,20 @@ async function handlePingServer(address: string): Promise<void> {
 async function handleProbeServer(address: string): Promise<void> {
   if (!state) return;
   const probeBox = byId<HTMLDivElement>("probe-feedback");
-  setBanner(probeBox, `${address} için Protokol 769 el sıkışma testi yapılıyor...`, "neutral");
+  const lang = getEffectiveLanguage();
+  setBanner(probeBox, tr(lang, "servers.probing", { addr: address }), "neutral");
   try {
     const res = await ipc.probeLocalServerCmd(address, state.config.username);
     if (res.kind === "ReadyInPlay") {
       setBanner(
         probeBox,
-        `${address}: Çevrimdışı giriş doğrulandı (${res.data.server_info}). Quick Play ile bağlanabilirsiniz.`,
+        tr(lang, "servers.probeReady", { addr: address, info: res.data.server_info }),
         "success"
       );
     } else if (res.kind === "RequiresOfficialAuth") {
-      setBanner(
-        probeBox,
-        `${address}: Sunucu EncryptionRequest (çevrimiçi Microsoft doğrulaması) istiyor. Basalt kimlik doğrulamasını atlatmaz.`,
-        "error"
-      );
+      setBanner(probeBox, tr(lang, "servers.probeAuth", { addr: address }), "error");
     } else {
-      setBanner(probeBox, `${address}: Sunucu bağlantıyı kapattı (${res.data}).`, "error");
+      setBanner(probeBox, tr(lang, "servers.probeDisc", { addr: address, reason: res.data }), "error");
     }
   } catch (err) {
     setBanner(probeBox, `${address}: ${errorMessage(err)}`, "error");
@@ -1862,10 +1995,11 @@ function pollGamepadFrame(): void {
   const pad = pads.find((p): p is Gamepad => p !== null && p.connected);
 
   if (badge && label) {
+    const lang = getEffectiveLanguage();
     badge.classList.toggle("is-connected", Boolean(pad));
     label.textContent = pad
-      ? pad.id.replace(/\s*\(.*?\)/g, "").trim().slice(0, 28) || "Oyun kumandası bağlı"
-      : "Kumanda bekleniyor";
+      ? pad.id.replace(/\s*\(.*?\)/g, "").trim().slice(0, 28) || tr(lang, "deck.gamepadConnected")
+      : tr(lang, "deck.gamepadWaiting");
   }
 
   if (pad) {
@@ -1987,15 +2121,19 @@ function initDeckKeyboardNav(): void {
   });
 }
 
+let lastMaximizedState = false;
+
 function updateMaximizeIconState(maximized: boolean): void {
+  lastMaximizedState = maximized;
+  const lang = getEffectiveLanguage();
   const maxUse = document.getElementById("ico-win-max-use");
   const maxBtn = document.getElementById("btn-win-maximize");
   if (maxUse) {
     maxUse.setAttribute("href", maximized ? "#ico-win-restore" : "#ico-win-max");
   }
   if (maxBtn) {
-    maxBtn.setAttribute("aria-label", maximized ? "Geri yükle" : "Ekranı kapla");
-    maxBtn.setAttribute("title", maximized ? "Önceki boyuta dön" : "Ekranı kapla");
+    maxBtn.setAttribute("aria-label", tr(lang, maximized ? "win.restore" : "win.maximize"));
+    maxBtn.setAttribute("title", tr(lang, maximized ? "win.restoreTitle" : "win.maximizeTitle"));
   }
 }
 
@@ -2235,6 +2373,20 @@ function wireEvents(): void {
     });
   }
 
+  for (const btn of Array.from(document.querySelectorAll<HTMLButtonElement>("[data-lang-choice]"))) {
+    btn.addEventListener("click", () => {
+      const choice = btn.dataset.langChoice as UiLanguage | undefined;
+      if (choice && UI_LANGUAGE_ORDER.includes(choice)) {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has("lang")) {
+          url.searchParams.delete("lang");
+          window.history.replaceState(null, "", url.toString());
+        }
+        void saveAccessibilityPrefs({ ui_language: choice });
+      }
+    });
+  }
+
   const customColorInput = byId<HTMLInputElement>("pref-custom-accent");
   customColorInput.addEventListener("input", () => {
     if (!state) return;
@@ -2346,7 +2498,7 @@ async function init(): Promise<void> {
   } catch (err) {
     setBanner(
       byId<HTMLDivElement>("launch-feedback"),
-      `Başlangıç durumu okunamadı: ${errorMessage(err)}`,
+      tr(getEffectiveLanguage(), "err.bootstrap", { err: errorMessage(err) }),
       "error"
     );
   }
@@ -2365,36 +2517,37 @@ async function init(): Promise<void> {
     renderWorldsView();
     renderSystemView();
 
+    const lang = getEffectiveLanguage();
     const feedback = byId<HTMLDivElement>("launch-feedback");
     if (payload.error) {
       playMcSound("error");
-      setBanner(feedback, `İşlem hata ile sonlandı: ${payload.error}`, "error");
+      setBanner(feedback, tr(lang, "err.sessionFailed", { err: payload.error }), "error");
       showToast(payload.error, "error");
     } else if (payload.exit_code !== null && payload.exit_code !== 0) {
       playMcSound("error");
-      const msg = `Gradle çıkış kodu: ${payload.exit_code}. Ayrıntılar için alttaki günlük çıktısına bakın.`;
+      const msg = tr(lang, "err.gradleExit", { code: payload.exit_code });
       setBanner(feedback, msg, "error");
       showToast(msg, "error");
     } else if (payload.kind === "java-install") {
       if (payload.gradle.java_ready) {
         playMcSound("launch");
-        const msg = `Java 21 kurulumu tamamlandı (${payload.gradle.java_version_label}). Şimdi oyunu başlatabilirsiniz.`;
+        const msg = tr(lang, "ok.javaInstalled", { ver: payload.gradle.java_version_label });
         setBanner(feedback, msg, "success");
         showToast(msg, "success");
       } else {
         playMcSound("error");
-        const msg = "Kurulum betiği tamamlandı ancak Java 21 doğrulanamadı. Alttaki çıktıyı kontrol edin.";
+        const msg = tr(lang, "err.javaNotVerified");
         setBanner(feedback, msg, "error");
         showToast(msg, "error");
       }
     } else if (payload.kind === "prepare") {
       playMcSound("launch");
-      const msg = "Gradle Fabric 1.21.4 mod derlemesi tamamlandı. Şimdi oyunu başlatabilirsiniz.";
+      const msg = tr(lang, "ok.prebuildDone");
       setBanner(feedback, msg, "success");
       showToast(msg, "success");
     } else {
       playMcSound("click");
-      const msg = "Minecraft oturumu kapandı; kayıt listesi güncellendi.";
+      const msg = tr(lang, "ok.sessionClosed");
       setBanner(feedback, msg, "success");
       showToast(msg, "success");
     }

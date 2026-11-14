@@ -18,7 +18,7 @@ public class BasaltClientMod implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		boolean showHud = readHudPreference();
-		LOGGER.info("Basalt Fabric 1.21.4 istemci yardimcisi hazir (FPS HUD: {})", showHud);
+		LOGGER.info("Basalt Fabric 1.21.4 client helper ready (FPS HUD: {})", showHud);
 
 		if (showHud) {
 			HudLayerRegistrationCallback.EVENT.register(drawer ->
@@ -35,7 +35,7 @@ public class BasaltClientMod implements ClientModInitializer {
 		if (client.textRenderer == null) {
 			return;
 		}
-		String user = client.getSession() != null ? client.getSession().getUsername() : "Oyuncu";
+		String user = client.getSession() != null ? client.getSession().getUsername() : "Player";
 		String text = client.getCurrentFps() + " FPS  |  " + user;
 		int textWidth = client.textRenderer.getWidth(text);
 		drawContext.fill(6, 6, 16 + textWidth, 20, 0x96111317);

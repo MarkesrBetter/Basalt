@@ -23,11 +23,11 @@ pub enum GpuTier {
 }
 
 impl GpuTier {
-    pub fn label_tr(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
-            Self::Discrete => "Harici GPU",
-            Self::Integrated => "Dahili GPU",
-            Self::VirtualOrSoftware => "Yazılım / Sanal GPU",
+            Self::Discrete => "Discrete GPU",
+            Self::Integrated => "Integrated GPU",
+            Self::VirtualOrSoftware => "Software / Virtual GPU",
         }
     }
 }
@@ -43,7 +43,7 @@ impl HardwareProfile {
             .first()
             .map(|c| c.brand().trim().to_string())
             .filter(|s| !s.is_empty())
-            .unwrap_or_else(|| "Bilinmeyen İşlemci".to_string());
+            .unwrap_or_else(|| "Unknown CPU".to_string());
 
         let logical_cores = sys.cpus().len().max(1);
         let physical_cores = System::physical_core_count().unwrap_or(logical_cores).max(1);
@@ -103,7 +103,7 @@ impl HardwareProfile {
         }
 
         wgpu::AdapterInfo {
-            name: "Bilinmeyen Grafik Bağdaştırıcısı".to_string(),
+            name: "Unknown Graphics Adapter".to_string(),
             vendor: 0,
             device: 0,
             device_type: wgpu::DeviceType::Other,
@@ -143,7 +143,7 @@ impl HardwareProfile {
                         ram,
                         JvmGcMode::ZGC,
                         format!(
-                            "{} (Harici GPU), {} mantıksal çekirdek ve {:.1} GB RAM algılandı: 16 chunk görüş mesafesi, {} MB JVM belleği ve ZGC seçildi.",
+                            "{} (Discrete GPU), {} logical cores, {:.1} GB RAM detected: selected 16 chunks render distance, {} MB JVM memory, and ZGC.",
                             self.gpu_name,
                             self.logical_cores,
                             self.total_ram_mb as f64 / 1024.0,
@@ -163,7 +163,7 @@ impl HardwareProfile {
                         ram,
                         JvmGcMode::G1GC,
                         format!(
-                            "{} (Harici GPU) algılandı: 12 chunk görüş mesafesi, {} MB JVM belleği ve G1GC seçildi.",
+                            "{} (Discrete GPU) detected: selected 12 chunks render distance, {} MB JVM memory, and G1GC.",
                             self.gpu_name, ram
                         ),
                     )
@@ -180,7 +180,7 @@ impl HardwareProfile {
                         ram,
                         JvmGcMode::G1GC,
                         format!(
-                            "{} (Dahili GPU) algılandı: dengeli 8 chunk görüş mesafesi, {} MB JVM belleği ve G1GC seçildi.",
+                            "{} (Integrated GPU) detected: selected balanced 8 chunks render distance, {} MB JVM memory, and G1GC.",
                             self.gpu_name, ram
                         ),
                     )
@@ -197,7 +197,7 @@ impl HardwareProfile {
                         ram,
                         JvmGcMode::G1GC,
                         format!(
-                            "Sınırlı GPU/bellek kaynağı ({}, {:.1} GB RAM): akıcı kare hızı için 6 chunk, Hızlı grafik ve {} MB JVM seçildi.",
+                            "Limited GPU/memory resources ({}, {:.1} GB RAM): selected 6 chunks, Fast graphics, and {} MB JVM for steady frame pacing.",
                             self.gpu_name,
                             self.total_ram_mb as f64 / 1024.0,
                             ram

@@ -22,6 +22,7 @@ import type {
   SkinModelResultDto,
   SkinResultDto,
   ThemeMode,
+  UiLanguage,
 } from "./types";
 
 export function isTauriRuntime(): boolean {
@@ -69,7 +70,7 @@ function makeSampleSkinRgba(): number[] {
 // Isolated browser-preview sample data (only used outside Tauri desktop runtime)
 const previewState: BootstrapDto = {
   config: {
-    username: "Oyuncu",
+    username: "Player",
     skin_file: null,
     skin_model: "Auto",
     theme: "Dark",
@@ -80,10 +81,11 @@ const previewState: BootstrapDto = {
     ui_compact: false,
     ui_reduced_motion: false,
     ui_sounds: false,
-    last_save_id: "Hayatta Kalma (Ornek)",
+    ui_language: "En",
+    last_save_id: "Survival (Sample)",
     saved_servers: [
       {
-        name: "Yerel Test Sunucusu",
+        name: "Local Dev Server",
         address: "127.0.0.1:25565",
       },
     ],
@@ -105,18 +107,18 @@ const previewState: BootstrapDto = {
   },
   saves: [
     {
-      id: "Hayatta Kalma (Ornek)",
+      id: "Survival (Sample)",
       modified_epoch_secs: 1_763_120_000,
       size_bytes: 2_450_000,
     },
   ],
   hardware: {
-    cpu_name: "Örnek Çok Çekirdekli İşlemci",
+    cpu_name: "Sample Multi-Core Processor",
     physical_cores: 6,
     logical_cores: 12,
     total_ram_mb: 16384,
     available_ram_mb: 9800,
-    gpu_name: "Örnek Harici GPU",
+    gpu_name: "Sample Discrete GPU",
     gpu_backend: "Dx12",
     gpu_device_type: "Discrete",
   },
@@ -129,7 +131,7 @@ const previewState: BootstrapDto = {
     java_ready: true,
     java_home: "C:\\Program Files\\Eclipse Adoptium\\jdk-21",
     java_version_label: "Java 21.0.11",
-    java_hint: "Sistemde uyumlu Java 21+ JDK kurulumu algılandı.",
+    java_hint: "Compatible system Java 21+ JDK installation detected.",
   },
   skin_rgba: makeSampleSkinRgba(),
   skin_is_slim: true,
@@ -173,9 +175,9 @@ export async function getBootstrapState(): Promise<BootstrapDto> {
   if (new URLSearchParams(window.location.search).get("java") === "missing") {
     snapshot.gradle.java_ready = false;
     snapshot.gradle.java_home = null;
-    snapshot.gradle.java_version_label = "Java 21 JDK bulunamadı";
+    snapshot.gradle.java_version_label = "Java 21 JDK not found";
     snapshot.gradle.java_hint =
-      "Bu bilgisayarda Java 21 JDK algılanmadı. Yönetici izni gerektirmeden Otomatik Java 21 Kur ile yükleyebilirsiniz.";
+      "No Java 21 JDK was detected on this PC. Click Install Java 21 below to set up a portable runtime without administrator rights.";
   }
   return snapshot;
 }
@@ -216,13 +218,14 @@ export async function saveProfileSettings(input: {
   ui_compact: boolean;
   ui_reduced_motion: boolean;
   ui_sounds: boolean;
+  ui_language?: UiLanguage;
 }): Promise<AppConfig> {
   if (isTauriRuntime()) {
     return invoke<AppConfig>("save_profile_settings", { input });
   }
   const clean = input.username.trim();
   if (!clean || !/^[A-Za-z0-9_-]{1,16}$/.test(clean)) {
-    throw new Error("Kullanıcı adı 1-16 karakter arası harf, rakam, _ veya - olmalıdır.");
+    throw new Error("Username must be 1-16 ASCII letters, digits, '_' or '-'.");
   }
   previewState.config.username = clean;
   previewState.config.theme = input.theme;
@@ -233,6 +236,9 @@ export async function saveProfileSettings(input: {
   previewState.config.ui_compact = input.ui_compact;
   previewState.config.ui_reduced_motion = input.ui_reduced_motion;
   previewState.config.ui_sounds = input.ui_sounds;
+  if (input.ui_language) {
+    previewState.config.ui_language = input.ui_language;
+  }
   return structuredClone(previewState.config);
 }
 
@@ -263,7 +269,7 @@ export async function autoOptimizeGraphics(): Promise<OptimizeResultDto> {
   previewState.config.graphics = gfx;
   return {
     graphics: gfx,
-    reason: "Örnek profil: 16 chunk görüş mesafesi, 4096 MB JVM belleği ve ZGC seçildi (önizleme).",
+    reason: "Sample profile: 16 chunks render distance, 4096 MB JVM memory, and ZGC selected (preview).",
   };
 }
 
@@ -271,7 +277,7 @@ export async function pickAndImportSkin(): Promise<SkinResultDto | null> {
   if (isTauriRuntime()) {
     return invoke<SkinResultDto | null>("pick_and_import_skin");
   }
-  throw new Error("Yerel dosya seçimi yalnızca masaüstü uygulamasında (basalt.exe) çalışır.");
+  throw new Error("Local file picker only runs in the desktop application (basalt.exe).");
 }
 
 export async function resetSkin(): Promise<SkinResultDto> {
@@ -287,7 +293,7 @@ export async function resetSkin(): Promise<SkinResultDto> {
     path: null,
     skin_model: "Auto",
     skin_is_slim: true,
-    note: "Varsayılan Basalt ince (Slim) skini geri yüklendi (tarayıcı önizlemesi).",
+    note: "Restored default Basalt Slim skin (browser preview).",
   };
 }
 
@@ -313,9 +319,9 @@ export async function addServer(
     return invoke<SavedServer[]>("add_server", { name, address });
   }
   const addr = address.trim();
-  if (!addr) throw new Error("Sunucu adresi boş olamaz.");
+  if (!addr) throw new Error("Server address cannot be empty.");
   previewState.config.saved_servers.push({
-    name: name.trim() || "Yerel Sunucu",
+    name: name.trim() || "Local Server",
     address: addr,
   });
   return structuredClone(previewState.config.saved_servers);
@@ -334,7 +340,7 @@ export async function pingServerCmd(address: string): Promise<ServerPingInfo> {
     return invoke<ServerPingInfo>("ping_server_cmd", { address });
   }
   throw new Error(
-    `Tarayıcı önizlemesinde yerel TCP SLP sorgusu yapılamaz (${address}). Masaüstü uygulamasını kullanın.`
+    `Local TCP SLP query is unavailable in browser preview (${address}). Use the desktop app.`
   );
 }
 
@@ -349,7 +355,7 @@ export async function probeLocalServerCmd(
     });
   }
   throw new Error(
-    `Tarayıcı önizlemesinde yerel TCP el sıkışma testi yapılamaz (${address}). Masaüstü uygulamasını kullanın.`
+    `Local TCP handshake test is unavailable in browser preview (${address}). Use the desktop app.`
   );
 }
 
@@ -358,7 +364,7 @@ export async function prepareGradleClient(): Promise<RunningSessionDto> {
     return invoke<RunningSessionDto>("prepare_gradle_client");
   }
   throw new Error(
-    "Gradle Fabric 1.21.4 ön derlemesi yalnızca masaüstü uygulamasında (basalt.exe) çalıştırılabilir."
+    "Gradle Fabric 1.21.4 prebuild can only run in the desktop application (basalt.exe)."
   );
 }
 
@@ -367,7 +373,7 @@ export async function installJava21(): Promise<RunningSessionDto> {
     return invoke<RunningSessionDto>("install_java_21");
   }
   throw new Error(
-    "Otomatik Java 21 kurulumu yalnızca masaüstü uygulamasında (basalt.exe) çalıştırılabilir."
+    "Automatic Java 21 installer can only run in the desktop application (basalt.exe)."
   );
 }
 
@@ -460,7 +466,7 @@ export async function launchClient(input: {
     return invoke<RunningSessionDto>("launch_client", { input });
   }
   throw new Error(
-    "Gradle Minecraft 1.21.4 istemcisi yalnızca masaüstü uygulamasında (basalt.exe) başlatılabilir."
+    "Gradle Minecraft 1.21.4 client can only be launched from the desktop application (basalt.exe)."
   );
 }
 

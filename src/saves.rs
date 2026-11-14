@@ -18,7 +18,7 @@ pub fn validate_save_id(save_id: &str) -> Result<(), String> {
         || save_id.contains("..")
         || save_id.contains(':')
     {
-        return Err("Geçersiz dünya klasörü adı.".to_string());
+        return Err("Invalid world folder name.".to_string());
     }
     Ok(())
 }
@@ -28,16 +28,16 @@ pub fn resolve_save_dir(saves_root: &Path, save_id: &str) -> Result<PathBuf, Str
 
     let candidate = saves_root.join(save_id);
     if !candidate.join("level.dat").is_file() {
-        return Err("Seçilen Minecraft dünyası (level.dat) bulunamadı.".to_string());
+        return Err("Selected Minecraft world (level.dat) was not found.".to_string());
     }
 
     let canon_root = fs::canonicalize(saves_root)
-        .map_err(|e| format!("Kayıt klasörü doğrulanamadı: {e}"))?;
+        .map_err(|e| format!("Failed to verify saves directory: {e}"))?;
     let canon_dir = fs::canonicalize(&candidate)
-        .map_err(|e| format!("Dünya klasörü doğrulanamadı: {e}"))?;
+        .map_err(|e| format!("Failed to verify world directory: {e}"))?;
 
     if !canon_dir.starts_with(&canon_root) || canon_dir == canon_root {
-        return Err("Dünya yolu güvenlik sınırı dışında.".to_string());
+        return Err("World path is outside the security boundary.".to_string());
     }
 
     Ok(canon_dir)
@@ -49,7 +49,7 @@ pub fn list_saves(saves_root: &Path) -> Result<Vec<MinecraftSaveSummary>, String
     }
 
     let entries = fs::read_dir(saves_root)
-        .map_err(|e| format!("Minecraft saves klasörü okunamadı: {e}"))?;
+        .map_err(|e| format!("Failed to read Minecraft saves directory: {e}"))?;
 
     let mut list = Vec::new();
     for entry in entries.flatten() {
@@ -91,7 +91,7 @@ pub fn list_saves(saves_root: &Path) -> Result<Vec<MinecraftSaveSummary>, String
 
 pub fn delete_save(saves_root: &Path, save_id: &str) -> Result<(), String> {
     let dir = resolve_save_dir(saves_root, save_id)?;
-    fs::remove_dir_all(dir).map_err(|e| format!("Dünya klasörü silinemedi: {e}"))
+    fs::remove_dir_all(dir).map_err(|e| format!("Failed to delete world directory: {e}"))
 }
 
 fn dir_size(path: &Path) -> u64 {

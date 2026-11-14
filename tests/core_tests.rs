@@ -6,7 +6,7 @@ use std::thread;
 use basalt::assets::{detect_skin_is_slim, generate_default_skin, load_skin_from_file, resolve_skin_is_slim};
 use basalt::config::{
     AccentTone, AppConfig, CornerStyle, GraphicsSettings, JvmGcMode, LayoutMode, SkinModel,
-    ThemeMode, normalize_hex_color,
+    ThemeMode, UiLanguage, normalize_hex_color,
 };
 use basalt::gradle::{
     LaunchEnvConfig, build_launch_env, discover_java21_home, ensure_embedded_gradle_workspace,
@@ -179,19 +179,21 @@ fn hardware_and_launch_env_builder() {
     let cfg = AppConfig::default();
     let encoded = toml::to_string_pretty(&cfg).unwrap();
     let decoded: AppConfig = toml::from_str(&encoded).unwrap();
-    assert_eq!(decoded.username, "Oyuncu");
+    assert_eq!(decoded.username, "Player");
     assert_eq!(decoded.theme, ThemeMode::Dark);
     assert_eq!(decoded.ui_layout, LayoutMode::Sidebar);
+    assert_eq!(decoded.ui_language, UiLanguage::En);
     assert!(!decoded.ui_sounds);
 
-    // Eski config.toml dosyaları yeni alanlar olmadan varsayılanlarla yüklenebilmelidir
-    let legacy_decoded: AppConfig = toml::from_str("username = \"Eski\"\ntheme = \"Light\"\n").unwrap();
-    assert_eq!(legacy_decoded.username, "Eski");
+    // Legacy config.toml files without newer fields should load cleanly with defaults
+    let legacy_decoded: AppConfig = toml::from_str("username = \"Legacy\"\ntheme = \"Light\"\n").unwrap();
+    assert_eq!(legacy_decoded.username, "Legacy");
     assert_eq!(legacy_decoded.theme, ThemeMode::Light);
     assert_eq!(legacy_decoded.ui_layout, LayoutMode::Sidebar);
+    assert_eq!(legacy_decoded.ui_language, UiLanguage::En);
     assert!(!legacy_decoded.ui_sounds);
 
-    // Eski v0 dosyasından yüklerken masaüstü varsayılanı sessiz ve pencere moduna normalize olur; v1 tercihi korunur
+    // Loading a v0 config normalizes desktop defaults to windowed + muted while preserving v1 preferences
     let cfg_tmp_dir = std::env::temp_dir().join(format!("basalt_cfg_test_{}", std::process::id()));
     let _ = fs::remove_dir_all(&cfg_tmp_dir);
     fs::create_dir_all(&cfg_tmp_dir).unwrap();
@@ -204,17 +206,20 @@ fn hardware_and_launch_env_builder() {
     let migrated = AppConfig::load(&v0_path);
     assert_eq!(migrated.config_version, 1);
     assert_eq!(migrated.ui_layout, LayoutMode::Sidebar);
+    assert_eq!(migrated.ui_language, UiLanguage::En);
     assert!(!migrated.ui_sounds);
 
     let mut styled = AppConfig::default();
     styled.theme = ThemeMode::Sculk;
     styled.ui_layout = LayoutMode::RightRail;
     styled.ui_sounds = true;
+    styled.ui_language = UiLanguage::De;
     let styled_path = cfg_tmp_dir.join("cfg_v1.toml");
     styled.save(&styled_path).unwrap();
     let styled_decoded = AppConfig::load(&styled_path);
     assert_eq!(styled_decoded.theme, ThemeMode::Sculk);
     assert_eq!(styled_decoded.ui_layout, LayoutMode::RightRail);
+    assert_eq!(styled_decoded.ui_language, UiLanguage::De);
     assert!(styled_decoded.ui_sounds);
     let _ = fs::remove_dir_all(&cfg_tmp_dir);
 

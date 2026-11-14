@@ -54,7 +54,7 @@ pub fn resolve_skin_is_slim(model: SkinModel, img: &RgbaImage) -> bool {
 /// Loads a user-supplied local PNG skin file.
 /// Supports standard 64x64 skins and legacy 64x32 skins (auto-converted to 64x64 layout).
 pub fn load_skin_from_file(path: &Path) -> Result<RgbaImage, String> {
-    let dyn_img = image::open(path).map_err(|e| format!("Skin dosyası açılamadı: {e}"))?;
+    let dyn_img = image::open(path).map_err(|e| format!("Failed to open skin file: {e}"))?;
     let (w, h) = dyn_img.dimensions();
     let rgba = dyn_img.to_rgba8();
 
@@ -71,7 +71,7 @@ pub fn load_skin_from_file(path: &Path) -> Result<RgbaImage, String> {
         ))
     } else {
         Err(format!(
-            "Desteklenmeyen skin boyutu ({w}x{h}). 64x64 veya 64x32 PNG kullanın."
+            "Unsupported skin dimensions ({w}x{h}). Use a 64x64 or 64x32 PNG."
         ))
     }
 }

@@ -31,6 +31,7 @@ export type JvmGcMode = "G1GC" | "ZGC";
 export type SkinModel = "Auto" | "Slim" | "Classic";
 export type GpuTier = "Discrete" | "Integrated" | "VirtualOrSoftware";
 export type LaunchMode = "title" | "singleplayer" | "multiplayer";
+export type UiLanguage = "En" | "Tr" | "De";
 
 export interface GraphicsSettings {
   preset: GraphicsPreset;
@@ -65,6 +66,7 @@ export interface AppConfig {
   ui_compact: boolean;
   ui_reduced_motion: boolean;
   ui_sounds: boolean;
+  ui_language: UiLanguage;
   last_save_id: string | null;
   saved_servers: SavedServer[];
   graphics: GraphicsSettings;

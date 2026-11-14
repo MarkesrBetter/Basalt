@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="tr" data-theme="dark" data-corner="balanced">
+<html lang="en" data-theme="dark" data-corner="balanced">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Basalt · Minecraft 1.21.4 Yerli Masaüstü Başlatıcısı</title>
-  <meta name="description" content="Donanımına göre otomatik FPS ve bellek ayarı yapan, 10 mineral temalı ve Konsol Modlu Windows Minecraft 1.21.4 Fabric başlatıcısı." />
+  <title>Basalt · Minecraft 1.21.4 Native Desktop Launcher</title>
+  <meta name="description" content="Single-binary Windows Minecraft 1.21.4 Fabric launcher that calibrates JVM memory and render settings to your hardware, with 10 mineral themes, Console Mode, and automatic Java 21 setup." />
   <link
     rel="icon"
     type="image/svg+xml"
@@ -472,6 +472,47 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .lang-switch {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--bg-rail);
+      padding: 0;
+    }
+
+    .lang-btn {
+      min-width: 40px;
+      min-height: 44px;
+      padding: 0 9px;
+      border: 0;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+    }
+
+    .lang-btn:first-child {
+      border-radius: calc(var(--radius-sm) - 1px) 0 0 calc(var(--radius-sm) - 1px);
+    }
+
+    .lang-btn:last-child {
+      border-radius: 0 calc(var(--radius-sm) - 1px) calc(var(--radius-sm) - 1px) 0;
+    }
+
+    .lang-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text);
+    }
+
+    .lang-btn.is-active {
+      background: var(--accent);
+      color: var(--accent-text);
     }
 
     .btn {
@@ -1744,6 +1785,15 @@
         gap: 10px;
       }
 
+      .header-actions {
+        gap: 8px;
+      }
+
+      .header-actions .btn {
+        padding: 0 12px;
+        font-size: 13px;
+      }
+
       .nav-links {
         order: 3;
         width: 100%;
@@ -1854,7 +1904,7 @@
     </symbol>
   </svg>
 
-  <a class="skip-link" href="#icerik">İçeriğe atla</a>
+  <a class="skip-link" href="#content" data-i18n="skip">Skip to content</a>
 
   <header class="site-header">
     <div class="wrap header-inner">
@@ -1868,27 +1918,32 @@
         <span class="brand-tag">Minecraft 1.21.4</span>
       </a>
 
-      <nav class="nav-links" aria-label="Sayfa bölümleri">
-        <a href="#hiz-fps">Hız ve FPS</a>
-        <a href="#temalar">Temalar</a>
-        <a href="#konsol-modu">Konsol Modu</a>
-        <a href="#indir">İndir</a>
+      <nav class="nav-links" aria-label="Page sections" data-i18n-aria="nav.aria">
+        <a href="#performance" data-i18n="nav.perf">Speed &amp; FPS</a>
+        <a href="#themes" data-i18n="nav.themes">Themes</a>
+        <a href="#console" data-i18n="nav.console">Console Mode</a>
+        <a href="#download" data-i18n="nav.download">Download</a>
       </nav>
 
       <div class="header-actions">
-        <button type="button" class="btn btn-ghost" id="btn-mode-toggle" aria-label="Koyu ve açık tema arasında geç">
+        <div class="lang-switch" role="group" aria-label="Language" data-i18n-aria="lang.aria">
+          <button type="button" class="lang-btn is-active" data-site-lang="en" aria-pressed="true">EN</button>
+          <button type="button" class="lang-btn" data-site-lang="tr" aria-pressed="false">TR</button>
+          <button type="button" class="lang-btn" data-site-lang="de" aria-pressed="false">DE</button>
+        </div>
+        <button type="button" class="btn btn-ghost" id="btn-mode-toggle" aria-label="Switch between dark and light theme" data-i18n-aria="header.modeAria">
           <svg class="ico" aria-hidden="true"><use href="#ico-sun" /></svg>
-          <span id="mode-toggle-label">Açık Tema</span>
+          <span id="mode-toggle-label">Light Theme</span>
         </button>
         <a class="btn btn-primary" id="header-download-cta" href="https://github.com/MarkesrBetter/Basalt/releases/latest/download/basalt.exe" download="basalt.exe">
           <svg class="ico" aria-hidden="true"><use href="#ico-download" /></svg>
-          <span>İndir</span>
+          <span data-i18n="header.download">Download</span>
         </a>
       </div>
     </div>
   </header>
 
-  <main id="icerik">
+  <main id="content">
     <section class="hero" id="top">
       <div class="wrap hero-grid">
         <div>
@@ -1896,28 +1951,28 @@
             <span class="mineral-dot" aria-hidden="true"></span>
             <span>Minecraft 1.21.4 · Fabric 0.20.1 · Windows 10/11</span>
           </p>
-          <h1>Oyuna bas, ayarların bekletmesin.</h1>
-          <p class="hero-lead">
-            Basalt; işlemci, bellek ve ekran kartını tanıyıp JVM belleği ile görüş mesafesini otomatik kalibre eden tek dosyalı Windows başlatıcısıdır. Kurulum yapmaz, eksikse Java 21 kurar, 10 mineral teması ve Konsol Modu ile açılır.
+          <h1 data-i18n="hero.h1">Click launch, not settings.</h1>
+          <p class="hero-lead" data-i18n="hero.lead">
+            Basalt is a single-binary Windows launcher that detects your CPU, RAM, and GPU to calibrate JVM memory and render distance automatically. Zero installer wizard, automatic Java 21 setup if missing, 10 mineral themes, and Console Mode built in.
           </p>
           <div class="hero-cta-row">
             <a class="btn btn-primary" id="hero-download-cta" href="https://github.com/MarkesrBetter/Basalt/releases/latest/download/basalt.exe" download="basalt.exe">
               <svg class="ico" aria-hidden="true"><use href="#ico-download" /></svg>
-              <span id="hero-cta-label">GitHub'dan İndir (v0.1.0)</span>
+              <span id="hero-cta-label">Download on GitHub (v0.1.0)</span>
             </a>
-            <a class="btn btn-secondary" href="#temalar">Temaları Canlı Dene</a>
+            <a class="btn btn-secondary" href="#themes" data-i18n="hero.secondaryCta">Try Themes Live</a>
           </div>
           <dl class="hero-facts">
             <div class="fact-item">
-              <dt>Paket Boyutu</dt>
-              <dd>13.29 MB · Tek EXE</dd>
+              <dt data-i18n="hero.factSizeLabel">Package Size</dt>
+              <dd id="hero-fact-size">13.31 MB · Single EXE</dd>
             </div>
             <div class="fact-item">
-              <dt>Görünüm Seçeneği</dt>
-              <dd>10 Tema · 6 Düzen</dd>
+              <dt data-i18n="hero.factThemeLabel">Visual System</dt>
+              <dd data-i18n="hero.factThemeVal">10 Themes · 6 Layouts</dd>
             </div>
             <div class="fact-item">
-              <dt>Otomatik Altyapı</dt>
+              <dt data-i18n="hero.factInfraLabel">Auto Runtime</dt>
               <dd>Java 21 + options.txt</dd>
             </div>
           </dl>
@@ -1932,34 +1987,34 @@
                   <polygon points="4,10.5 15.5,16.8 15.5,28.5 4,22" fill="var(--brand-left)" />
                   <polygon points="28,10.5 16.5,16.8 16.5,28.5 28,22" fill="var(--brand-right)" />
                 </svg>
-                <span>Basalt · Canlı Ürün Önizlemesi</span>
+                <span data-i18n="mock.winTitle">Basalt · Live Product Preview</span>
               </div>
               <div class="win-controls">
-                <button type="button" class="win-btn" id="mock-win-min" aria-label="Pencere önizlemesini küçült">
+                <button type="button" class="win-btn" id="mock-win-min" aria-label="Minimize preview window" data-i18n-aria="mock.winMinAria">
                   <svg class="ico" aria-hidden="true"><use href="#ico-min" /></svg>
                 </button>
-                <button type="button" class="win-btn" id="mock-win-max" aria-label="Pencere düzenini değiştir">
+                <button type="button" class="win-btn" id="mock-win-max" aria-label="Cycle window layout" data-i18n-aria="mock.winMaxAria">
                   <svg class="ico" aria-hidden="true"><use href="#ico-max" /></svg>
                 </button>
-                <button type="button" class="win-btn win-btn--close" id="mock-win-close" aria-label="Önizlemeyi kapat">
+                <button type="button" class="win-btn win-btn--close" id="mock-win-close" aria-label="Close preview" data-i18n-aria="mock.winCloseAria">
                   <svg class="ico" aria-hidden="true"><use href="#ico-close" /></svg>
                 </button>
               </div>
             </div>
 
             <div class="app-body" id="mock-app-body" data-mock-layout="sidebar">
-              <nav class="mock-nav" aria-label="Başlatıcı içi sekmeler">
+              <nav class="mock-nav" aria-label="Launcher tabs" data-i18n-aria="mock.navAria">
                 <button type="button" class="mock-nav-btn is-active" data-mock-tab="play">
                   <svg class="ico" aria-hidden="true"><use href="#ico-play" /></svg>
-                  <span>Oyna</span>
+                  <span data-i18n="mock.tabPlay">Play</span>
                 </button>
                 <button type="button" class="mock-nav-btn" data-mock-tab="perf">
                   <svg class="ico" aria-hidden="true"><use href="#ico-sliders" /></svg>
-                  <span>Hız ve FPS</span>
+                  <span data-i18n="mock.tabPerf">Speed &amp; FPS</span>
                 </button>
                 <button type="button" class="mock-nav-btn" data-mock-tab="skin">
                   <svg class="ico" aria-hidden="true"><use href="#ico-layers" /></svg>
-                  <span>Skin</span>
+                  <span data-i18n="mock.tabSkin">Skin</span>
                 </button>
                 <div class="mock-nav-foot">
                   <canvas id="mock-head-canvas" class="skin-canvas" width="24" height="24" aria-hidden="true"></canvas>
@@ -1970,54 +2025,54 @@
               <div class="mock-stage">
                 <div class="mock-hero-band">
                   <div>
-                    <p class="mock-kicker" id="mock-stage-kicker">Aktif Profil : Hızlı Başlat</p>
+                    <p class="mock-kicker" id="mock-stage-kicker">Active Profile : Quick Play</p>
                     <h2 class="mock-title" id="mock-stage-title">Minecraft 1.21.4</h2>
-                    <p class="mock-sub" id="mock-stage-sub">Donanım ayarı hazır. Tek tıkla doğrudan dünyaya iner.</p>
+                    <p class="mock-sub" id="mock-stage-sub">Hardware profile synced. Launches directly into your world in one click.</p>
                   </div>
                   <button type="button" class="mock-launch-btn" id="mock-launch-btn">
                     <svg class="ico" aria-hidden="true"><use href="#ico-play" /></svg>
-                    <span id="mock-launch-label">Oyunu Başlat</span>
+                    <span id="mock-launch-label">Launch Game</span>
                   </button>
                 </div>
 
                 <div class="mock-launch-log" role="status" aria-live="polite">
                   <div>
                     <span class="mock-status-dot" id="mock-status-dot" aria-hidden="true"></span>
-                    <strong id="mock-status-text">Vitrin Önizlemesi : Başlatmaya hazır</strong>
+                    <strong id="mock-status-text">Live Showcase : Ready to launch</strong>
                   </div>
-                  <span id="mock-theme-readout">Tema : Obsidyen Mor</span>
+                  <span id="mock-theme-readout">Theme : Obsidian Violet</span>
                 </div>
 
                 <div class="mock-data-row">
                   <div class="mock-panel">
-                    <h3>Donanım Çıktısı</h3>
+                    <h3 data-i18n="mock.hwTitle">Hardware Profile</h3>
                     <div class="spec-line">
-                      <span>Bellek</span>
+                      <span data-i18n="mock.ramLabel">Memory</span>
                       <strong id="mock-spec-ram">3072 MB</strong>
                     </div>
                     <div class="spec-line">
-                      <span>Motor</span>
+                      <span data-i18n="mock.gcLabel">Engine</span>
                       <strong id="mock-spec-gc">G1GC</strong>
                     </div>
                     <div class="spec-line">
-                      <span>Görüş</span>
-                      <strong id="mock-spec-chunk">10 Chunk</strong>
+                      <span data-i18n="mock.viewLabel">View</span>
+                      <strong id="mock-spec-chunk">10 Chunks</strong>
                     </div>
                   </div>
 
                   <div class="mock-panel">
-                    <h3>Skin Önizleme</h3>
+                    <h3 data-i18n="mock.skinTitle">Skin Preview</h3>
                     <div class="mock-skin-box">
-                      <canvas id="mock-skin-canvas" class="skin-canvas" width="64" height="112" aria-label="Basalt varsayılan oyuncu skini önizlemesi"></canvas>
+                      <canvas id="mock-skin-canvas" class="skin-canvas" width="64" height="112" aria-label="Default Basalt player skin preview" data-i18n-aria="mock.skinCanvasAria"></canvas>
                       <div>
                         <div class="spec-line">
-                          <span>Kol</span>
+                          <span data-i18n="mock.armLabel">Arms</span>
                           <strong id="mock-arm-label">Slim 3px</strong>
                         </div>
                         <div class="mini-switch-row">
-                          <button type="button" class="mini-pill-btn is-active" id="mock-flip-front">Ön</button>
-                          <button type="button" class="mini-pill-btn" id="mock-flip-back">Arka</button>
-                          <button type="button" class="mini-pill-btn" id="mock-arm-toggle">Kol Değiş</button>
+                          <button type="button" class="mini-pill-btn is-active" id="mock-flip-front" data-i18n="mock.front">Front</button>
+                          <button type="button" class="mini-pill-btn" id="mock-flip-back" data-i18n="mock.back">Back</button>
+                          <button type="button" class="mini-pill-btn" id="mock-arm-toggle" data-i18n="mock.swapArms">Swap Model</button>
                         </div>
                       </div>
                     </div>
@@ -2027,67 +2082,67 @@
             </div>
 
             <div class="app-closed-notice" id="app-closed-notice" hidden>
-              <strong id="closed-notice-title">Pencere küçültüldü.</strong>
-              <span class="mock-sub">Gerçek masaüstü uygulamasında bu üç düğme tema rengiyle Windows pencere kontrolü sunar.</span>
-              <button type="button" class="btn btn-primary" id="mock-win-restore">Önizlemeyi Geri Aç</button>
+              <strong id="closed-notice-title">Preview minimized.</strong>
+              <span class="mock-sub" data-i18n="mock.closedSub">In the desktop app, these three controls adapt to your active mineral theme for native frameless window management.</span>
+              <button type="button" class="btn btn-primary" id="mock-win-restore" data-i18n="mock.restoreBtn">Restore Preview</button>
             </div>
           </div>
 
-          <div class="showcase-toolbar" aria-label="Hızlı tema seçicisi">
+          <div class="showcase-toolbar" aria-label="Quick theme picker" data-i18n-aria="mock.toolbarAria">
             <div class="swatch-strip" id="quick-theme-strip"></div>
             <div class="mini-switch-row">
-              <button type="button" class="mini-pill-btn is-active" data-quick-layout="sidebar">Sol Ray</button>
-              <button type="button" class="mini-pill-btn" data-quick-layout="topbar">Üst Şerit</button>
-              <button type="button" class="mini-pill-btn" data-quick-layout="right-rail">Sağ Ray</button>
-              <button type="button" class="mini-pill-btn" data-quick-layout="minimal-rail">İnce Dock</button>
+              <button type="button" class="mini-pill-btn is-active" data-quick-layout="sidebar" data-i18n="layout.sidebar">Left Rail</button>
+              <button type="button" class="mini-pill-btn" data-quick-layout="topbar" data-i18n="layout.topbar">Top Strip</button>
+              <button type="button" class="mini-pill-btn" data-quick-layout="right-rail" data-i18n="layout.right">Right Rail</button>
+              <button type="button" class="mini-pill-btn" data-quick-layout="minimal-rail" data-i18n="layout.minimal">Slim Dock</button>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section" id="hiz-fps">
+    <section class="section" id="performance">
       <div class="wrap">
         <div class="section-head">
           <div>
-            <p class="section-kicker">Hız ve FPS Kalibrasyonu</p>
-            <h2>Bilgisayarının gücüne göre otomatik ayarlanır.</h2>
+            <p class="section-kicker" data-i18n="perf.kicker">Speed &amp; FPS Calibration</p>
+            <h2 data-i18n="perf.h2">Calibrated automatically to your hardware.</h2>
           </div>
-          <p class="section-note">
-            Her açılışta sistem RAM miktarı ve ekran kartı sınıfı algılanır. Kendi sınıfını seçip Basalt'ın hangi JVM ve görüş ayarlarını yazdığını gör.
+          <p class="section-note" data-i18n="perf.note">
+            Every startup scans system RAM, CPU cores, and GPU tier. Select a hardware class below to inspect exact JVM flags and render targets Basalt writes for your machine.
           </p>
         </div>
 
         <div class="speed-bench">
-          <div class="tier-list" role="radiogroup" aria-label="Donanım sınıfı seçimi">
+          <div class="tier-list" role="radiogroup" aria-label="Hardware tier selection" data-i18n-aria="perf.groupAria">
             <button type="button" class="tier-btn" data-tier="low">
               <div>
-                <span class="tier-name">Ekonomik / Hafif Sistem</span>
-                <span class="tier-hw">6 GB altı RAM · Dahili grafik</span>
+                <span class="tier-name" data-i18n="tier.low.name">Light / Entry System</span>
+                <span class="tier-hw" data-i18n="tier.low.hw">Under 6 GB RAM · Integrated graphics</span>
               </div>
               <span class="tier-gc">1536 MB · G1GC</span>
             </button>
 
             <button type="button" class="tier-btn" data-tier="medium">
               <div>
-                <span class="tier-name">Dengeli Dizüstü</span>
-                <span class="tier-hw">8 GB RAM · Orta seviye GPU</span>
+                <span class="tier-name" data-i18n="tier.medium.name">Balanced Laptop</span>
+                <span class="tier-hw" data-i18n="tier.medium.hw">8 GB RAM · Midrange GPU</span>
               </div>
               <span class="tier-gc">2560 MB · G1GC</span>
             </button>
 
             <button type="button" class="tier-btn is-active" data-tier="high">
               <div>
-                <span class="tier-name">Yüksek Performans</span>
-                <span class="tier-hw">12 GB+ RAM · Harici oyun GPU</span>
+                <span class="tier-name" data-i18n="tier.high.name">High Performance</span>
+                <span class="tier-hw" data-i18n="tier.high.hw">12 GB+ RAM · Discrete gaming GPU</span>
               </div>
               <span class="tier-gc">3072 MB · G1GC</span>
             </button>
 
             <button type="button" class="tier-btn" data-tier="ultra">
               <div>
-                <span class="tier-name">Ultra / ZGC Profili</span>
-                <span class="tier-hw">16 GB+ RAM · 8+ çekirdek CPU</span>
+                <span class="tier-name" data-i18n="tier.ultra.name">Ultra / ZGC Profile</span>
+                <span class="tier-hw" data-i18n="tier.ultra.hw">16 GB+ RAM · 8+ CPU cores</span>
               </div>
               <span class="tier-gc">4096 MB · ZGC</span>
             </button>
@@ -2095,36 +2150,36 @@
 
           <div class="calibration-panel">
             <div class="cal-header">
-              <h3 class="cal-title" id="cal-tier-title">Yüksek Performans Profili</h3>
-              <span class="cal-tag" id="cal-tier-tag">Otomatik options.txt Eşitleme</span>
+              <h3 class="cal-title" id="cal-tier-title">High Performance Profile</h3>
+              <span class="cal-tag" id="cal-tier-tag" data-i18n="perf.syncTag">Auto options.txt Sync</span>
             </div>
 
             <div class="cal-metrics">
               <div class="cal-cell">
-                <span class="cal-cell-label">Ayrılan JVM Bellek</span>
+                <span class="cal-cell-label" data-i18n="perf.mRam">Allocated JVM Heap</span>
                 <span class="cal-cell-val" id="cal-ram">3072 MB</span>
               </div>
               <div class="cal-cell">
-                <span class="cal-cell-label">Çöp Toplayıcı</span>
+                <span class="cal-cell-label" data-i18n="perf.mGc">Garbage Collector</span>
                 <span class="cal-cell-val" id="cal-gc">G1GC</span>
               </div>
               <div class="cal-cell">
-                <span class="cal-cell-label">Görüş Mesafesi</span>
-                <span class="cal-cell-val" id="cal-chunks">10 Chunk</span>
+                <span class="cal-cell-label" data-i18n="perf.mView">Render Distance</span>
+                <span class="cal-cell-val" id="cal-chunks">10 Chunks</span>
               </div>
               <div class="cal-cell">
-                <span class="cal-cell-label">Hedef FPS Tavanı</span>
+                <span class="cal-cell-label" data-i18n="perf.mFps">Target Frame Cap</span>
                 <span class="cal-cell-val" id="cal-fps">165 FPS</span>
               </div>
             </div>
 
             <div class="spec-line">
-              <span>Aktif Chunk Mesafe Göstergesi (12 üzerinden)</span>
+              <span data-i18n="perf.meterLabel">Active Render Distance Scale (out of 12)</span>
               <strong id="cal-chunk-ratio">10 / 12</strong>
             </div>
             <div class="chunk-meter" id="cal-chunk-meter" aria-hidden="true"></div>
             <p class="cal-explain" id="cal-explain">
-              12 GB bellekli ve 6+ çekirdekli sistemlerde kare takılmalarını azaltmak için 3072 MB G1GC belleği atanır ve options.txt içindeki grafik anahtarları kişisel tuş atamalarına dokunulmadan güncellenir.
+              On systems with 12 GB+ memory and 6+ cores, Basalt allocates 3072 MB under G1GC to smooth frame pacing and updates graphics keys in options.txt without touching custom keybinds.
             </p>
           </div>
         </div>
@@ -2132,161 +2187,161 @@
         <div class="speed-strip">
           <ul class="strip-list">
             <li>
-              <strong>Doğrudan Dünya veya Yerel Sunucu Girişi</strong>
-              <span>Quick Play parametreleriyle ana menüye uğramadan seçtiğin kayıtlı dünyaya veya yerel test sunucuna başlar.</span>
+              <strong data-i18n="perf.f1Title">Direct World or Local Server Entry</strong>
+              <span data-i18n="perf.f1Body">Passes native Quick Play arguments to jump straight into your saved world or local development server, skipping extra menu steps.</span>
             </li>
             <li>
-              <strong>Kaydırma Çubuksuz Orantılı Ekran</strong>
-              <span>Pencereyi büyütüp küçülttükçe yazı ve kontroller ekrana göre ölçeklenir; standart çözünürlüklerde sekmeler tek bakışta sığar.</span>
+              <strong data-i18n="perf.f2Title">Proportional Viewport Scaling</strong>
+              <span data-i18n="perf.f2Body">Typography and controls scale cleanly with the window size so every desktop panel fits comfortably at standard resolutions without visual clutter.</span>
             </li>
             <li>
-              <strong>İsteğe Bağlı Hafif FPS Göstergesi</strong>
-              <span>Oyun içinde sol üst köşede anlık FPS ve oyuncu adını gösteren katmanı tek tıkla açıp kapatabilirsin.</span>
+              <strong data-i18n="perf.f3Title">Optional Lightweight FPS HUD</strong>
+              <span data-i18n="perf.f3Body">Toggle a compact top-left frame counter and active player badge inside Minecraft 1.21.4 with one switch.</span>
             </li>
           </ul>
 
           <div class="java-box">
-            <h3>Eksik Java 21 Derdini Ortadan Kaldırır</h3>
-            <p>
-              Yeni veya sıfır Windows bilgisayarlarda Java aramak zorunda kalmazsın. Sistemde Java 21 yoksa Basalt, Eclipse Temurin 21 paketini SHA-256 doğrulamasıyla yerel klasöre kurar.
+            <h3 data-i18n="java.title">Zero Manual Java 21 Hunting</h3>
+            <p data-i18n="java.body">
+              Setting up a fresh Windows machine stays self-contained. If Java 21 is absent, Basalt fetches Eclipse Temurin 21, verifies its SHA-256 digest in pure Rust, and installs it locally without admin prompts.
             </p>
             <div class="java-steps">
-              <span class="java-step">1. Sürüm Kontrolü (&gt;= 21)</span>
-              <span class="java-step">2. Adoptium Temurin İndirme</span>
-              <span class="java-step">3. SHA-256 Doğrulama</span>
+              <span class="java-step" data-i18n="java.s1">1. Runtime Check (&gt;= 21)</span>
+              <span class="java-step" data-i18n="java.s2">2. Adoptium Temurin Fetch</span>
+              <span class="java-step" data-i18n="java.s3">3. SHA-256 Verification</span>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section" id="temalar">
+    <section class="section" id="themes">
       <div class="wrap">
         <div class="section-head">
           <div>
-            <p class="section-kicker">Temalar, Renkler ve Düzenler</p>
-            <h2>10 mineral teması ve canlı renk stüdyosu.</h2>
+            <p class="section-kicker" data-i18n="themes.kicker">Themes, Colors &amp; Layouts</p>
+            <h2 data-i18n="themes.h2">10 mineral themes and live color studio.</h2>
           </div>
-          <p class="section-note">
-            Aşağıdan bir tema, vurgu rengi veya köşe profili seçtiğinde sadece önizleme değil, şu an gezdiğin tüm sayfa anında o temaya bürünür.
+          <p class="section-note" data-i18n="themes.note">
+            Pick any mineral palette, independent accent color, or corner radius below and watch the entire page adapt immediately with live contrast checks.
           </p>
         </div>
 
         <div class="studio-grid">
           <div class="studio-controls">
             <div>
-              <h3 class="studio-group-title">Mineral ve Biyom Temaları (7 Koyu · 3 Açık)</h3>
+              <h3 class="studio-group-title" data-i18n="themes.gBiomes">Mineral &amp; Biome Themes (7 Dark · 3 Light)</h3>
               <div class="theme-grid" id="theme-grid"></div>
             </div>
 
             <div>
-              <h3 class="studio-group-title">Bağımsız Vurgu Rengi ve Özel #RRGGBB</h3>
+              <h3 class="studio-group-title" data-i18n="themes.gAccents">Independent Accent &amp; Custom #RRGGBB</h3>
               <div class="accent-row" id="accent-row">
                 <label class="custom-color-wrap">
-                  <input type="color" id="custom-accent-picker" value="#a47cff" aria-label="Özel vurgu rengi seç" />
-                  <span>Özel Renk</span>
+                  <input type="color" id="custom-accent-picker" value="#a47cff" aria-label="Choose custom accent color" data-i18n-aria="themes.customAria" />
+                  <span data-i18n="themes.customLabel">Custom Hex</span>
                 </label>
               </div>
             </div>
 
             <div>
-              <h3 class="studio-group-title">Köşe Profili ve Pencere İçi Yerleşim</h3>
+              <h3 class="studio-group-title" data-i18n="themes.gShape">Corner Radius &amp; Window Layout</h3>
               <div class="segment-row" id="corner-row">
-                <button type="button" class="segment-btn" data-corner-choice="sharp">Keskin (2 px)</button>
-                <button type="button" class="segment-btn is-active" data-corner-choice="balanced">Dengeli (8 px)</button>
-                <button type="button" class="segment-btn" data-corner-choice="soft">Yumuşak (13 px)</button>
+                <button type="button" class="segment-btn" data-corner-choice="sharp" data-i18n="corner.sharp">Sharp (2 px)</button>
+                <button type="button" class="segment-btn is-active" data-corner-choice="balanced" data-i18n="corner.balanced">Balanced (8 px)</button>
+                <button type="button" class="segment-btn" data-corner-choice="soft" data-i18n="corner.soft">Soft (13 px)</button>
               </div>
               <div class="segment-row studio-subrow" id="studio-layout-row">
-                <button type="button" class="segment-btn is-active" data-studio-layout="sidebar">Sol Ray</button>
-                <button type="button" class="segment-btn" data-studio-layout="topbar">Üst Şerit</button>
-                <button type="button" class="segment-btn" data-studio-layout="compact-deck">Odak Kompakt</button>
-                <button type="button" class="segment-btn" data-studio-layout="right-rail">Sağ Ray</button>
-                <button type="button" class="segment-btn" data-studio-layout="minimal-rail">İnce Dock</button>
+                <button type="button" class="segment-btn is-active" data-studio-layout="sidebar" data-i18n="layout.sidebar">Left Rail</button>
+                <button type="button" class="segment-btn" data-studio-layout="topbar" data-i18n="layout.topbar">Top Strip</button>
+                <button type="button" class="segment-btn" data-studio-layout="compact-deck" data-i18n="layout.compact">Compact Focus</button>
+                <button type="button" class="segment-btn" data-studio-layout="right-rail" data-i18n="layout.right">Right Rail</button>
+                <button type="button" class="segment-btn" data-studio-layout="minimal-rail" data-i18n="layout.minimal">Slim Dock</button>
               </div>
             </div>
           </div>
 
-          <aside class="palette-card" aria-label="Aktif tema renk ve kontrast dökümü">
+          <aside class="palette-card" aria-label="Active theme tokens and contrast readout" data-i18n-aria="themes.cardAria">
             <div class="cal-header">
-              <h3 class="cal-title" id="studio-active-name">Obsidyen Mor</h3>
-              <span class="cal-tag" id="studio-active-mode">Koyu Mod</span>
+              <h3 class="cal-title" id="studio-active-name">Obsidian Violet</h3>
+              <span class="cal-tag" id="studio-active-mode">Dark Mode</span>
             </div>
 
             <div>
               <div class="token-row">
-                <span>Ana Zemin</span>
+                <span data-i18n="themes.tCanvas">Base Canvas</span>
                 <span class="token-val"><i class="token-swatch" id="sw-canvas"></i><code id="tx-canvas">#131118</code></span>
               </div>
               <div class="token-row">
-                <span>Yüzey Katmanı</span>
+                <span data-i18n="themes.tSurface">Surface Layer</span>
                 <span class="token-val"><i class="token-swatch" id="sw-surface"></i><code id="tx-surface">#201C29</code></span>
               </div>
               <div class="token-row">
-                <span>Aktif Vurgu</span>
+                <span data-i18n="themes.tAccent">Active Accent</span>
                 <span class="token-val"><i class="token-swatch" id="sw-accent"></i><code id="tx-accent">#A47CFF</code></span>
               </div>
               <div class="token-row">
-                <span>Buton Üstü Metin</span>
+                <span data-i18n="themes.tInk">Button Ink</span>
                 <span class="token-val"><i class="token-swatch" id="sw-accent-text"></i><code id="tx-accent-text">#0E091B</code></span>
               </div>
             </div>
 
             <div class="contrast-meter">
-              <span>WCAG AA Okunabilirlik Kontrolü</span>
+              <span data-i18n="themes.wcag">WCAG AA Contrast Check</span>
               <span class="contrast-badge" id="contrast-ratio-badge">14.6 : 1</span>
             </div>
 
-            <p class="cal-explain">
-              Özel <code>#RRGGBB</code> seçtiğinde bile koyu veya açık yüzey için buton metni ve vurgu tonu otomatik kalibre edilir; kontrast düşmez.
+            <p class="cal-explain" data-i18n-html="themes.explain">
+              Even when you choose any custom <code>#RRGGBB</code> color, Basalt calibrates button ink and lightness dynamically against dark or light surfaces so legibility stays crisp.
             </p>
           </aside>
         </div>
       </div>
     </section>
 
-    <section class="section" id="konsol-modu">
+    <section class="section" id="console">
       <div class="wrap">
         <div class="section-head">
           <div>
-            <p class="section-kicker">Tam Ekran Konsol Modu</p>
-            <h2>Koltukta veya Steam Deck ekranında tek tuşluk vitrin.</h2>
+            <p class="section-kicker" data-i18n="console.kicker">Fullscreen Console Mode</p>
+            <h2 data-i18n="console.h2">Built for couch displays and handheld controllers.</h2>
           </div>
-          <p class="section-note">
-            Konsol Modu masaüstü pencereni tam ekrana alır, ses geri bildirimini etkinleştirir ve kartları klavye ya da gamepad ile gezmeni sağlar.
+          <p class="section-note" data-i18n="console.note">
+            Console Mode expands the desktop window to true fullscreen, enables UI audio cues automatically, and lets you browse launch cards via keyboard or gamepad.
           </p>
         </div>
 
-        <div class="console-stage" id="console-stage" tabindex="0" aria-label="Etkileşimli Konsol Modu önizlemesi, sol ve sağ ok tuşlarıyla kart değiştirebilirsiniz">
+        <div class="console-stage" id="console-stage" tabindex="0" aria-label="Interactive Console Mode preview, use left and right arrow keys to switch cards" data-i18n-aria="console.stageAria">
           <div class="console-topbar">
             <div class="brand-link">
-              <span class="brand-title" id="console-active-card-title">Hızlı Başlat : Minecraft 1.21.4</span>
+              <span class="brand-title" id="console-active-card-title">Quick Launch · Minecraft 1.21.4</span>
             </div>
             <div class="sound-test-row">
-              <button type="button" class="btn btn-secondary" id="console-prev-btn">Önceki Kart</button>
-              <button type="button" class="btn btn-secondary" id="console-next-btn">Sonraki Kart</button>
+              <button type="button" class="btn btn-secondary" id="console-prev-btn" data-i18n="console.prev">Previous Card</button>
+              <button type="button" class="btn btn-secondary" id="console-next-btn" data-i18n="console.next">Next Card</button>
             </div>
           </div>
 
           <div class="console-cards" id="console-cards-grid">
             <button type="button" class="console-card is-selected" data-console-idx="0">
-              <span class="console-card-kicker">Birincil Aksiyon</span>
-              <span class="console-card-title">Minecraft 1.21.4</span>
-              <span class="console-card-desc">Seçili skin ve otomatik RAM profiliyle tek dokunuşla oyunu başlat.</span>
+              <span class="console-card-kicker" data-i18n="console.c0k">Primary Action</span>
+              <span class="console-card-title" data-i18n="console.c0t">Minecraft 1.21.4</span>
+              <span class="console-card-desc" data-i18n="console.c0d">Start immediately with your selected PNG skin and auto-tuned RAM profile.</span>
             </button>
             <button type="button" class="console-card" data-console-idx="1">
-              <span class="console-card-kicker">Kayıtlı Dünya</span>
-              <span class="console-card-title">Hayatta Kalma Dünyası</span>
-              <span class="console-card-desc">Ana menüyü atlayarak kayıtlı yerel dünyaya Quick Play girişi yap.</span>
+              <span class="console-card-kicker" data-i18n="console.c1k">Saved World</span>
+              <span class="console-card-title" data-i18n="console.c1t">Survival World</span>
+              <span class="console-card-desc" data-i18n="console.c1d">Jump straight into a local save via Quick Play without passing the menu.</span>
             </button>
             <button type="button" class="console-card" data-console-idx="2">
-              <span class="console-card-kicker">Yerel Sunucu</span>
-              <span class="console-card-title">LAN / Test Sunucusu</span>
-              <span class="console-card-desc">Kayıtlı yerel sunucuların ping ve çevrimiçi durumunu gör.</span>
+              <span class="console-card-kicker" data-i18n="console.c2k">Local Server</span>
+              <span class="console-card-title" data-i18n="console.c2t">LAN / Dev Server</span>
+              <span class="console-card-desc" data-i18n="console.c2d">Check live Protocol 769 SLP latency and connect directly to test servers.</span>
             </button>
             <button type="button" class="console-card" data-console-idx="3">
-              <span class="console-card-kicker">Görünüm ve Ses</span>
-              <span class="console-card-title">10 Mineral Teması</span>
-              <span class="console-card-desc">Koyu, açık veya renk aksanını tam ekrandan anında değiştir.</span>
+              <span class="console-card-kicker" data-i18n="console.c3k">Appearance &amp; Audio</span>
+              <span class="console-card-title" data-i18n="console.c3t">10 Mineral Themes</span>
+              <span class="console-card-desc" data-i18n="console.c3d">Switch dark, light, or custom mineral accents live from Console Mode.</span>
             </button>
           </div>
 
@@ -2294,49 +2349,49 @@
             <div class="sound-test-row">
               <button type="button" class="btn btn-ghost" data-sfx="click">
                 <svg class="ico" aria-hidden="true"><use href="#ico-sound" /></svg>
-                <span>Menü Sesi</span>
+                <span data-i18n="console.sfxClick">Menu Click</span>
               </button>
               <button type="button" class="btn btn-ghost" data-sfx="toast">
                 <svg class="ico" aria-hidden="true"><use href="#ico-sound" /></svg>
-                <span>Bildirim Tonu</span>
+                <span data-i18n="console.sfxToast">Notice Chime</span>
               </button>
               <button type="button" class="btn btn-ghost" data-sfx="launch">
                 <svg class="ico" aria-hidden="true"><use href="#ico-sound" /></svg>
-                <span>Başlatma Tonu</span>
+                <span data-i18n="console.sfxLaunch">Launch Cue</span>
               </button>
             </div>
             <div class="kbd-legend">
-              <span><kbd class="kbd-pill">Sol / Sağ</kbd> Gez</span>
-              <span><kbd class="kbd-pill">A / Enter</kbd> Seç</span>
-              <span>Not : Web önizlemesi sentetik ton üretir; masaüstünde Minecraft .ogg sesleri çalar.</span>
+              <span data-i18n-html="console.kNav"><kbd class="kbd-pill">Left / Right</kbd> Navigate</span>
+              <span data-i18n-html="console.kSel"><kbd class="kbd-pill">A / Enter</kbd> Select</span>
+              <span data-i18n="console.sfxNote">Note : Web preview uses synthesized tones; desktop plays local cached Minecraft .ogg cues.</span>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section" id="indir">
+    <section class="section" id="download">
       <div class="wrap download-grid">
         <div class="release-box">
           <div>
-            <p class="section-kicker">İndirme ve Doğrulama</p>
+            <p class="section-kicker" data-i18n="dl.kicker">Download &amp; Integrity</p>
             <h2>Basalt v0.1.0 · Windows 10/11</h2>
             <p class="mock-sub" id="release-status-desc">
-              Uygulama dosyası GitHub Releases üzerinden açık kaynak sürüm varlığı ve SHA-256 doğrulama koduyla dağıtılmak üzere hazırlanmıştır.
+              Published via GitHub Releases with verifiable SHA-256 checksums for clean single-file Windows deployment.
             </p>
           </div>
 
           <div class="release-meta">
             <div>
-              <span>Dosya</span>
+              <span data-i18n="dl.mFile">Binary</span>
               <strong>basalt.exe</strong>
             </div>
             <div>
-              <span>Boyut</span>
-              <strong>13.29 MB</strong>
+              <span data-i18n="dl.mSize">Size</span>
+              <strong id="download-meta-size">13.31 MB</strong>
             </div>
             <div>
-              <span>Gereksinim</span>
+              <span data-i18n="dl.mReq">Target</span>
               <strong>Windows x64</strong>
             </div>
           </div>
@@ -2344,22 +2399,22 @@
           <div class="hero-cta-row">
             <a class="btn btn-primary" id="primary-release-btn" href="https://github.com/MarkesrBetter/Basalt/releases/latest/download/basalt.exe" download="basalt.exe">
               <svg class="ico" aria-hidden="true"><use href="#ico-download" /></svg>
-              <span id="primary-release-label">GitHub Releases · basalt.exe İndir</span>
+              <span id="primary-release-label">GitHub Releases · Download basalt.exe</span>
             </a>
             <a class="btn btn-secondary" id="releases-page-btn" href="https://github.com/MarkesrBetter/Basalt/releases" target="_blank" rel="noopener noreferrer">
-              <span>Sürüm Notları (GitHub)</span>
+              <span data-i18n="dl.notesBtn">Release Notes (GitHub)</span>
             </a>
           </div>
 
           <div class="hash-panel">
             <div class="spec-line">
-              <span>SHA-256 Bütünlük Kodu</span>
-              <button type="button" class="mini-pill-btn" id="copy-sha-btn">Kodu Kopyala</button>
+              <span data-i18n="dl.shaLabel">SHA-256 Checksum</span>
+              <button type="button" class="mini-pill-btn" id="copy-sha-btn" data-i18n="dl.copySha">Copy Hash</button>
             </div>
-            <p class="hash-code" id="sha-value">213d6de37c87bfeee122f6572ed61fd33598250f11c69dc30669c98225e1f134</p>
+            <p class="hash-code" id="sha-value">7b19a68f23669ccfaf75a5b7e3efd516e93debf31a019468271fce08336ce6a4</p>
             <div class="spec-line">
-              <span>PowerShell Doğrulama Komutu</span>
-              <button type="button" class="mini-pill-btn" id="copy-ps-btn">Komutu Kopyala</button>
+              <span data-i18n="dl.psLabel">PowerShell Verification Command</span>
+              <button type="button" class="mini-pill-btn" id="copy-ps-btn" data-i18n="dl.copyPs">Copy Command</button>
             </div>
             <p class="hash-code" id="ps-verify-cmd">Get-FileHash .\basalt.exe -Algorithm SHA256</p>
             <p class="toast-note" id="copy-feedback" role="status" aria-live="polite"></p>
@@ -2367,31 +2422,31 @@
         </div>
 
         <div>
-          <p class="section-kicker">Ürün Hakkında</p>
-          <h2>Sık Sorulanlar</h2>
+          <p class="section-kicker" data-i18n="faq.kicker">About Basalt</p>
+          <h2 data-i18n="faq.h2">Frequently Asked Questions</h2>
           <div class="faq-list">
             <details class="faq-item" open>
-              <summary><span>Java 21 bilgisayarımda yoksa oyunu nasıl açıyor?</span><svg class="ico faq-chev" aria-hidden="true"><use href="#ico-chev" /></svg></summary>
-              <p>
-                Sistemde Java 21 veya üzeri bulunamazsa uygulama içinden "Java 21 Kur" düğmesine tıklaman yeterlidir. Basalt, Windows'un yerleşik aracıyla Adoptium Temurin 21 paketini indirir, SHA-256 ile doğrular ve yerel çalışma klasörüne kurar.
+              <summary><span data-i18n="faq.q1">How does Basalt launch the game if Java 21 is missing?</span><svg class="ico faq-chev" aria-hidden="true"><use href="#ico-chev" /></svg></summary>
+              <p data-i18n="faq.a1">
+                If no Java 21 or newer JDK is found on the PC, click Auto-Install Java 21 inside the app. Basalt downloads Eclipse Temurin 21 via Windows built-in curl.exe, verifies the SHA-256 checksum, and extracts it into its local data folder without admin elevation.
               </p>
             </details>
             <details class="faq-item">
-              <summary><span>Windows SmartScreen veya antivirüs uyarısı neden görünebilir?</span><svg class="ico faq-chev" aria-hidden="true"><use href="#ico-chev" /></svg></summary>
-              <p>
-                Yeni yayınlanan ve ücretli kod imzalama sertifikası taşımayan bağımsız açık kaynak <code>.exe</code> dosyaları ilk haftalarda Windows SmartScreen tarafından tanınmayabilir. Açık kaynak kod, GitHub Releases dağıtımı ve sayfadaki SHA-256 doğrulama koduyla dosyanın değişmediğini kontrol edebilirsin.
+              <summary><span data-i18n="faq.q2">Why might Windows SmartScreen or antivirus flag a fresh binary?</span><svg class="ico faq-chev" aria-hidden="true"><use href="#ico-chev" /></svg></summary>
+              <p data-i18n-html="faq.a2">
+                Newly released open-source <code>.exe</code> binaries without a paid EV code-signing certificate can trigger unfamiliar-publisher prompts during their first days online. You can inspect the public source code, GitHub Releases asset, and verify the exact SHA-256 digest above before running.
               </p>
             </details>
             <details class="faq-item">
-              <summary><span>Özel skin ve FPS HUD ayarlarım oyuna nasıl yansır?</span><svg class="ico faq-chev" aria-hidden="true"><use href="#ico-chev" /></svg></summary>
-              <p>
-                Basalt içinden yüklediğin <code>64x64</code> veya <code>64x32</code> PNG skinler ve seçtiğin <code>Slim (3 px)</code> / <code>Classic (4 px)</code> kol modeli doğrudan Minecraft <code>1.21.4</code> Fabric istemci moduna aktarılır. Sol üstteki anlık FPS HUD katmanını da isteğine göre açıp kapatabilirsin.
+              <summary><span data-i18n="faq.q3">How are local skins and the FPS HUD passed to Minecraft?</span><svg class="ico faq-chev" aria-hidden="true"><use href="#ico-chev" /></svg></summary>
+              <p data-i18n-html="faq.a3">
+                Any <code>64x64</code> or <code>64x32</code> PNG skin imported into Basalt and your chosen <code>Slim (3 px)</code> or <code>Classic (4 px)</code> arm model are injected directly by the bundled Fabric <code>1.21.4</code> Mixin mod, alongside the toggleable in-game FPS HUD overlay.
               </p>
             </details>
             <details class="faq-item">
-              <summary><span>Hangi oyun modları ve sunucular destekleniyor?</span><svg class="ico faq-chev" aria-hidden="true"><use href="#ico-chev" /></svg></summary>
-              <p>
-                Basalt; yerel tek oyunculu kayıtlar ve yerel <code>online-mode=false</code> geliştirme sunucuları için tasarlanmıştır. Microsoft çevrimiçi hesap doğrulamasını atlatmaz.
+              <summary><span data-i18n="faq.q4">Which worlds and servers are supported?</span><svg class="ico faq-chev" aria-hidden="true"><use href="#ico-chev" /></svg></summary>
+              <p data-i18n-html="faq.a4">
+                Basalt supports singleplayer worlds under local saves and offline-mode (<code>online-mode=false</code>) development servers. Official Microsoft account authentication is never bypassed.
               </p>
             </details>
           </div>
@@ -2402,11 +2457,11 @@
 
   <footer class="site-footer">
     <div class="wrap footer-inner">
-      <div>
-        <strong>Basalt</strong> · Windows için Açık Kaynak Minecraft 1.21.4 Fabric Başlatıcısı (MIT Lisansı) · <a href="https://github.com/MarkesrBetter/Basalt" target="_blank" rel="noopener noreferrer">GitHub Deposu</a>
+      <div data-i18n-html="footer.project">
+        <strong>Basalt</strong> · Open-Source Minecraft 1.21.4 Fabric Launcher for Windows (MIT License) · <a href="https://github.com/MarkesrBetter/Basalt" target="_blank" rel="noopener noreferrer">GitHub Repository</a>
       </div>
-      <div class="footer-legal">
-        Resmi bir Minecraft ürünü değildir. Mojang veya Microsoft tarafından onaylanmamış ve bunlarla ilişkili değildir. Resmi oyun varlıkları uygulama ikilisine gömülmez; kullanıcı bilgisayarında resmi kaynaklardan önbelleklenir.
+      <div class="footer-legal" data-i18n="footer.legal">
+        Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft. Official game binaries and assets are never embedded in the executable; they are cached locally from upstream endpoints on first launch.
       </div>
     </div>
   </footer>
@@ -2416,109 +2471,745 @@
       "use strict";
 
       const DEFAULT_GITHUB_REPO = "MarkesrBetter/Basalt";
-      const EXE_SHA256 = "213d6de37c87bfeee122f6572ed61fd33598250f11c69dc30669c98225e1f134";
+      const EXE_SHA256 = "7b19a68f23669ccfaf75a5b7e3efd516e93debf31a019468271fce08336ce6a4";
+      const EXE_SIZE_DISPLAY = "13.31 MB";
       const SKIN_DATA_URL =
         "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAJ4klEQVR4AeyabYwdVRnHnzkzXUqBmlZbUEtoa0vqquHNKIZoE0lIsBXFaAwGTCBBtHbtbunrUqVSKC3W7m52odCkJJhYvxjEgOIHa2L8QkxQQwJpaCO+fABUsNnasi/3zvj8zr3PzezcuTvb3nu7u8ne3P99/uf/nNdnzp2ZM2ecFHz2b9qQgL7urmRgyyYPOJqhr6fL58Fv3GxB9S1x01a2ojwtm4d0YQA6glDmz5sn0fxQOjoqgKPh63ChNPpM5mtU5lx1BtrTNxhky6Hhy+rZdGEAxpKyjIyPS2mkLGNjFcDR8I3Fqimo2GtVntbxtQsMtFHdk/msTGEAOMocbY56oxnAkd76gwclDTRgDc1UWxgAFzlxUSCRcxIF+lcAytG8L3Syadcu0f/JBKA59ckM/xQGgGl99r0xGTk7LmdHRzw8R9O/Bv5GY5zM16jMhdYLA8BfYMHFHTP2JNhswAoDwImOGcCJr9FJsFEnOBE28rVS53KcrS9Py+Yh7R7T6/xBvY6b5VpuHMv1ZZ5e6sb1alAux5QROBo+hIG9D8uPenfJ4IM/lAE9GcLR8NGRg5sr9wlY6k9r5GkW2weesK7UqsrTas4U8TMgrJ6ssAC/2TRHA2kN7gJfjfgTo/GqxR+6ij90TsiD1r17v2x54BHolMDBIHhD23sS+JQKTZIpeW80we3u104wqMiFEmogQuf0jF/haADdbOgq/o3bdgtlGQSD6ohCLVcZINw0LoXweWEo2Mg5gScjo8KH2YedDAw6cuGE/tkAJivHjRCzLi/P0EPbBZ8bemy3hM5JWBt8VONeq+rdeqnbsG2H3Ldlm8AP9z0slAWRC4RZ4C+TWpfnVc1p+Ui10DkNUCCh0/qVH+7f48vTxqGd9/ujIZkPRxyErr5/Tz7UK/hApphPHurtSWg7dE4O9W6uqz8KtE71OZ+74Oc3L78it99xZy0XHK0mTCCV88QEqclEpEHbdGAgsGrgaJZuxjpObOU4FrOluFTjXTt75XevvCbPPH1EvnX3HbV2er53n9fwkacUJxInsZSScSnp+GN4VStr3SVFxSZSpn5NlxRo1m6t8hTxPj3x3vvIfj/47zz640ASTwUNf0yDqTJGS7SvZWmjpG2ZbhYNnxvXe3cqKlVtWTOXqtzf3WmJy5ZeLsuuWiE+PX+e8pWCpi6vxaVExkplHXwsxs2Ol8teM0vDYymt1pavbOIPPpBW7927rxIBFfFxmVZa9/Xt6zis3WwG/Pj8X4AAkAELjB/QS9tNH10twelT8olrrkH2WLlyudfwccmLNdI4qLTGq5rXq7yswSUPGhy7TS9h1ibpNPCBvLM+Gr5Glzv6gQ9YW9RtQMPn+Nmsy0kqw1619otyxadvkfddu1Yu7rxJtvY/LsHipRIsWOThLlkceLz/8oAylGfVheW/yc0PZ34siyjjWCJ+67c3yVe6tsj6DT1yu9rXT/41Wf/dHsEC62Da0o6l33r7Xwn4spaNz7ybeLzzdt1Jjj5Zmc0H65fLpvkZYBlbZRk8dbEWMG4WfeFll0oe8F1otCUANghbHlt6Jtq2BsBOmtmBD5/+n+Qhm+9CpN1zz/82SSPb6NDho5LG4FM/TY488/PkJ0ef8+X26VoijUArMCj1X0tjfzF4QLJ44Yk+r2G5sUmvFfi/p+ErrP6cfPOUePz3TO0cYnmrWQqN61yzSm77/PUecHDnlz4nd6//rHzmk9fmAh95yEsLnNQAHEQuxMjLx//uQcI0OCc/AAehq0zE0Dlx+vAlrS29NJI6REnuOYTzylL1kZ86pgK36kMLa/ngwITrliyQPJifvAychsFFQai3u6GEevv7zd7dcuWyD3vA0QgCzxfIC7gysC5g0GYj5/xaAS0dJEl/9F5kyegZyYP/26XzFnDX0K+NBJcskDykG3nxyYFaFTwiY6DgH8OjYvjTG+/6oKCTxwrYvTqDDp3T4DkJXWWtgJauWzKfvH6hZbIVJhsHoLBofQan05dBhs7Jp1ZfKf8eE48v3LhGB+aEewBgJeGAQZtmNk8zXyttSwMQ6QowDANxLpJfv3RclnSIfOTZ2+SPJ/7ptWNHHpdjTw+JfTjCwNLTYVsagJvv6ZKb79kosS54Xj3xhvz55Dvy/PK93qJx+8laYDoG2qhNZ7e4uXax3gLnYcEisfzcc1vlHE3AQDtXr5Dh/7wpndd/XJYtmq+rwNivMmNdOFl+yoKyBqymVTka9ZjeLtv0DFin9/HWuViXpixsANrCD3xQ5PQZqHx1885qAHS97BWRUV2tcYtc0kUSg8Um6jPOekGTbf02HYBn9cbGejiqD05LOqivb33AS8M6AzzRn6P79giLnnUbezQ18RvrrGChhCUI8K/19Pqbo4k5W59qOgDcB1i34KzSfvboHrlhxWK565YbvIV/Y8f3LVvNkp9rfVlnACKWIMCP7t/jV4vwdqLpANC54eq9PRxwlE1LW3zANDhgqhMILJdF4/iaRVF5FzT5uXrVyqCd8M8e7BlE2urzCJeHap6igZu/JTPAKpuNdi4As/GotbLPczOAaL5+4m8JgAP4q6+d5J6EZB3wkafOURXytrvytGp24SEIHDu4o9u3C0drN/wMuHr18gBYY/CPda4KLJ21+MiT1S3NitD48O/f8gNKa+Yz63QVCceyDDaObTd8AFrdiA32Vy8dT/5w0SkhCKbltWWDxoYu8lngnrT5pz0B0OcB2u9k3Y1rArBw7RX+eYBquV8bdNqZp6X9reJtCQAbl3r0fR+P77kugaN5YYb9tCUAJV3ScuSfevEvCc8D4GgzbOy+O+0JgK4K9agnw7oa3HrXrQG8pBpnduBbTv2UNWCWNG7W9HbZlgagv7sr6VPEurylwwt5HgBRdO3rD2J9XpAoNDnhW6quBs3iTHPS7UJLAzCiR5ntajZJmfY8CeLowwlMT/9g0K3IDibWgLG5gmXgcAKWzdeOdEsDsEO3utklZibQWQYO4AwemwcChs7jMYIAv1BoaQCs03lH2XyNLMFjS5tgwBvlK9LP1d/yAGT3DpPMp6iDtrfHuwJ+7593AHL2/4vqmaq/5QGYasMzJd9cAGbKkZiufjQ9A/jPp5EdyC9fOCZp8C4C7xbwjgHl7D9vNl3e7/3zDkAT+//p+vJ4bgCy633W/sAqgJOHdN47BOn3BzoL3j9gL78OusfP9nkeznX/nz5OhtwAZNf7rP2BVQQnD+mi9wd4h4B8AA7ggLLYOujWfN7eP1p6a76u3HkIuQE4l3rYk89iSp3UQVKuUVv48tAo//nqTQfgfBueKeXmAjBTjsR09aPpGeBfo82+Q5B6f8DeI8i1Wm66Bm7tNh0Aq2i22rkAzNYj16p+z/oZ0Gwg/g8AAP//eIQtrwAAAAZJREFUAwB/7M5+xwJUmwAAAABJRU5ErkJggg==";
 
       const THEMES = {
-        dark: { name: "Obsidyen Mor", mode: "Koyu", light: false, canvas: "#131118", surface: "#201c29", accent: "#a47cff", text: "#0e091b", hover: "#b594ff", fg: "#b898ff", focus: "#cebaff", soft: "rgba(164, 124, 255, 0.16)" },
-        ember: { name: "Kömür Bakır", mode: "Koyu", light: false, canvas: "#121417", surface: "#1d2127", accent: "#e0824a", text: "#140b06", hover: "#ec935e", fg: "#eb9560", focus: "#f2ad7e", soft: "rgba(224, 130, 74, 0.15)" },
-        light: { name: "Açık Kireçtaşı", mode: "Açık", light: true, canvas: "#f3f1ec", surface: "#ffffff", accent: "#b34c19", text: "#ffffff", hover: "#9d4113", fg: "#9f4213", focus: "#b34c19", soft: "rgba(179, 76, 25, 0.11)" },
-        spruce: { name: "Ladin Zümrüt", mode: "Koyu", light: false, canvas: "#101613", surface: "#1a241f", accent: "#56c27e", text: "#08170e", hover: "#6dd090", fg: "#68cf8d", focus: "#8be0aa", soft: "rgba(86, 194, 126, 0.15)" },
-        cobalt: { name: "Derin Lapis", mode: "Koyu", light: false, canvas: "#0f141c", surface: "#1a2230", accent: "#53b8ec", text: "#06141d", hover: "#6cc6f3", fg: "#67c3f0", focus: "#90d7f9", soft: "rgba(83, 184, 236, 0.15)" },
-        nether: { name: "Kızıl Bazalt", mode: "Koyu", light: false, canvas: "#161113", surface: "#241b1f", accent: "#ea6b66", text: "#1a0707", hover: "#f1827d", fg: "#f2817d", focus: "#f7a29f", soft: "rgba(234, 107, 102, 0.15)" },
-        frost: { name: "Açık Buzul", mode: "Açık", light: true, canvas: "#edf2f7", surface: "#ffffff", accent: "#1d5fb8", text: "#ffffff", hover: "#164e9a", fg: "#1853a3", focus: "#1d5fb8", soft: "rgba(29, 95, 184, 0.11)" },
-        sculk: { name: "Antik Şehir", mode: "Koyu", light: false, canvas: "#0b1116", surface: "#151f27", accent: "#35cad0", text: "#051618", hover: "#52d7dc", fg: "#4fd8dd", focus: "#7de6ea", soft: "rgba(53, 202, 208, 0.15)" },
-        end: { name: "End Taşı", mode: "Koyu", light: false, canvas: "#15151b", surface: "#22222d", accent: "#e4be52", text: "#191405", hover: "#edd074", fg: "#ecd075", focus: "#f4df9a", soft: "rgba(228, 190, 82, 0.15)" },
-        cherry: { name: "Kiraz Çiçeği", mode: "Açık", light: true, canvas: "#f7f0f3", surface: "#ffffff", accent: "#a3295d", text: "#ffffff", hover: "#8a1f4c", fg: "#8f204f", focus: "#a3295d", soft: "rgba(163, 41, 93, 0.11)" }
+        dark: { light: false, canvas: "#131118", surface: "#201c29", accent: "#a47cff", text: "#0e091b", hover: "#b594ff", fg: "#b898ff", focus: "#cebaff", soft: "rgba(164, 124, 255, 0.16)" },
+        ember: { light: false, canvas: "#121417", surface: "#1d2127", accent: "#e0824a", text: "#140b06", hover: "#ec935e", fg: "#eb9560", focus: "#f2ad7e", soft: "rgba(224, 130, 74, 0.15)" },
+        light: { light: true, canvas: "#f3f1ec", surface: "#ffffff", accent: "#b34c19", text: "#ffffff", hover: "#9d4113", fg: "#9f4213", focus: "#b34c19", soft: "rgba(179, 76, 25, 0.11)" },
+        spruce: { light: false, canvas: "#101613", surface: "#1a241f", accent: "#56c27e", text: "#08170e", hover: "#6dd090", fg: "#68cf8d", focus: "#8be0aa", soft: "rgba(86, 194, 126, 0.15)" },
+        cobalt: { light: false, canvas: "#0f141c", surface: "#1a2230", accent: "#53b8ec", text: "#06141d", hover: "#6cc6f3", fg: "#67c3f0", focus: "#90d7f9", soft: "rgba(83, 184, 236, 0.15)" },
+        nether: { light: false, canvas: "#161113", surface: "#241b1f", accent: "#ea6b66", text: "#1a0707", hover: "#f1827d", fg: "#f2817d", focus: "#f7a29f", soft: "rgba(234, 107, 102, 0.15)" },
+        frost: { light: true, canvas: "#edf2f7", surface: "#ffffff", accent: "#1d5fb8", text: "#ffffff", hover: "#164e9a", fg: "#1853a3", focus: "#1d5fb8", soft: "rgba(29, 95, 184, 0.11)" },
+        sculk: { light: false, canvas: "#0b1116", surface: "#151f27", accent: "#35cad0", text: "#051618", hover: "#52d7dc", fg: "#4fd8dd", focus: "#7de6ea", soft: "rgba(53, 202, 208, 0.15)" },
+        end: { light: false, canvas: "#15151b", surface: "#22222d", accent: "#e4be52", text: "#191405", hover: "#edd074", fg: "#ecd075", focus: "#f4df9a", soft: "rgba(228, 190, 82, 0.15)" },
+        cherry: { light: true, canvas: "#f7f0f3", surface: "#ffffff", accent: "#a3295d", text: "#ffffff", hover: "#8a1f4c", fg: "#8f204f", focus: "#a3295d", soft: "rgba(163, 41, 93, 0.11)" }
       };
 
       const ACCENT_PRESETS = {
-        auto: { label: "Tema Varsayılanı", dark: null, light: null },
+        auto: { dark: null, light: null },
         amethyst: {
-          label: "Ametist",
           dark: { accent: "#a47cff", hover: "#b594ff", text: "#0e091b", fg: "#b898ff", focus: "#cebaff", soft: "rgba(164, 124, 255, 0.16)" },
           light: { accent: "#693cc4", hover: "#572fa8", text: "#ffffff", fg: "#5a2eb2", focus: "#693cc4", soft: "rgba(105, 60, 196, 0.11)" }
         },
         copper: {
-          label: "Bakır",
           dark: { accent: "#e0824a", hover: "#ec935e", text: "#140b06", fg: "#eb9560", focus: "#f2ad7e", soft: "rgba(224, 130, 74, 0.15)" },
           light: { accent: "#b34c19", hover: "#9d4113", text: "#ffffff", fg: "#9f4213", focus: "#b34c19", soft: "rgba(179, 76, 25, 0.11)" }
         },
         emerald: {
-          label: "Zümrüt",
           dark: { accent: "#56c27e", hover: "#6dd090", text: "#08170e", fg: "#68cf8d", focus: "#8be0aa", soft: "rgba(86, 194, 126, 0.15)" },
           light: { accent: "#167940", hover: "#116334", text: "#ffffff", fg: "#126836", focus: "#167940", soft: "rgba(22, 121, 64, 0.11)" }
         },
         cyan: {
-          label: "Camgöbeği",
           dark: { accent: "#53b8ec", hover: "#6cc6f3", text: "#06141d", fg: "#67c3f0", focus: "#90d7f9", soft: "rgba(83, 184, 236, 0.15)" },
           light: { accent: "#0d669b", hover: "#095480", text: "#ffffff", fg: "#095786", focus: "#0d669b", soft: "rgba(13, 102, 155, 0.11)" }
         },
         amber: {
-          label: "Kehribar",
           dark: { accent: "#e5a93b", hover: "#eeb955", text: "#171002", fg: "#edb953", focus: "#f5cb78", soft: "rgba(229, 169, 59, 0.15)" },
           light: { accent: "#945a00", hover: "#7d4b00", text: "#ffffff", fg: "#804d00", focus: "#945a00", soft: "rgba(148, 90, 0, 0.11)" }
         },
         crimson: {
-          label: "Kızıl",
           dark: { accent: "#ea6b66", hover: "#f1827d", text: "#1a0707", fg: "#f2817d", focus: "#f7a29f", soft: "rgba(234, 107, 102, 0.15)" },
           light: { accent: "#b42b26", hover: "#99221e", text: "#ffffff", fg: "#9e231f", focus: "#b42b26", soft: "rgba(180, 43, 38, 0.11)" }
         }
       };
 
-      const HARDWARE_TIERS = {
-        low: {
-          title: "Ekonomik / Hafif Sistem Profili",
-          ram: "1536 MB",
-          gc: "G1GC",
-          chunks: 6,
-          fps: "60 FPS",
-          explain: "6 GB ve altı bellekli sistemlerde tarayıcı ve Windows'a alan bırakmak için 1536 MB Xmx atanır, görüş mesafesi 6 chunk seviyesinde tutulur."
+      const HARDWARE_NUMBERS = {
+        low: { ram: "1536 MB", gc: "G1GC", chunks: 6, fps: "60 FPS" },
+        medium: { ram: "2560 MB", gc: "G1GC", chunks: 8, fps: "120 FPS" },
+        high: { ram: "3072 MB", gc: "G1GC", chunks: 10, fps: "165 FPS" },
+        ultra: { ram: "4096 MB", gc: "ZGC", chunks: 12, fps: "240 FPS" }
+      };
+
+      const I18N = {
+        en: {
+          metaTitle: "Basalt · Minecraft 1.21.4 Native Desktop Launcher",
+          metaDesc: "Single-binary Windows Minecraft 1.21.4 Fabric launcher that calibrates JVM memory and render settings to your hardware, with 10 mineral themes, Console Mode, and automatic Java 21 setup.",
+          text: {
+            "skip": "Skip to content",
+            "nav.perf": "Speed & FPS",
+            "nav.themes": "Themes",
+            "nav.console": "Console Mode",
+            "nav.download": "Download",
+            "header.download": "Download",
+            "hero.h1": "Click launch, not settings.",
+            "hero.lead": "Basalt is a single-binary Windows launcher that detects your CPU, RAM, and GPU to calibrate JVM memory and render distance automatically. Zero installer wizard, automatic Java 21 setup if missing, 10 mineral themes, and Console Mode built in.",
+            "hero.secondaryCta": "Try Themes Live",
+            "hero.factSizeLabel": "Package Size",
+            "hero.factThemeLabel": "Visual System",
+            "hero.factThemeVal": "10 Themes · 6 Layouts",
+            "hero.factInfraLabel": "Auto Runtime",
+            "mock.winTitle": "Basalt · Live Product Preview",
+            "mock.tabPlay": "Play",
+            "mock.tabPerf": "Speed & FPS",
+            "mock.tabSkin": "Skin",
+            "mock.hwTitle": "Hardware Profile",
+            "mock.ramLabel": "Memory",
+            "mock.gcLabel": "Engine",
+            "mock.viewLabel": "View",
+            "mock.skinTitle": "Skin Preview",
+            "mock.armLabel": "Arms",
+            "mock.front": "Front",
+            "mock.back": "Back",
+            "mock.swapArms": "Swap Model",
+            "mock.closedSub": "In the desktop app, these three controls adapt to your active mineral theme for native frameless window management.",
+            "mock.restoreBtn": "Restore Preview",
+            "layout.sidebar": "Left Rail",
+            "layout.topbar": "Top Strip",
+            "layout.compact": "Compact Focus",
+            "layout.right": "Right Rail",
+            "layout.minimal": "Slim Dock",
+            "perf.kicker": "Speed & FPS Calibration",
+            "perf.h2": "Calibrated automatically to your hardware.",
+            "perf.note": "Every startup scans system RAM, CPU cores, and GPU tier. Select a hardware class below to inspect exact JVM flags and render targets Basalt writes for your machine.",
+            "tier.low.name": "Light / Entry System",
+            "tier.low.hw": "Under 6 GB RAM · Integrated graphics",
+            "tier.medium.name": "Balanced Laptop",
+            "tier.medium.hw": "8 GB RAM · Midrange GPU",
+            "tier.high.name": "High Performance",
+            "tier.high.hw": "12 GB+ RAM · Discrete gaming GPU",
+            "tier.ultra.name": "Ultra / ZGC Profile",
+            "tier.ultra.hw": "16 GB+ RAM · 8+ CPU cores",
+            "perf.syncTag": "Auto options.txt Sync",
+            "perf.mRam": "Allocated JVM Heap",
+            "perf.mGc": "Garbage Collector",
+            "perf.mView": "Render Distance",
+            "perf.mFps": "Target Frame Cap",
+            "perf.meterLabel": "Active Render Distance Scale (out of 12)",
+            "perf.f1Title": "Direct World or Local Server Entry",
+            "perf.f1Body": "Passes native Quick Play arguments to jump straight into your saved world or local development server, skipping extra menu steps.",
+            "perf.f2Title": "Proportional Viewport Scaling",
+            "perf.f2Body": "Typography and controls scale cleanly with the window size so every desktop panel fits comfortably at standard resolutions without visual clutter.",
+            "perf.f3Title": "Optional Lightweight FPS HUD",
+            "perf.f3Body": "Toggle a compact top-left frame counter and active player badge inside Minecraft 1.21.4 with one switch.",
+            "java.title": "Zero Manual Java 21 Hunting",
+            "java.body": "Setting up a fresh Windows machine stays self-contained. If Java 21 is absent, Basalt fetches Eclipse Temurin 21, verifies its SHA-256 digest in pure Rust, and installs it locally without admin prompts.",
+            "java.s1": "1. Runtime Check (>= 21)",
+            "java.s2": "2. Adoptium Temurin Fetch",
+            "java.s3": "3. SHA-256 Verification",
+            "themes.kicker": "Themes, Colors & Layouts",
+            "themes.h2": "10 mineral themes and live color studio.",
+            "themes.note": "Pick any mineral palette, independent accent color, or corner radius below and watch the entire page adapt immediately with live contrast checks.",
+            "themes.gBiomes": "Mineral & Biome Themes (7 Dark · 3 Light)",
+            "themes.gAccents": "Independent Accent & Custom #RRGGBB",
+            "themes.customLabel": "Custom Hex",
+            "themes.gShape": "Corner Radius & Window Layout",
+            "corner.sharp": "Sharp (2 px)",
+            "corner.balanced": "Balanced (8 px)",
+            "corner.soft": "Soft (13 px)",
+            "themes.tCanvas": "Base Canvas",
+            "themes.tSurface": "Surface Layer",
+            "themes.tAccent": "Active Accent",
+            "themes.tInk": "Button Ink",
+            "themes.wcag": "WCAG AA Contrast Check",
+            "console.kicker": "Fullscreen Console Mode",
+            "console.h2": "Built for couch displays and handheld controllers.",
+            "console.note": "Console Mode expands the desktop window to true fullscreen, enables UI audio cues automatically, and lets you browse launch cards via keyboard or gamepad.",
+            "console.prev": "Previous Card",
+            "console.next": "Next Card",
+            "console.c0k": "Primary Action",
+            "console.c0t": "Minecraft 1.21.4",
+            "console.c0d": "Start immediately with your selected PNG skin and auto-tuned RAM profile.",
+            "console.c1k": "Saved World",
+            "console.c1t": "Survival World",
+            "console.c1d": "Jump straight into a local save via Quick Play without passing the menu.",
+            "console.c2k": "Local Server",
+            "console.c2t": "LAN / Dev Server",
+            "console.c2d": "Check live Protocol 769 SLP latency and connect directly to test servers.",
+            "console.c3k": "Appearance & Audio",
+            "console.c3t": "10 Mineral Themes",
+            "console.c3d": "Switch dark, light, or custom mineral accents live from Console Mode.",
+            "console.sfxClick": "Menu Click",
+            "console.sfxToast": "Notice Chime",
+            "console.sfxLaunch": "Launch Cue",
+            "console.sfxNote": "Note : Web preview uses synthesized tones; desktop plays local cached Minecraft .ogg cues.",
+            "dl.kicker": "Download & Integrity",
+            "dl.mFile": "Binary",
+            "dl.mSize": "Size",
+            "dl.mReq": "Target",
+            "dl.shaLabel": "SHA-256 Checksum",
+            "dl.copySha": "Copy Hash",
+            "dl.psLabel": "PowerShell Verification Command",
+            "dl.copyPs": "Copy Command",
+            "faq.kicker": "About Basalt",
+            "faq.h2": "Frequently Asked Questions",
+            "faq.q1": "How does Basalt launch the game if Java 21 is missing?",
+            "faq.a1": "If no Java 21 or newer JDK is found on the PC, click Auto-Install Java 21 inside the app. Basalt downloads Eclipse Temurin 21 via Windows built-in curl.exe, verifies the SHA-256 checksum, and extracts it into its local data folder without admin elevation.",
+            "faq.q2": "Why might Windows SmartScreen or antivirus flag a fresh binary?",
+            "faq.q3": "How are local skins and the FPS HUD passed to Minecraft?",
+            "faq.q4": "Which worlds and servers are supported?",
+            "footer.legal": "Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft. Official game binaries and assets are never embedded in the executable; they are cached locally from upstream endpoints on first launch."
+          },
+          html: {
+            "themes.explain": "Even when you choose any custom <code>#RRGGBB</code> color, Basalt calibrates button ink and lightness dynamically against dark or light surfaces so legibility stays crisp.",
+            "console.kNav": "<kbd class=\"kbd-pill\">Left / Right</kbd> Navigate",
+            "console.kSel": "<kbd class=\"kbd-pill\">A / Enter</kbd> Select",
+            "faq.a2": "Newly released open-source <code>.exe</code> binaries without a paid EV code-signing certificate can trigger unfamiliar-publisher prompts during their first days online. You can inspect the public source code, GitHub Releases asset, and verify the exact SHA-256 digest above before running.",
+            "faq.a3": "Any <code>64x64</code> or <code>64x32</code> PNG skin imported into Basalt and your chosen <code>Slim (3 px)</code> or <code>Classic (4 px)</code> arm model are injected directly by the bundled Fabric <code>1.21.4</code> Mixin mod, alongside the toggleable in-game FPS HUD overlay.",
+            "faq.a4": "Basalt supports singleplayer worlds under local saves and offline-mode (<code>online-mode=false</code>) development servers. Official Microsoft account authentication is never bypassed.",
+            "footer.project": "<strong>Basalt</strong> · Open-Source Minecraft 1.21.4 Fabric Launcher for Windows (MIT License) · <a href=\"https://github.com/MarkesrBetter/Basalt\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub Repository</a>"
+          },
+          aria: {
+            "nav.aria": "Page sections",
+            "lang.aria": "Language",
+            "header.modeAria": "Switch between dark and light theme",
+            "mock.winMinAria": "Minimize preview window",
+            "mock.winMaxAria": "Cycle window layout",
+            "mock.winCloseAria": "Close preview",
+            "mock.navAria": "Launcher tabs",
+            "mock.skinCanvasAria": "Default Basalt player skin preview",
+            "mock.toolbarAria": "Quick theme picker",
+            "perf.groupAria": "Hardware tier selection",
+            "themes.customAria": "Choose custom accent color",
+            "themes.cardAria": "Active theme tokens and contrast readout",
+            "console.stageAria": "Interactive Console Mode preview, use left and right arrow keys to switch cards"
+          },
+          themes: {
+            dark: { name: "Obsidian Violet", mode: "Dark" },
+            ember: { name: "Charcoal Copper", mode: "Dark" },
+            light: { name: "Limestone", mode: "Light" },
+            spruce: { name: "Spruce Emerald", mode: "Dark" },
+            cobalt: { name: "Deep Lapis", mode: "Dark" },
+            nether: { name: "Crimson Basalt", mode: "Dark" },
+            frost: { name: "Glacier Frost", mode: "Light" },
+            sculk: { name: "Ancient City", mode: "Dark" },
+            end: { name: "End Stone", mode: "Dark" },
+            cherry: { name: "Cherry Blossom", mode: "Light" }
+          },
+          accents: {
+            auto: "Theme Default",
+            amethyst: "Amethyst",
+            copper: "Copper",
+            emerald: "Emerald",
+            cyan: "Cyan",
+            amber: "Amber",
+            crimson: "Crimson"
+          },
+          tiers: {
+            low: {
+              title: "Light / Entry System Profile",
+              explain: "For systems with 6 GB RAM or less, Basalt assigns 1536 MB Xmx and keeps render distance at 6 chunks so Windows and background apps stay responsive."
+            },
+            medium: {
+              title: "Balanced Laptop Profile",
+              explain: "Balanced for 8 GB laptops and integrated or midtier GPUs using 2560 MB G1GC heap and 8-chunk render distance."
+            },
+            high: {
+              title: "High Performance Profile",
+              explain: "On systems with 12 GB+ memory and 6+ cores, Basalt allocates 3072 MB under G1GC to smooth frame pacing and updates graphics keys in options.txt without touching custom keybinds."
+            },
+            ultra: {
+              title: "Ultra / ZGC Profile",
+              explain: "With 16 GB+ memory and 8+ CPU cores, generational ZGC keeps GC pauses sub-millisecond alongside 4096 MB heap and 12 chunks."
+            }
+          },
+          consoleTitles: [
+            "Quick Launch · Minecraft 1.21.4",
+            "Saved World · Survival World",
+            "Local Server · LAN / Dev Server",
+            "Appearance · 10 Mineral Themes"
+          ],
+          tabs: {
+            play: ["Active Profile : Quick Play", "Minecraft 1.21.4", "Hardware profile synced. Launches directly into your world in one click."],
+            perf: ["Calibration : Automatic", "G1GC / ZGC Profile", "Balances options.txt render and JVM flags to match installed RAM."],
+            skin: ["Appearance : Local PNG", "Slim & Classic Skins", "Injects your selected PNG skin texture directly into the Fabric client."]
+          },
+          dyn: {
+            heroFactSize: EXE_SIZE_DISPLAY + " · Single EXE",
+            modeToLight: "Light Theme",
+            modeToDark: "Dark Theme",
+            modeBadgeSuffix: " Mode",
+            themeReadoutPrefix: "Theme : ",
+            themeApplySuffix: " theme",
+            contrastFmt: "Button {b}:1 · Text {t}:1",
+            chunksUnit: " Chunks",
+            armSlim: "Slim 3px",
+            armClassic: "Classic 4px",
+            launchBtnIdle: "Launch Game",
+            launchBtnBusy: "Preparing",
+            statusIdle: "Live Showcase : Ready to launch",
+            launchSteps: [
+              "Live Showcase : Checking Java 21 runtime...",
+              "Live Showcase : Writing options.txt and skin config...",
+              "Live Showcase : Fabric 1.21.4 window ready to start."
+            ],
+            winMinimized: "Basalt window minimized.",
+            winClosed: "Preview window closed.",
+            heroCta: "Download on GitHub (v0.1.0)",
+            relBtn: "GitHub Releases · basalt.exe",
+            relNotes: "Release Notes ({repo})",
+            relDesc: "Linked to {repo} GitHub Releases. Verify the binary against the SHA-256 checksum below before running.",
+            copyShaOk: "SHA-256 checksum copied to clipboard.",
+            copyPsOk: "PowerShell verification command copied."
+          }
         },
-        medium: {
-          title: "Dengeli Dizüstü Profili",
-          ram: "2560 MB",
-          gc: "G1GC",
-          chunks: 8,
-          fps: "120 FPS",
-          explain: "8 GB RAM ve orta düzey grafik kartlarında akıcı keşif için 2560 MB G1GC belleği ve 8 chunk görüş alanı dengelenir."
+
+        tr: {
+          metaTitle: "Basalt · Minecraft 1.21.4 Yerli Masaüstü Başlatıcısı",
+          metaDesc: "Donanımına göre otomatik FPS ve bellek ayarı yapan, 10 mineral temalı ve Konsol Modlu tek dosyalı Windows Minecraft 1.21.4 Fabric başlatıcısı.",
+          text: {
+            "skip": "İçeriğe atla",
+            "nav.perf": "Hız ve FPS",
+            "nav.themes": "Temalar",
+            "nav.console": "Konsol Modu",
+            "nav.download": "İndir",
+            "header.download": "İndir",
+            "hero.h1": "Oyuna bas, ayarların bekletmesin.",
+            "hero.lead": "Basalt; işlemci, bellek ve ekran kartını tanıyıp JVM belleği ile görüş mesafesini otomatik kalibre eden tek dosyalı Windows başlatıcısıdır. Kurulum yapmaz, eksikse Java 21 kurar, 10 mineral teması ve Konsol Modu ile açılır.",
+            "hero.secondaryCta": "Temaları Canlı Dene",
+            "hero.factSizeLabel": "Paket Boyutu",
+            "hero.factThemeLabel": "Görünüm Seçeneği",
+            "hero.factThemeVal": "10 Tema · 6 Düzen",
+            "hero.factInfraLabel": "Otomatik Altyapı",
+            "mock.winTitle": "Basalt · Canlı Ürün Önizlemesi",
+            "mock.tabPlay": "Oyna",
+            "mock.tabPerf": "Hız ve FPS",
+            "mock.tabSkin": "Skin",
+            "mock.hwTitle": "Donanım Çıktısı",
+            "mock.ramLabel": "Bellek",
+            "mock.gcLabel": "Motor",
+            "mock.viewLabel": "Görüş",
+            "mock.skinTitle": "Skin Önizleme",
+            "mock.armLabel": "Kol",
+            "mock.front": "Ön",
+            "mock.back": "Arka",
+            "mock.swapArms": "Kol Değiş",
+            "mock.closedSub": "Gerçek masaüstü uygulamasında bu üç düğme aktif mineral temasına uyumlu pencere kontrolü sunar.",
+            "mock.restoreBtn": "Önizlemeyi Geri Aç",
+            "layout.sidebar": "Sol Ray",
+            "layout.topbar": "Üst Şerit",
+            "layout.compact": "Odak Kompakt",
+            "layout.right": "Sağ Ray",
+            "layout.minimal": "İnce Dock",
+            "perf.kicker": "Hız ve FPS Kalibrasyonu",
+            "perf.h2": "Bilgisayarının gücüne göre otomatik ayarlanır.",
+            "perf.note": "Her açılışta sistem RAM miktarı ve ekran kartı sınıfı algılanır. Kendi sınıfını seçip Basalt'ın hangi JVM ve görüş ayarlarını yazdığını gör.",
+            "tier.low.name": "Ekonomik / Hafif Sistem",
+            "tier.low.hw": "6 GB altı RAM · Dahili grafik",
+            "tier.medium.name": "Dengeli Dizüstü",
+            "tier.medium.hw": "8 GB RAM · Orta seviye GPU",
+            "tier.high.name": "Yüksek Performans",
+            "tier.high.hw": "12 GB+ RAM · Harici oyun GPU",
+            "tier.ultra.name": "Ultra / ZGC Profili",
+            "tier.ultra.hw": "16 GB+ RAM · 8+ çekirdek CPU",
+            "perf.syncTag": "Otomatik options.txt Eşitleme",
+            "perf.mRam": "Ayrılan JVM Bellek",
+            "perf.mGc": "Çöp Toplayıcı",
+            "perf.mView": "Görüş Mesafesi",
+            "perf.mFps": "Hedef FPS Tavanı",
+            "perf.meterLabel": "Aktif Chunk Mesafe Göstergesi (12 üzerinden)",
+            "perf.f1Title": "Doğrudan Dünya veya Yerel Sunucu Girişi",
+            "perf.f1Body": "Quick Play parametreleriyle ana menüye uğramadan seçtiğin kayıtlı dünyaya veya yerel test sunucuna başlar.",
+            "perf.f2Title": "Kaydırma Çubuksuz Orantılı Ekran",
+            "perf.f2Body": "Pencereyi büyütüp küçülttükçe yazı ve kontroller ekrana göre ölçeklenir; standart çözünürlüklerde sekmeler tek bakışta sığar.",
+            "perf.f3Title": "İsteğe Bağlı Hafif FPS Göstergesi",
+            "perf.f3Body": "Oyun içinde sol üst köşede anlık FPS ve oyuncu adını gösteren katmanı tek tıkla açıp kapatabilirsin.",
+            "java.title": "Eksik Java 21 Derdini Ortadan Kaldırır",
+            "java.body": "Yeni veya sıfır Windows bilgisayarlarda Java aramak zorunda kalmazsın. Sistemde Java 21 yoksa Basalt, Eclipse Temurin 21 paketini SHA-256 doğrulamasıyla yerel klasöre kurar.",
+            "java.s1": "1. Sürüm Kontrolü (>= 21)",
+            "java.s2": "2. Adoptium Temurin İndirme",
+            "java.s3": "3. SHA-256 Doğrulama",
+            "themes.kicker": "Temalar, Renkler ve Düzenler",
+            "themes.h2": "10 mineral teması ve canlı renk stüdyosu.",
+            "themes.note": "Aşağıdan bir tema, vurgu rengi veya köşe profili seçtiğinde sadece önizleme değil, şu an gezdiğin tüm sayfa anında o temaya bürünür.",
+            "themes.gBiomes": "Mineral ve Biyom Temaları (7 Koyu · 3 Açık)",
+            "themes.gAccents": "Bağımsız Vurgu Rengi ve Özel #RRGGBB",
+            "themes.customLabel": "Özel Renk",
+            "themes.gShape": "Köşe Profili ve Pencere İçi Yerleşim",
+            "corner.sharp": "Keskin (2 px)",
+            "corner.balanced": "Dengeli (8 px)",
+            "corner.soft": "Yumuşak (13 px)",
+            "themes.tCanvas": "Ana Zemin",
+            "themes.tSurface": "Yüzey Katmanı",
+            "themes.tAccent": "Aktif Vurgu",
+            "themes.tInk": "Buton Üstü Metin",
+            "themes.wcag": "WCAG AA Okunabilirlik Kontrolü",
+            "console.kicker": "Tam Ekran Konsol Modu",
+            "console.h2": "Koltukta veya Steam Deck ekranında tek tuşluk vitrin.",
+            "console.note": "Konsol Modu masaüstü pencereni tam ekrana alır, ses geri bildirimini etkinleştirir ve kartları klavye ya da gamepad ile gezmeni sağlar.",
+            "console.prev": "Önceki Kart",
+            "console.next": "Sonraki Kart",
+            "console.c0k": "Birincil Aksiyon",
+            "console.c0t": "Minecraft 1.21.4",
+            "console.c0d": "Seçili skin ve otomatik RAM profiliyle tek dokunuşla oyunu başlat.",
+            "console.c1k": "Kayıtlı Dünya",
+            "console.c1t": "Hayatta Kalma Dünyası",
+            "console.c1d": "Ana menüyü atlayarak kayıtlı yerel dünyaya Quick Play girişi yap.",
+            "console.c2k": "Yerel Sunucu",
+            "console.c2t": "LAN / Test Sunucusu",
+            "console.c2d": "Kayıtlı yerel sunucuların Protokol 769 ping ve çevrimiçi durumunu gör.",
+            "console.c3k": "Görünüm ve Ses",
+            "console.c3t": "10 Mineral Teması",
+            "console.c3d": "Koyu, açık veya renk aksanını tam ekrandan anında değiştir.",
+            "console.sfxClick": "Menü Sesi",
+            "console.sfxToast": "Bildirim Tonu",
+            "console.sfxLaunch": "Başlatma Tonu",
+            "console.sfxNote": "Not : Web önizlemesi sentetik ton üretir; masaüstünde Minecraft .ogg sesleri çalar.",
+            "dl.kicker": "İndirme ve Doğrulama",
+            "dl.mFile": "Dosya",
+            "dl.mSize": "Boyut",
+            "dl.mReq": "Gereksinim",
+            "dl.shaLabel": "SHA-256 Bütünlük Kodu",
+            "dl.copySha": "Kodu Kopyala",
+            "dl.psLabel": "PowerShell Doğrulama Komutu",
+            "dl.copyPs": "Komutu Kopyala",
+            "faq.kicker": "Ürün Hakkında",
+            "faq.h2": "Sık Sorulanlar",
+            "faq.q1": "Java 21 bilgisayarımda yoksa oyunu nasıl açıyor?",
+            "faq.a1": "Sistemde Java 21 veya üzeri bulunamazsa uygulama içinden Java 21 Kur düğmesine tıklaman yeterlidir. Basalt, Windows'un yerleşik curl.exe aracıyla Adoptium Temurin 21 paketini indirir, SHA-256 ile doğrular ve yönetici izni olmadan yerel klasöre kurar.",
+            "faq.q2": "Windows SmartScreen veya antivirüs uyarısı neden görünebilir?",
+            "faq.q3": "Özel skin ve FPS HUD ayarlarım oyuna nasıl yansır?",
+            "faq.q4": "Hangi oyun modları ve sunucular destekleniyor?",
+            "footer.legal": "Resmi bir Minecraft ürünü değildir. Mojang veya Microsoft tarafından onaylanmamış ve bunlarla ilişkili değildir. Resmi oyun varlıkları uygulama ikilisine gömülmez; kullanıcı bilgisayarında resmi kaynaklardan önbelleklenir."
+          },
+          html: {
+            "themes.explain": "Özel <code>#RRGGBB</code> seçtiğinde bile koyu veya açık yüzey için buton metni ve vurgu tonu otomatik kalibre edilir; kontrast düşmez.",
+            "console.kNav": "<kbd class=\"kbd-pill\">Sol / Sağ</kbd> Gez",
+            "console.kSel": "<kbd class=\"kbd-pill\">A / Enter</kbd> Seç",
+            "faq.a2": "Yeni yayınlanan ve ücretli kod imzalama sertifikası taşımayan bağımsız açık kaynak <code>.exe</code> dosyaları ilk günlerde Windows SmartScreen tarafından tanınmayabilir. Açık kaynak kod, GitHub Releases dağıtımı ve sayfadaki SHA-256 doğrulama koduyla dosyanın değişmediğini kontrol edebilirsin.",
+            "faq.a3": "Basalt içinden yüklediğin <code>64x64</code> veya <code>64x32</code> PNG skinler ve seçtiğin <code>Slim (3 px)</code> / <code>Classic (4 px)</code> kol modeli doğrudan Minecraft <code>1.21.4</code> Fabric istemci moduna aktarılır. Sol üstteki anlık FPS HUD katmanını da açıp kapatabilirsin.",
+            "faq.a4": "Basalt; yerel tek oyunculu kayıtlar ve yerel <code>online-mode=false</code> geliştirme sunucuları için tasarlanmıştır. Microsoft çevrimiçi hesap doğrulamasını atlatmaz.",
+            "footer.project": "<strong>Basalt</strong> · Windows için Açık Kaynak Minecraft 1.21.4 Fabric Başlatıcısı (MIT Lisansı) · <a href=\"https://github.com/MarkesrBetter/Basalt\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub Deposu</a>"
+          },
+          aria: {
+            "nav.aria": "Sayfa bölümleri",
+            "lang.aria": "Arayüz dili",
+            "header.modeAria": "Koyu ve açık tema arasında geç",
+            "mock.winMinAria": "Pencere önizlemesini küçült",
+            "mock.winMaxAria": "Pencere düzenini değiştir",
+            "mock.winCloseAria": "Önizlemeyi kapat",
+            "mock.navAria": "Başlatıcı içi sekmeler",
+            "mock.skinCanvasAria": "Basalt varsayılan oyuncu skini önizlemesi",
+            "mock.toolbarAria": "Hızlı tema seçicisi",
+            "perf.groupAria": "Donanım sınıfı seçimi",
+            "themes.customAria": "Özel vurgu rengi seç",
+            "themes.cardAria": "Aktif tema renk ve kontrast dökümü",
+            "console.stageAria": "Etkileşimli Konsol Modu önizlemesi, sol ve sağ ok tuşlarıyla kart değiştirebilirsiniz"
+          },
+          themes: {
+            dark: { name: "Obsidyen Mor", mode: "Koyu" },
+            ember: { name: "Kömür Bakır", mode: "Koyu" },
+            light: { name: "Açık Kireçtaşı", mode: "Açık" },
+            spruce: { name: "Ladin Zümrüt", mode: "Koyu" },
+            cobalt: { name: "Derin Lapis", mode: "Koyu" },
+            nether: { name: "Kızıl Bazalt", mode: "Koyu" },
+            frost: { name: "Açık Buzul", mode: "Açık" },
+            sculk: { name: "Antik Şehir", mode: "Koyu" },
+            end: { name: "End Taşı", mode: "Koyu" },
+            cherry: { name: "Kiraz Çiçeği", mode: "Açık" }
+          },
+          accents: {
+            auto: "Tema Varsayılanı",
+            amethyst: "Ametist",
+            copper: "Bakır",
+            emerald: "Zümrüt",
+            cyan: "Camgöbeği",
+            amber: "Kehribar",
+            crimson: "Kızıl"
+          },
+          tiers: {
+            low: {
+              title: "Ekonomik / Hafif Sistem Profili",
+              explain: "6 GB ve altı bellekli sistemlerde tarayıcı ve Windows'a alan bırakmak için 1536 MB Xmx atanır, görüş mesafesi 6 chunk seviyesinde tutulur."
+            },
+            medium: {
+              title: "Dengeli Dizüstü Profili",
+              explain: "8 GB RAM ve orta düzey grafik kartlarında akıcı keşif için 2560 MB G1GC belleği ve 8 chunk görüş alanı dengelenir."
+            },
+            high: {
+              title: "Yüksek Performans Profili",
+              explain: "12 GB bellekli ve 6+ çekirdekli sistemlerde kare takılmalarını azaltmak için 3072 MB G1GC belleği atanır ve options.txt içindeki grafik anahtarları güncellenir."
+            },
+            ultra: {
+              title: "Ultra / ZGC Profili",
+              explain: "16 GB ve üzeri sistemlerde duraklama süresini milisaniyenin altına indiren nesilsel ZGC ve 12 chunk görüş uzaklığı otomatik açılır."
+            }
+          },
+          consoleTitles: [
+            "Hızlı Başlat · Minecraft 1.21.4",
+            "Kayıtlı Dünya · Hayatta Kalma Dünyası",
+            "Yerel Sunucu · LAN / Test Sunucusu",
+            "Görünüm · 10 Mineral Teması"
+          ],
+          tabs: {
+            play: ["Aktif Profil : Hızlı Başlat", "Minecraft 1.21.4", "Donanım ayarı hazır. Tek tıkla doğrudan dünyaya iner."],
+            perf: ["Kalibrasyon : Otomatik", "G1GC / ZGC Profili", "Sistem RAM miktarına göre options.txt değerlerini dengeler."],
+            skin: ["Görünüm : Yerel PNG", "Slim ve Classic Skin", "Seçtiğin PNG dokusu oyuna doğrudan aktarılır."]
+          },
+          dyn: {
+            heroFactSize: EXE_SIZE_DISPLAY + " · Tek EXE",
+            modeToLight: "Açık Tema",
+            modeToDark: "Koyu Tema",
+            modeBadgeSuffix: " Mod",
+            themeReadoutPrefix: "Tema : ",
+            themeApplySuffix: " teması",
+            contrastFmt: "Buton {b}:1 · Metin {t}:1",
+            chunksUnit: " Chunk",
+            armSlim: "Slim 3px",
+            armClassic: "Classic 4px",
+            launchBtnIdle: "Oyunu Başlat",
+            launchBtnBusy: "Hazırlanıyor",
+            statusIdle: "Vitrin Önizlemesi : Başlatmaya hazır",
+            launchSteps: [
+              "Vitrin Önizlemesi : Java 21 ortamı kontrol ediliyor...",
+              "Vitrin Önizlemesi : options.txt ve skin parametreleri yazılıyor...",
+              "Vitrin Önizlemesi : Fabric 1.21.4 penceresi başlatmaya hazır."
+            ],
+            winMinimized: "Basalt penceresi simge durumuna küçültüldü.",
+            winClosed: "Vitrin penceresi kapatıldı.",
+            heroCta: "GitHub'dan İndir (v0.1.0)",
+            relBtn: "GitHub Releases · basalt.exe İndir",
+            relNotes: "Sürüm Notları ({repo})",
+            relDesc: "{repo} GitHub Releases sürümüne bağlı. İndirdikten sonra aşağıdaki SHA-256 özeti ile dosyayı doğrulayabilirsin.",
+            copyShaOk: "SHA-256 doğrulama kodu panoya kopyalandı.",
+            copyPsOk: "PowerShell doğrulama komutu kopyalandı."
+          }
         },
-        high: {
-          title: "Yüksek Performans Profili",
-          ram: "3072 MB",
-          gc: "G1GC",
-          chunks: 10,
-          fps: "165 FPS",
-          explain: "12 GB bellekli ve 6+ çekirdekli sistemlerde kare takılmalarını azaltmak için 3072 MB G1GC belleği atanır ve options.txt içindeki grafik anahtarları güncellenir."
-        },
-        ultra: {
-          title: "Ultra / ZGC Profili",
-          ram: "4096 MB",
-          gc: "ZGC",
-          chunks: 12,
-          fps: "240 FPS",
-          explain: "16 GB ve üzeri sistemlerde duraklama süresini milisaniyenin altına indiren nesilsel ZGC ve 12 chunk görüş uzaklığı otomatik açılır."
+
+        de: {
+          metaTitle: "Basalt · Minecraft 1.21.4 Nativer Desktop-Launcher",
+          metaDesc: "Eigenständige Windows-Datei für Minecraft 1.21.4 Fabric mit automatischer JVM- und Sichtweiten-Kalibrierung, 10 Mineralthemen, Konsolenmodus und Java-21-Setup.",
+          text: {
+            "skip": "Zum Inhalt springen",
+            "nav.perf": "Tempo & FPS",
+            "nav.themes": "Themen",
+            "nav.console": "Konsolenmodus",
+            "nav.download": "Download",
+            "header.download": "Download",
+            "hero.h1": "Direkt ins Spiel, ohne Wartezeit.",
+            "hero.lead": "Basalt ist ein kompakter Windows-Launcher aus einer einzigen Datei. Er erkennt CPU, RAM und GPU für optimierte JVM- und Sichtweitenwerte, lädt fehlendes Java 21 automatisch und bietet 10 Mineralthemen samt Konsolenmodus.",
+            "hero.secondaryCta": "Themen testen",
+            "hero.factSizeLabel": "Paketgröße",
+            "hero.factThemeLabel": "Darstellung",
+            "hero.factThemeVal": "10 Themen · 6 Layouts",
+            "hero.factInfraLabel": "Laufzeitumgebung",
+            "mock.winTitle": "Basalt · Interaktive Vorschau",
+            "mock.tabPlay": "Spielen",
+            "mock.tabPerf": "Tempo & FPS",
+            "mock.tabSkin": "Skin",
+            "mock.hwTitle": "Hardware-Profil",
+            "mock.ramLabel": "Speicher",
+            "mock.gcLabel": "Engine",
+            "mock.viewLabel": "Sichtweite",
+            "mock.skinTitle": "Skin-Vorschau",
+            "mock.armLabel": "Arme",
+            "mock.front": "Vorne",
+            "mock.back": "Hinten",
+            "mock.swapArms": "Modell wechseln",
+            "mock.closedSub": "In der Desktop-App passen sich diese drei Fenstersteuerungen direkt an das aktive Mineralthema an.",
+            "mock.restoreBtn": "Vorschau öffnen",
+            "layout.sidebar": "Linksleiste",
+            "layout.topbar": "Kopfzeile",
+            "layout.compact": "Fokus Kompakt",
+            "layout.right": "Rechtsleiste",
+            "layout.minimal": "Schmal-Dock",
+            "perf.kicker": "Tempo & FPS-Kalibrierung",
+            "perf.h2": "Automatisch auf deine Hardware abgestimmt.",
+            "perf.note": "Bei jedem Start werden Arbeitsspeicher, CPU-Kerne und GPU-Klasse geprüft. Wähle unten ein Profil, um die erzeugten JVM- und Sichtweitenwerte zu sehen.",
+            "tier.low.name": "Leicht / Einstiegssystem",
+            "tier.low.hw": "Unter 6 GB RAM · Integrierte Grafik",
+            "tier.medium.name": "Ausgewogenes Notebook",
+            "tier.medium.hw": "8 GB RAM · Mittelklasse-GPU",
+            "tier.high.name": "Hohe Leistung",
+            "tier.high.hw": "12 GB+ RAM · Dedizierte Gaming-GPU",
+            "tier.ultra.name": "Ultra / ZGC-Profil",
+            "tier.ultra.hw": "16 GB+ RAM · 8+ CPU-Kerne",
+            "perf.syncTag": "Auto options.txt Abgleich",
+            "perf.mRam": "Zugewiesener JVM-Heap",
+            "perf.mGc": "Garbage Collector",
+            "perf.mView": "Sichtweite",
+            "perf.mFps": "Ziel-Bildrate",
+            "perf.meterLabel": "Aktive Sichtweiten-Skala (von 12 Chunks)",
+            "perf.f1Title": "Direkteinstieg in Welt oder Testserver",
+            "perf.f1Body": "Übergibt native Quick-Play-Parameter, um ohne Umweg ins Hauptmenü direkt in die gewählte Welt oder einen lokalen Entwicklungsserver zu laden.",
+            "perf.f2Title": "Proportionale Fensterskalierung",
+            "perf.f2Body": "Schriften und Steuerelemente skalieren ruhig mit der Fenstergröße, sodass alle Ansichten auf üblichen Bildschirmen übersichtlich passen.",
+            "perf.f3Title": "Optionales leichtes FPS-HUD",
+            "perf.f3Body": "Aktiviere bei Bedarf ein dezentes Bildraten- und Spieler-Overlay oben links direkt im Minecraft-1.21.4-Client.",
+            "java.title": "Kein manuelles Java-21-Suchen",
+            "java.body": "Auch auf frisch eingerichteten Windows-PCs bleibt alles eigenständig. Fehlt Java 21, lädt Basalt Eclipse Temurin 21, prüft die SHA-256-Prüfsumme in reinem Rust und entpackt lokal ohne Adminrechte.",
+            "java.s1": "1. Versionsprüfung (>= 21)",
+            "java.s2": "2. Adoptium Temurin Download",
+            "java.s3": "3. SHA-256 Prüfung",
+            "themes.kicker": "Themen, Farben & Layouts",
+            "themes.h2": "10 Mineralthemen und Live-Farbstudio.",
+            "themes.note": "Wähle unten eine Palette, Akzentfarbe oder einen Eckenradius. Die gesamte Seite übernimmt die Einstellungen sofort inklusive Kontrastprüfung.",
+            "themes.gBiomes": "Mineral- & Biomthemen (7 Dunkel · 3 Hell)",
+            "themes.gAccents": "Unabhängiger Akzent & Eigenes #RRGGBB",
+            "themes.customLabel": "Eigene Farbe",
+            "themes.gShape": "Eckenradius & Fensterlayout",
+            "corner.sharp": "Kantig (2 px)",
+            "corner.balanced": "Ausgewogen (8 px)",
+            "corner.soft": "Weich (13 px)",
+            "themes.tCanvas": "Hintergrund",
+            "themes.tSurface": "Kartenfläche",
+            "themes.tAccent": "Aktiver Akzent",
+            "themes.tInk": "Button-Text",
+            "themes.wcag": "WCAG-AA Kontrastprüfung",
+            "console.kicker": "Vollbild-Konsolenmodus",
+            "console.h2": "Gemacht für Wohnzimmer-Displays und Gamepads.",
+            "console.note": "Der Konsolenmodus erweitert das Fenster auf echtes Vollbild, aktiviert Oberflächenklänge und steuert Startkarten per Tastatur oder Controller.",
+            "console.prev": "Vorherige Karte",
+            "console.next": "Nächste Karte",
+            "console.c0k": "Hauptaktion",
+            "console.c0t": "Minecraft 1.21.4",
+            "console.c0d": "Startet sofort mit gewähltem PNG-Skin und passendem RAM-Profil.",
+            "console.c1k": "Gespeicherte Welt",
+            "console.c1t": "Überlebenswelt",
+            "console.c1d": "Per Quick Play ohne Titelbildschirm direkt in deinen Spielstand springen.",
+            "console.c2k": "Lokaler Server",
+            "console.c2t": "LAN- / Testserver",
+            "console.c2d": "Protokoll-769-Latenz prüfen und direkt mit lokalen Testservern verbinden.",
+            "console.c3k": "Aussehen & Audio",
+            "console.c3t": "10 Mineralthemen",
+            "console.c3d": "Dunkel-, Hell- oder Mineralakzent direkt im Vollbild wechseln.",
+            "console.sfxClick": "Menü-Klick",
+            "console.sfxToast": "Hinweiston",
+            "console.sfxLaunch": "Start-Signal",
+            "console.sfxNote": "Hinweis : Die Webvorschau nutzt synthetische Töne; am Desktop erklingen lokale Minecraft-.ogg-Sounds.",
+            "dl.kicker": "Download & Integrität",
+            "dl.mFile": "Datei",
+            "dl.mSize": "Größe",
+            "dl.mReq": "System",
+            "dl.shaLabel": "SHA-256 Prüfsumme",
+            "dl.copySha": "Hash kopieren",
+            "dl.psLabel": "PowerShell-Prüfbefehl",
+            "dl.copyPs": "Befehl kopieren",
+            "faq.kicker": "Über Basalt",
+            "faq.h2": "Häufige Fragen",
+            "faq.q1": "Wie startet Basalt das Spiel, wenn Java 21 fehlt?",
+            "faq.a1": "Wird kein JDK 21 oder neuer erkannt, genügt ein Klick auf Java 21 automatisch installieren. Basalt lädt Eclipse Temurin 21 per Windows-eigenem curl.exe, prüft SHA-256 und richtet es ohne Adminrechte lokal ein.",
+            "faq.q2": "Warum warnen Windows SmartScreen oder Virenscanner bei neuen EXE-Dateien?",
+            "faq.q3": "Wie gelangen eigene Skins und das FPS-HUD ins Spiel?",
+            "faq.q4": "Welche Welten und Server werden unterstützt?",
+            "footer.legal": "Kein offizielles Minecraft-Produkt. Nicht von Mojang oder Microsoft genehmigt oder damit verbunden. Offizielle Spieldateien werden nicht in der Anwendung ausgeliefert, sondern erst beim Start lokal geladen."
+          },
+          html: {
+            "themes.explain": "Auch bei beliebigen <code>#RRGGBB</code>-Farbwerten passt Basalt Button-Kontrast und Helligkeit dynamisch an helle oder dunkle Flächen an.",
+            "console.kNav": "<kbd class=\"kbd-pill\">Links / Rechts</kbd> Navigieren",
+            "console.kSel": "<kbd class=\"kbd-pill\">A / Enter</kbd> Wählen",
+            "faq.a2": "Frisch erstellte Open-Source-<code>.exe</code>-Dateien ohne kostenpflichtiges EV-Zertifikat lösen in den ersten Tagen oft allgemeine SmartScreen-Hinweise aus. Quelltext, GitHub Releases und der obige SHA-256-Hash erlauben eine vollständige Prüfung.",
+            "faq.a3": "Importierte <code>64x64</code>- oder <code>64x32</code>-PNG-Skins sowie das gewählte <code>Slim (3 px)</code>- oder <code>Classic (4 px)</code>-Armmodell werden zusammen mit dem zuschaltbaren FPS-HUD direkt über das mitgelieferte Fabric-<code>1.21.4</code>-Mixin eingebunden.",
+            "faq.a4": "Basalt unterstützt lokale Einzelspieler-Welten sowie Offline-Entwicklungsserver (<code>online-mode=false</code>). Offizielle Microsoft-Kontoanmeldungen werden niemals umgangen.",
+            "footer.project": "<strong>Basalt</strong> · Open-Source Minecraft 1.21.4 Fabric Launcher für Windows (MIT-Lizenz) · <a href=\"https://github.com/MarkesrBetter/Basalt\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub-Repository</a>"
+          },
+          aria: {
+            "nav.aria": "Seitenbereiche",
+            "lang.aria": "Sprache",
+            "header.modeAria": "Zwischen hellem und dunklem Thema wechseln",
+            "mock.winMinAria": "Vorschaufenster minimieren",
+            "mock.winMaxAria": "Fensterlayout wechseln",
+            "mock.winCloseAria": "Vorschau schließen",
+            "mock.navAria": "Launcher-Bereiche",
+            "mock.skinCanvasAria": "Vorschau des Basalt-Standard-Skins",
+            "mock.toolbarAria": "Schnelle Themenauswahl",
+            "perf.groupAria": "Hardwareprofil wählen",
+            "themes.customAria": "Eigene Akzentfarbe wählen",
+            "themes.cardAria": "Aktive Farb- und Kontrastwerte",
+            "console.stageAria": "Interaktive Vorschau des Konsolenmodus, mit Links und Rechts umschalten"
+          },
+          themes: {
+            dark: { name: "Obsidian-Violett", mode: "Dunkel" },
+            ember: { name: "Kohle-Kupfer", mode: "Dunkel" },
+            light: { name: "Kalkstein", mode: "Hell" },
+            spruce: { name: "Fichten-Smaragd", mode: "Dunkel" },
+            cobalt: { name: "Tiefes Lapis", mode: "Dunkel" },
+            nether: { name: "Karmesin-Basalt", mode: "Dunkel" },
+            frost: { name: "Gletscherfrost", mode: "Hell" },
+            sculk: { name: "Antike Stadt", mode: "Dunkel" },
+            end: { name: "Endstein", mode: "Dunkel" },
+            cherry: { name: "Kirschblüte", mode: "Hell" }
+          },
+          accents: {
+            auto: "Themenstandard",
+            amethyst: "Amethyst",
+            copper: "Kupfer",
+            emerald: "Smaragd",
+            cyan: "Diamant",
+            amber: "Bernstein",
+            crimson: "Redstone"
+          },
+          tiers: {
+            low: {
+              title: "Leicht / Einstiegsprofil",
+              explain: "Auf Systemen mit bis zu 6 GB RAM werden 1536 MB Xmx und 6 Chunks Sichtweite zugewiesen, damit Windows und Hintergrundprogramme flüssig bleiben."
+            },
+            medium: {
+              title: "Ausgewogenes Notebook-Profil",
+              explain: "Für 8-GB-Notebooks und integrierte oder Mittelklasse-GPUs mit 2560 MB G1GC-Heap und 8 Chunks Sichtweite."
+            },
+            high: {
+              title: "Leistungsstarkes Profil",
+              explain: "Bei 12 GB+ Arbeitsspeicher und 6+ CPU-Kernen weist Basalt 3072 MB G1GC zu und schreibt optimierte Grafikwerte in options.txt ohne Tastenbelegung zu ändern."
+            },
+            ultra: {
+              title: "Ultra / ZGC-Profil",
+              explain: "Mit 16 GB+ RAM und 8+ Kernen hält generationelles ZGC Pausen im Sub-Millisekundenbereich bei 4096 MB Heap und 12 Chunks."
+            }
+          },
+          consoleTitles: [
+            "Schnellstart · Minecraft 1.21.4",
+            "Gespeicherte Welt · Überlebenswelt",
+            "Lokaler Server · LAN- / Testserver",
+            "Darstellung · 10 Mineralthemen"
+          ],
+          tabs: {
+            play: ["Aktives Profil : Schnellstart", "Minecraft 1.21.4", "Hardwareprofil bereit. Startet per Klick direkt in deine Welt."],
+            perf: ["Kalibrierung : Automatisch", "G1GC / ZGC Profil", "Passt options.txt-Sichtweite und JVM-Speicher an deinen RAM an."],
+            skin: ["Aussehen : Lokales PNG", "Slim & Classic Skins", "Bindet deine gewählte PNG-Textur direkt in den Fabric-Client ein."]
+          },
+          dyn: {
+            heroFactSize: EXE_SIZE_DISPLAY + " · Einzelne EXE",
+            modeToLight: "Helles Thema",
+            modeToDark: "Dunkles Thema",
+            modeBadgeSuffix: "",
+            themeReadoutPrefix: "Thema : ",
+            themeApplySuffix: " Thema anwenden",
+            contrastFmt: "Button {b}:1 · Text {t}:1",
+            chunksUnit: " Chunks",
+            armSlim: "Slim 3px",
+            armClassic: "Classic 4px",
+            launchBtnIdle: "Spiel starten",
+            launchBtnBusy: "Vorbereitung",
+            statusIdle: "Live-Vorschau : Bereit zum Start",
+            launchSteps: [
+              "Live-Vorschau : Prüfe Java-21-Umgebung...",
+              "Live-Vorschau : Schreibe options.txt und Skin-Daten...",
+              "Live-Vorschau : Fabric 1.21.4 Fenster startbereit."
+            ],
+            winMinimized: "Basalt-Fenster minimiert.",
+            winClosed: "Vorschaufenster geschlossen.",
+            heroCta: "Auf GitHub laden (v0.1.0)",
+            relBtn: "GitHub Releases · basalt.exe laden",
+            relNotes: "Versionshinweise ({repo})",
+            relDesc: "Verknüpft mit den {repo} GitHub Releases. Prüfe die Datei nach dem Download mit der SHA-256-Summe unten.",
+            copyShaOk: "SHA-256-Prüfsumme in die Zwischenablage kopiert.",
+            copyPsOk: "PowerShell-Prüfbefehl kopiert."
+          }
         }
       };
 
-      const CONSOLE_TITLES = [
-        "Hızlı Başlat · Minecraft 1.21.4",
-        "Kayıtlı Dünya · Hayatta Kalma Dünyası",
-        "Yerel Sunucu · LAN / Test Sunucusu",
-        "Görünüm · 10 Mineral Teması"
-      ];
-
+      let activeLang = "en";
       let activeTheme = "dark";
       let activeAccent = "auto";
       let customHex = "#a47cff";
       let activeTier = "high";
+      let activeMockTab = "play";
+      let activeRepoSlug = DEFAULT_GITHUB_REPO;
       let skinSide = "front";
       let skinSlim = true;
       let consoleIdx = 0;
+      let closedKind = "min";
       let launchTimer = null;
       let skinImg = null;
       let audioCtx = null;
+
+      function dict() {
+        return I18N[activeLang] || I18N.en;
+      }
 
       function hexToRgb(hex) {
         const clean = hex.replace("#", "");
@@ -2582,7 +3273,9 @@
       }
 
       function applyPalette() {
+        const d = dict();
         const theme = THEMES[activeTheme];
+        const tLoc = d.themes[activeTheme];
         const root = document.documentElement;
         root.setAttribute("data-theme", activeTheme);
 
@@ -2602,10 +3295,10 @@
         style.setProperty("--focus-ring", tok.focus);
         style.setProperty("--accent-soft", tok.soft);
 
-        document.getElementById("mode-toggle-label").textContent = theme.light ? "Koyu Tema" : "Açık Tema";
-        document.getElementById("mock-theme-readout").textContent = "Tema : " + theme.name;
-        document.getElementById("studio-active-name").textContent = theme.name;
-        document.getElementById("studio-active-mode").textContent = theme.mode + " Mod";
+        document.getElementById("mode-toggle-label").textContent = theme.light ? d.dyn.modeToDark : d.dyn.modeToLight;
+        document.getElementById("mock-theme-readout").textContent = d.dyn.themeReadoutPrefix + tLoc.name;
+        document.getElementById("studio-active-name").textContent = tLoc.name;
+        document.getElementById("studio-active-mode").textContent = tLoc.mode + d.dyn.modeBadgeSuffix;
 
         document.getElementById("sw-canvas").style.background = theme.canvas;
         document.getElementById("tx-canvas").textContent = theme.canvas.toUpperCase();
@@ -2618,8 +3311,8 @@
 
         const ratio = contrastRatio(tok.accent, tok.text);
         const bodyRatio = contrastRatio(theme.light ? "#17191c" : "#f4f1fa", theme.surface);
-        const badge = document.getElementById("contrast-ratio-badge");
-        badge.textContent = "Buton " + ratio.toFixed(1) + ":1 · Metin " + bodyRatio.toFixed(1) + ":1";
+        document.getElementById("contrast-ratio-badge").textContent =
+          d.dyn.contrastFmt.replace("{b}", ratio.toFixed(1)).replace("{t}", bodyRatio.toFixed(1));
 
         document.querySelectorAll("[data-theme-pick]").forEach((btn) => {
           const on = btn.getAttribute("data-theme-pick") === activeTheme;
@@ -2629,16 +3322,20 @@
       }
 
       function buildThemeControls() {
+        const d = dict();
         const quick = document.getElementById("quick-theme-strip");
         const grid = document.getElementById("theme-grid");
+        quick.innerHTML = "";
+        grid.innerHTML = "";
 
         Object.entries(THEMES).forEach(([key, t]) => {
+          const tLoc = d.themes[key];
           const qBtn = document.createElement("button");
           qBtn.type = "button";
           qBtn.className = "swatch-quick" + (key === activeTheme ? " is-active" : "");
           qBtn.setAttribute("data-theme-pick", key);
-          qBtn.setAttribute("aria-label", t.name + " temasını uygula");
-          qBtn.title = t.name;
+          qBtn.setAttribute("aria-label", tLoc.name + d.dyn.themeApplySuffix);
+          qBtn.title = tLoc.name;
           qBtn.style.background = t.canvas;
           qBtn.innerHTML = '<span class="swatch-quick-chip" style="background:' + t.accent + '"></span>';
           qBtn.addEventListener("click", () => {
@@ -2653,7 +3350,7 @@
           cBtn.setAttribute("data-theme-pick", key);
           cBtn.innerHTML =
             '<span class="theme-preview-box" style="background:' + t.canvas + '"><span class="theme-preview-accent" style="background:' + t.accent + '"></span></span>' +
-            '<span><span class="theme-chip-name">' + t.name + '</span><span class="theme-chip-mode">' + t.mode + " Mod</span></span>";
+            '<span><span class="theme-chip-name">' + tLoc.name + '</span><span class="theme-chip-mode">' + tLoc.mode + d.dyn.modeBadgeSuffix + "</span></span>";
           cBtn.addEventListener("click", () => {
             activeTheme = key;
             applyPalette();
@@ -2662,14 +3359,15 @@
         });
 
         const accentRow = document.getElementById("accent-row");
+        accentRow.querySelectorAll("[data-accent-pick]").forEach((el) => el.remove());
         const customWrap = accentRow.querySelector(".custom-color-wrap");
         Object.entries(ACCENT_PRESETS).forEach(([key, item]) => {
           const btn = document.createElement("button");
           btn.type = "button";
-          btn.className = "accent-btn" + (key === "auto" ? " is-active" : "");
+          btn.className = "accent-btn" + (key === activeAccent ? " is-active" : "");
           btn.setAttribute("data-accent-pick", key);
           const color = key === "auto" ? "var(--accent)" : item.dark.accent;
-          btn.innerHTML = '<span class="accent-dot" style="background:' + color + '"></span><span>' + item.label + "</span>";
+          btn.innerHTML = '<span class="accent-dot" style="background:' + color + '"></span><span>' + d.accents[key] + "</span>";
           btn.addEventListener("click", () => {
             activeAccent = key;
             accentRow.querySelectorAll("[data-accent-pick]").forEach((el) => {
@@ -2679,44 +3377,40 @@
           });
           accentRow.insertBefore(btn, customWrap);
         });
-
-        const picker = document.getElementById("custom-accent-picker");
-        picker.addEventListener("input", (e) => {
-          customHex = e.target.value;
-          activeAccent = "custom";
-          accentRow.querySelectorAll("[data-accent-pick]").forEach((el) => el.classList.remove("is-active"));
-          applyPalette();
-        });
       }
 
       function updateHardwareTier(key) {
         activeTier = key;
-        const data = HARDWARE_TIERS[key];
+        const d = dict();
+        const num = HARDWARE_NUMBERS[key];
+        const tLoc = d.tiers[key];
         document.querySelectorAll("[data-tier]").forEach((b) => {
           b.classList.toggle("is-active", b.getAttribute("data-tier") === key);
         });
-        document.getElementById("cal-tier-title").textContent = data.title;
-        document.getElementById("cal-ram").textContent = data.ram;
-        document.getElementById("cal-gc").textContent = data.gc;
-        document.getElementById("cal-chunks").textContent = data.chunks + " Chunk";
-        document.getElementById("cal-fps").textContent = data.fps;
-        document.getElementById("cal-chunk-ratio").textContent = data.chunks + " / 12";
-        document.getElementById("cal-explain").textContent = data.explain;
+        document.getElementById("cal-tier-title").textContent = tLoc.title;
+        document.getElementById("cal-ram").textContent = num.ram;
+        document.getElementById("cal-gc").textContent = num.gc;
+        document.getElementById("cal-chunks").textContent = num.chunks + d.dyn.chunksUnit;
+        document.getElementById("cal-fps").textContent = num.fps;
+        document.getElementById("cal-chunk-ratio").textContent = num.chunks + " / 12";
+        document.getElementById("cal-explain").textContent = tLoc.explain;
 
-        document.getElementById("mock-spec-ram").textContent = data.ram;
-        document.getElementById("mock-spec-gc").textContent = data.gc;
-        document.getElementById("mock-spec-chunk").textContent = data.chunks + " Chunk";
+        document.getElementById("mock-spec-ram").textContent = num.ram;
+        document.getElementById("mock-spec-gc").textContent = num.gc;
+        document.getElementById("mock-spec-chunk").textContent = num.chunks + d.dyn.chunksUnit;
 
         const meter = document.getElementById("cal-chunk-meter");
         meter.innerHTML = "";
         for (let i = 1; i <= 12; i++) {
           const block = document.createElement("span");
-          block.className = "chunk-block" + (i <= data.chunks ? " is-on" : "");
+          block.className = "chunk-block" + (i <= num.chunks ? " is-on" : "");
           meter.appendChild(block);
         }
       }
 
       function renderSkinCanvas() {
+        const d = dict();
+        document.getElementById("mock-arm-label").textContent = skinSlim ? d.dyn.armSlim : d.dyn.armClassic;
         if (!skinImg) return;
         const headCanvas = document.getElementById("mock-head-canvas");
         const hctx = headCanvas.getContext("2d");
@@ -2758,8 +3452,22 @@
           ctx.drawImage(skinImg, 12, 20, 4, 12, ox + 4 * u, oy + 20 * u, 4 * u, 12 * u);
           ctx.drawImage(skinImg, 28, 52, 4, 12, ox + 8 * u, oy + 20 * u, 4 * u, 12 * u);
         }
+      }
 
-        document.getElementById("mock-arm-label").textContent = skinSlim ? "Slim 3px" : "Classic 4px";
+      function renderMockTab() {
+        const d = dict();
+        const [k, t, s] = d.tabs[activeMockTab] || d.tabs.play;
+        document.getElementById("mock-stage-kicker").textContent = k;
+        document.getElementById("mock-stage-title").textContent = t;
+        document.getElementById("mock-stage-sub").textContent = s;
+        if (!launchTimer) {
+          document.getElementById("mock-launch-label").textContent = d.dyn.launchBtnIdle;
+          document.getElementById("mock-status-text").textContent = d.dyn.statusIdle;
+        } else {
+          document.getElementById("mock-launch-label").textContent = d.dyn.launchBtnBusy;
+        }
+        document.getElementById("closed-notice-title").textContent =
+          closedKind === "close" ? d.dyn.winClosed : d.dyn.winMinimized;
       }
 
       function setupShowcaseInteractions() {
@@ -2791,13 +3499,15 @@
         document.getElementById("mock-win-min").addEventListener("click", () => {
           body.hidden = true;
           closedBox.hidden = false;
-          closedTitle.textContent = "Basalt penceresi simge durumuna küçültüldü.";
+          closedKind = "min";
+          closedTitle.textContent = dict().dyn.winMinimized;
         });
 
         document.getElementById("mock-win-close").addEventListener("click", () => {
           body.hidden = true;
           closedBox.hidden = false;
-          closedTitle.textContent = "Vitrin penceresi kapatıldı.";
+          closedKind = "close";
+          closedTitle.textContent = dict().dyn.winClosed;
         });
 
         document.getElementById("mock-win-restore").addEventListener("click", () => {
@@ -2814,22 +3524,13 @@
           setMockLayout(layouts[layoutIdx]);
         });
 
-        const tabCopy = {
-          play: ["Aktif Profil : Hızlı Başlat", "Minecraft 1.21.4", "Donanım ayarı hazır. Tek tıkla doğrudan dünyaya iner."],
-          perf: ["Kalibrasyon : Otomatik", "G1GC / ZGC Profili", "Sistem RAM miktarına göre options.txt değerlerini dengeler."],
-          skin: ["Görünüm : Yerel PNG", "Slim ve Classic Skin", "Seçtiğin PNG dokusu oyuna doğrudan aktarılır."]
-        };
-
         document.querySelectorAll("[data-mock-tab]").forEach((btn) => {
           btn.addEventListener("click", () => {
-            const key = btn.getAttribute("data-mock-tab");
+            activeMockTab = btn.getAttribute("data-mock-tab");
             document.querySelectorAll("[data-mock-tab]").forEach((b) => {
-              b.classList.toggle("is-active", b.getAttribute("data-mock-tab") === key);
+              b.classList.toggle("is-active", b.getAttribute("data-mock-tab") === activeMockTab);
             });
-            const [k, t, s] = tabCopy[key];
-            document.getElementById("mock-stage-kicker").textContent = k;
-            document.getElementById("mock-stage-title").textContent = t;
-            document.getElementById("mock-stage-sub").textContent = s;
+            renderMockTab();
           });
         });
 
@@ -2859,25 +3560,22 @@
 
         launchBtn.addEventListener("click", () => {
           if (launchTimer) return;
-          const steps = [
-            "Vitrin Önizlemesi : Java 21 ortamı kontrol ediliyor...",
-            "Vitrin Önizlemesi : options.txt ve skin parametreleri yazılıyor...",
-            "Vitrin Önizlemesi : Fabric 1.21.4 penceresi başlatmaya hazır."
-          ];
           let i = 0;
           statusDot.classList.add("is-busy");
-          launchLabel.textContent = "Hazırlanıyor";
-          statusText.textContent = steps[0];
+          launchLabel.textContent = dict().dyn.launchBtnBusy;
+          statusText.textContent = dict().dyn.launchSteps[0];
 
           launchTimer = setInterval(() => {
             i++;
-            if (i < steps.length) {
-              statusText.textContent = steps[i];
+            const d = dict();
+            if (i < d.dyn.launchSteps.length) {
+              statusText.textContent = d.dyn.launchSteps[i];
             } else {
               clearInterval(launchTimer);
               launchTimer = null;
               statusDot.classList.remove("is-busy");
-              launchLabel.textContent = "Oyunu Başlat";
+              launchLabel.textContent = d.dyn.launchBtnIdle;
+              statusText.textContent = d.dyn.statusIdle;
             }
           }, 900);
         });
@@ -2889,7 +3587,7 @@
           const on = Number(card.getAttribute("data-console-idx")) === consoleIdx;
           card.classList.toggle("is-selected", on);
         });
-        document.getElementById("console-active-card-title").textContent = CONSOLE_TITLES[consoleIdx];
+        document.getElementById("console-active-card-title").textContent = dict().consoleTitles[consoleIdx];
       }
 
       function playSynthSfx(kind) {
@@ -2927,7 +3625,7 @@
           gain.connect(audioCtx.destination);
           osc.start(now);
         } catch (_err) {
-          /* Sessiz ortamda yoksay */
+          /* Ignore audio block in restricted browsers */
         }
       }
 
@@ -2965,31 +3663,31 @@
       function applyGithubRepo(repoSlug) {
         const clean = (repoSlug || "").trim().replace(/^https?:\/\/github\.com\//i, "").replace(/\.git$/i, "").replace(/^\/+|\/+$/g, "");
         const valid = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(clean);
-        const heroBtn = document.getElementById("hero-download-cta");
-        const heroLabel = document.getElementById("hero-cta-label");
-        const headerCta = document.getElementById("header-download-cta");
-        const relBtn = document.getElementById("primary-release-btn");
-        const relLabel = document.getElementById("primary-release-label");
-        const pageBtn = document.getElementById("releases-page-btn");
-        const statusDesc = document.getElementById("release-status-desc");
+        if (!valid) return false;
+        activeRepoSlug = clean;
+        renderReleaseLinks();
+        return true;
+      }
 
-        if (valid) {
-          const directUrl = "https://github.com/" + clean + "/releases/latest/download/basalt.exe";
-          const releasesUrl = "https://github.com/" + clean + "/releases";
-          heroBtn.href = directUrl;
-          heroBtn.setAttribute("download", "basalt.exe");
-          heroLabel.textContent = "GitHub'dan İndir (v0.1.0)";
-          headerCta.href = directUrl;
-          relBtn.href = directUrl;
-          relLabel.textContent = "GitHub Releases · basalt.exe İndir";
-          pageBtn.href = releasesUrl;
-          pageBtn.target = "_blank";
-          pageBtn.rel = "noopener noreferrer";
-          pageBtn.querySelector("span").textContent = "Sürüm Notları (" + clean + ")";
-          statusDesc.textContent = clean + " GitHub Releases sürümüne bağlı. İndirdikten sonra aşağıdaki SHA-256 özeti ile dosyayı doğrulayabilirsin.";
-          return true;
-        }
-        return false;
+      function renderReleaseLinks() {
+        const d = dict();
+        const directUrl = "https://github.com/" + activeRepoSlug + "/releases/latest/download/basalt.exe";
+        const releasesUrl = "https://github.com/" + activeRepoSlug + "/releases";
+        const heroBtn = document.getElementById("hero-download-cta");
+        heroBtn.href = directUrl;
+        heroBtn.setAttribute("download", "basalt.exe");
+        document.getElementById("hero-cta-label").textContent = d.dyn.heroCta;
+        document.getElementById("header-download-cta").href = directUrl;
+        document.getElementById("primary-release-btn").href = directUrl;
+        document.getElementById("primary-release-label").textContent = d.dyn.relBtn;
+        const pageBtn = document.getElementById("releases-page-btn");
+        pageBtn.href = releasesUrl;
+        pageBtn.target = "_blank";
+        pageBtn.rel = "noopener noreferrer";
+        pageBtn.querySelector("span").textContent = d.dyn.relNotes.replace("{repo}", activeRepoSlug);
+        document.getElementById("release-status-desc").textContent = d.dyn.relDesc.replace("{repo}", activeRepoSlug);
+        document.getElementById("hero-fact-size").textContent = d.dyn.heroFactSize;
+        document.getElementById("download-meta-size").textContent = EXE_SIZE_DISPLAY;
       }
 
       function setupDownloadsAndCopy() {
@@ -3011,20 +3709,93 @@
         }
 
         document.getElementById("copy-sha-btn").addEventListener("click", () => {
-          copyText(EXE_SHA256, "SHA-256 doğrulama kodu panoya kopyalandı.");
+          copyText(EXE_SHA256, dict().dyn.copyShaOk);
         });
 
         document.getElementById("copy-ps-btn").addEventListener("click", () => {
-          copyText(document.getElementById("ps-verify-cmd").textContent, "PowerShell doğrulama komutu kopyalandı.");
+          copyText(document.getElementById("ps-verify-cmd").textContent, dict().dyn.copyPsOk);
         });
       }
 
-      function init() {
+      function applyLanguage(nextLang) {
+        activeLang = I18N[nextLang] ? nextLang : "en";
+        const d = dict();
+        document.documentElement.lang = activeLang;
+        document.title = d.metaTitle;
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc) metaDesc.setAttribute("content", d.metaDesc);
+
+        document.querySelectorAll("[data-site-lang]").forEach((btn) => {
+          const on = btn.getAttribute("data-site-lang") === activeLang;
+          btn.classList.toggle("is-active", on);
+          btn.setAttribute("aria-pressed", String(on));
+        });
+
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          const key = el.getAttribute("data-i18n");
+          if (key && d.text[key] !== undefined) el.textContent = d.text[key];
+        });
+
+        document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+          const key = el.getAttribute("data-i18n-html");
+          if (key && d.html[key] !== undefined) el.innerHTML = d.html[key];
+        });
+
+        document.querySelectorAll("[data-i18n-aria]").forEach((el) => {
+          const key = el.getAttribute("data-i18n-aria");
+          if (key && d.aria[key] !== undefined) el.setAttribute("aria-label", d.aria[key]);
+        });
+
         buildThemeControls();
+        applyPalette();
+        updateHardwareTier(activeTier);
+        renderSkinCanvas();
+        renderMockTab();
+        updateConsoleSelection(consoleIdx);
+        renderReleaseLinks();
+
+        try {
+          window.localStorage.setItem("basalt-site-lang", activeLang);
+        } catch (_err) {
+          /* Ignore storage limits in private contexts */
+        }
+      }
+
+      function readInitialLang() {
+        const qp = new URLSearchParams(window.location.search).get("lang");
+        if (qp) {
+          const low = qp.toLowerCase();
+          if (I18N[low]) return low;
+        }
+        try {
+          const saved = window.localStorage.getItem("basalt-site-lang");
+          if (saved && I18N[saved]) return saved;
+        } catch (_err) {
+          /* Ignore storage restrictions */
+        }
+        return "en";
+      }
+
+      function init() {
         setupShowcaseInteractions();
         setupConsoleSection();
         setupDownloadsAndCopy();
-        updateHardwareTier("high");
+
+        document.querySelectorAll("[data-site-lang]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const lang = btn.getAttribute("data-site-lang");
+            if (lang) applyLanguage(lang);
+          });
+        });
+
+        const accentRow = document.getElementById("accent-row");
+        const picker = document.getElementById("custom-accent-picker");
+        picker.addEventListener("input", (e) => {
+          customHex = e.target.value;
+          activeAccent = "custom";
+          accentRow.querySelectorAll("[data-accent-pick]").forEach((el) => el.classList.remove("is-active"));
+          applyPalette();
+        });
 
         document.querySelectorAll("[data-tier]").forEach((btn) => {
           btn.addEventListener("click", () => updateHardwareTier(btn.getAttribute("data-tier")));
@@ -3050,7 +3821,7 @@
         skinImg.onload = renderSkinCanvas;
         skinImg.src = SKIN_DATA_URL;
 
-        applyPalette();
+        applyLanguage(readInitialLang());
       }
 
       init();

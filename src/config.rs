@@ -77,6 +77,14 @@ pub enum SkinModel {
     Classic,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum UiLanguage {
+    #[default]
+    En,
+    Tr,
+    De,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum JvmGcMode {
     G1GC,
@@ -147,6 +155,7 @@ pub struct AppConfig {
     pub ui_compact: bool,
     pub ui_reduced_motion: bool,
     pub ui_sounds: bool,
+    pub ui_language: UiLanguage,
     pub last_save_id: Option<String>,
     pub saved_servers: Vec<SavedServer>,
     pub graphics: GraphicsSettings,
@@ -156,7 +165,7 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             config_version: 1,
-            username: "Oyuncu".to_string(),
+            username: "Player".to_string(),
             skin_file: None,
             skin_model: SkinModel::Auto,
             theme: ThemeMode::Dark,
@@ -167,9 +176,10 @@ impl Default for AppConfig {
             ui_compact: false,
             ui_reduced_motion: false,
             ui_sounds: false,
+            ui_language: UiLanguage::En,
             last_save_id: None,
             saved_servers: vec![SavedServer {
-                name: "Yerel Test Sunucusu".to_string(),
+                name: "Local Dev Server".to_string(),
                 address: "127.0.0.1:25565".to_string(),
             }],
             graphics: GraphicsSettings::default(),
@@ -205,11 +215,11 @@ impl AppPaths {
 
     pub fn ensure_dirs(&self) -> Result<(), String> {
         fs::create_dir_all(&self.root_dir)
-            .map_err(|e| format!("Kök veri klasörü oluşturulamadı: {e}"))?;
+            .map_err(|e| format!("Failed to create root data directory: {e}"))?;
         fs::create_dir_all(&self.skins_dir)
-            .map_err(|e| format!("Skin klasörü oluşturulamadı: {e}"))?;
+            .map_err(|e| format!("Failed to create skins directory: {e}"))?;
         fs::create_dir_all(&self.runtime_dir)
-            .map_err(|e| format!("Çalışma zamanı klasörü oluşturulamadı: {e}"))?;
+            .map_err(|e| format!("Failed to create runtime directory: {e}"))?;
         Ok(())
     }
 }
@@ -237,11 +247,11 @@ impl AppConfig {
     pub fn save(&self, path: &Path) -> Result<(), String> {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)
-                .map_err(|e| format!("Ayar klasörü oluşturulamadı: {e}"))?;
+                .map_err(|e| format!("Failed to create settings directory: {e}"))?;
         }
         let body =
-            toml::to_string_pretty(self).map_err(|e| format!("Ayar serileştirilemedi: {e}"))?;
-        fs::write(path, body).map_err(|e| format!("Ayar dosyasına yazılamadı: {e}"))?;
+            toml::to_string_pretty(self).map_err(|e| format!("Failed to serialize settings: {e}"))?;
+        fs::write(path, body).map_err(|e| format!("Failed to write settings file: {e}"))?;
         Ok(())
     }
 }
