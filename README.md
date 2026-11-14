@@ -5,10 +5,10 @@
 
 Windows 10/11 uzerinde **Tauri 2 + TypeScript WebUI** ve **Rust** cekirdegiyle calisan; Fabric Loom uzerinden **Minecraft Java Edition 1.21.4** baslatan masaustu istemci baslaticisi.
 
-## Indirme (GitHub Releases)
+## Indirme ve Web Sitesi
 
 - Hazir tek calistirilabilir Windows paketi (`basalt.exe`): [GitHub Releases](https://github.com/MarkesrBetter/Basalt/releases/latest)
-- Tanitim sitesi: [site/index.html](./site/index.html)
+- Canli tanitim sitesi (GitHub Pages): [markesrbetter.github.io/Basalt](https://markesrbetter.github.io/Basalt/) ([site/index.html](./site/index.html))
 - Dogrulama (`v0.1.0` SHA-256): `213d6de37c87bfeee122f6572ed61fd33598250f11c69dc30669c98225e1f134`
 
 ## Neler Sunar
