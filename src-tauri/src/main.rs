@@ -800,14 +800,49 @@ fn window_close(window: tauri::Window) -> Result<(), String> {
 fn window_start_drag(window: tauri::WebviewWindow) -> Result<(), String> {
     #[cfg(windows)]
     {
+        #[repr(C)]
+        struct WinPoint {
+            x: i32,
+            y: i32,
+        }
         unsafe extern "system" {
             fn ReleaseCapture() -> i32;
+            fn GetCursorPos(lp_point: *mut WinPoint) -> i32;
+            fn PostMessageW(
+                hwnd: *mut core::ffi::c_void,
+                msg: u32,
+                wparam: usize,
+                lparam: isize,
+            ) -> i32;
         }
-        // Release WebView2 child HWND mouse capture so Win32 HTCAPTION move loop starts reliably.
-        unsafe {
-            ReleaseCapture();
+        const WM_NCLBUTTONDOWN: u32 = 0x00A1;
+        const HTCAPTION: usize = 2;
+
+        if let Ok(hwnd) = window.hwnd() {
+            let hwnd_addr = hwnd.0 as usize;
+            return window
+                .run_on_main_thread(move || unsafe {
+                    // Release capture on the GUI thread and pack real cursor screen coordinates
+                    // into LPARAM (MAKELPARAM), bypassing tao's dangling &points LPARAM bug.
+                    ReleaseCapture();
+                    let mut pt = WinPoint { x: 0, y: 0 };
+                    let lparam = if GetCursorPos(&mut pt) != 0 {
+                        (((pt.x as i16 as u16) as u32) | (((pt.y as i16 as u16) as u32) << 16))
+                            as i32 as isize
+                    } else {
+                        0
+                    };
+                    PostMessageW(
+                        hwnd_addr as *mut core::ffi::c_void,
+                        WM_NCLBUTTONDOWN,
+                        HTCAPTION,
+                        lparam,
+                    );
+                })
+                .map_err(|e| format!("Failed to drag window: {e}"));
         }
     }
+
     window
         .start_dragging()
         .map_err(|e| format!("Failed to drag window: {e}"))

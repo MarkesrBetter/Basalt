@@ -2647,7 +2647,13 @@ function wireWindowControls(): void {
     void ipc.windowClose();
   });
 
-  const isInteractiveTarget = (target: HTMLElement | null): boolean =>
+  const resolveTargetElement = (rawTarget: EventTarget | null): Element | null => {
+    if (rawTarget instanceof Element) return rawTarget;
+    if (rawTarget instanceof Node) return rawTarget.parentElement;
+    return null;
+  };
+
+  const isInteractiveTarget = (target: Element | null): boolean =>
     Boolean(
       target?.closest(
         "button, a, input, select, textarea, label, summary, details, canvas, [role='button'], .titlebar-actions, .player-chip, .engine-pill"
@@ -2656,21 +2662,24 @@ function wireWindowControls(): void {
 
   const startWindowDrag = (e: MouseEvent): void => {
     if (e.button !== 0 || e.detail > 1) return;
-    const target = e.target as HTMLElement | null;
+    const target = resolveTargetElement(e.target);
     if (isInteractiveTarget(target)) return;
     e.preventDefault();
+    e.stopPropagation();
     void ipc.windowStartDrag().catch(() => undefined);
   };
 
   titlebar?.addEventListener("dblclick", (e) => {
-    const target = e.target as HTMLElement | null;
+    const target = resolveTargetElement(e.target);
     if (isInteractiveTarget(target)) return;
+    e.stopPropagation();
     void ipc.windowToggleMaximize().then(updateMaximizeIconState).catch(() => undefined);
   });
 
   topbar?.addEventListener("dblclick", (e) => {
-    const target = e.target as HTMLElement | null;
+    const target = resolveTargetElement(e.target);
     if (isInteractiveTarget(target)) return;
+    e.stopPropagation();
     void ipc.windowToggleMaximize().then(updateMaximizeIconState).catch(() => undefined);
   });
 
