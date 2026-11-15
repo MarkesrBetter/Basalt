@@ -421,145 +421,54 @@
               </aside>
             </div>
 
-            <div class="play-turbo-grid" aria-label="Turbo engine, network and Discord controls" data-i18n-aria="turbo.deckAria">
-              <!-- CARD 1: IDM-STYLE MULTI-SEGMENT & PARALLEL DOWNLOADER -->
-              <section class="turbo-card" aria-labelledby="turbo-dl-heading">
-                <div class="turbo-card-head">
-                  <div class="turbo-title-wrap">
-                    <svg class="ico small turbo-ico" aria-hidden="true"><use href="#ico-bolt" /></svg>
-                    <h2 id="turbo-dl-heading" data-i18n="turbo.dlTitle">IDM Turbo Downloader</h2>
-                  </div>
-                  <span class="turbo-badge tabular" id="play-idm-badge">8× RANGE · 24× STREAM</span>
+            <div class="play-under-grid">
+              <section class="panel-card" aria-labelledby="play-recent-heading">
+                <div class="section-head">
+                  <h2 id="play-recent-heading" data-i18n="play.recentTitle">Quick jump · Worlds &amp; servers</h2>
+                  <span class="tabular" id="play-recent-count">0</span>
                 </div>
-                <p class="turbo-desc" data-i18n="turbo.dlDesc">
-                  Splits large JARs into 8 simultaneous HTTP byte-range segments and downloads libraries &amp; assets in parallel over HTTP/2.
-                </p>
-                <div class="idm-segments-bar" id="idm-segments-bar" aria-label="8-part HTTP Range segment status" data-i18n-aria="turbo.segmentsAria">
-                  <span class="idm-seg is-ready" title="Byte Range Segment 1/8">S1</span>
-                  <span class="idm-seg is-ready" title="Byte Range Segment 2/8">S2</span>
-                  <span class="idm-seg is-ready" title="Byte Range Segment 3/8">S3</span>
-                  <span class="idm-seg is-ready" title="Byte Range Segment 4/8">S4</span>
-                  <span class="idm-seg is-ready" title="Byte Range Segment 5/8">S5</span>
-                  <span class="idm-seg is-ready" title="Byte Range Segment 6/8">S6</span>
-                  <span class="idm-seg is-ready" title="Byte Range Segment 7/8">S7</span>
-                  <span class="idm-seg is-ready" title="Byte Range Segment 8/8">S8</span>
-                </div>
-                <div class="turbo-kv-inline">
-                  <span class="kv-key" id="play-spec-mod-label" data-i18n="play.specMod">Vanilla Cache</span>
-                  <span class="kv-val tabular" id="play-spec-mod">-</span>
-                </div>
-                <div class="turbo-controls-row">
-                  <div class="turbo-select-inline">
-                    <label for="play-dl-threads" data-i18n="turbo.dlThreadsLabel">Parallel streams</label>
-                    <select id="play-dl-threads">
-                      <option value="8">8 Streams (Standard)</option>
-                      <option value="16">16 Streams (Fast)</option>
-                      <option value="24" selected>24 Streams (IDM Turbo)</option>
-                      <option value="32">32 Streams (Extreme)</option>
-                    </select>
-                  </div>
-                  <button class="btn-secondary btn-sm" type="button" id="btn-turbo-verify" data-i18n="turbo.verifyNowBtn">
-                    Turbo Pre-Download
-                  </button>
-                </div>
-              </section>
-
-              <!-- CARD 2: PING REDUCER & LIVE CLIENT OPTIMIZER -->
-              <section class="turbo-card" aria-labelledby="turbo-ping-heading">
-                <div class="turbo-card-head">
-                  <div class="turbo-title-wrap">
-                    <svg class="ico small turbo-ico" aria-hidden="true"><use href="#ico-sliders" /></svg>
-                    <h2 id="turbo-ping-heading" data-i18n="turbo.pingTitle">Ping Reducer &amp; Client Boost</h2>
-                  </div>
-                  <span class="turbo-badge tabular" id="play-ping-badge">-- ms CDN</span>
-                </div>
-                <div class="turbo-flags-strip" id="turbo-flags-strip">
-                  <span class="turbo-chip is-on" id="chip-ipv4">IPv4 Direct</span>
-                  <span class="turbo-chip is-on" id="chip-netty">Netty Pooled</span>
-                  <span class="turbo-chip is-on" id="chip-pretouch">AlwaysPreTouch</span>
-                  <span class="turbo-chip is-on" id="chip-prio">High Priority</span>
-                </div>
-                <div class="turbo-toggles-stack">
-                  <div class="setting-toggle turbo-toggle-compact">
-                    <label for="play-net-boost" data-i18n="turbo.netBoostLabel">Low-Ping TCP &amp; Pooled Netty Buffers</label>
-                    <input class="switch" type="checkbox" id="play-net-boost" checked />
-                  </div>
-                  <div class="setting-toggle turbo-toggle-compact">
-                    <label for="play-proc-boost" data-i18n="turbo.procBoostLabel">JVM RAM Pre-Touch &amp; Above-Normal Priority</label>
-                    <input class="switch" type="checkbox" id="play-proc-boost" checked />
-                  </div>
-                </div>
-                <div class="turbo-controls-row">
-                  <button class="btn-primary btn-sm btn-block" type="button" id="btn-optimize-now">
-                    <svg class="ico small" aria-hidden="true"><use href="#ico-bolt" /></svg>
-                    <span data-i18n="turbo.optimizeNowBtn">Optimize Ping &amp; Client Now</span>
-                  </button>
-                </div>
-                <p class="turbo-status-line tabular" id="play-opt-summary" data-i18n="turbo.optDefaultHint">
-                  Active: IPv4 stack, Netty pooled allocator, AlwaysPreTouch &amp; priority boost.
-                </p>
-              </section>
-
-              <!-- CARD 3: DISCORD RICH PRESENCE (IPC / WEBRTC ACTIVITY) & GITHUB -->
-              <section class="turbo-card" aria-labelledby="turbo-discord-heading">
-                <div class="turbo-card-head">
-                  <div class="turbo-title-wrap">
-                    <svg class="ico small turbo-ico" aria-hidden="true"><use href="#ico-code" /></svg>
-                    <h2 id="turbo-discord-heading" data-i18n="discord.cardTitle">Discord Activity &amp; GitHub</h2>
-                  </div>
-                  <span class="turbo-badge tabular" id="discord-status-badge">RPC ACTIVE</span>
-                </div>
-                <div class="discord-rpc-preview" id="discord-rpc-preview">
-                  <div class="discord-rpc-row">
-                    <span class="discord-live-dot" id="discord-live-dot" aria-hidden="true"></span>
-                    <div class="discord-rpc-copy">
-                      <strong id="discord-preview-details">Minecraft 1.21.4 (Vanilla)</strong>
-                      <span class="tabular" id="discord-preview-state">In Launcher · Ready</span>
-                    </div>
-                  </div>
-                  <div class="discord-rpc-meta">
-                    <span class="discord-repo-tag tabular">github.com/Markesrrr/Basalt</span>
-                    <span class="tabular" id="discord-pipe-label">IPC / WebRTC</span>
-                  </div>
-                </div>
-                <div class="setting-toggle turbo-toggle-compact">
-                  <label for="play-discord-rpc" data-i18n="discord.toggleLabel">Show playing activity on Discord</label>
-                  <input class="switch" type="checkbox" id="play-discord-rpc" checked />
-                </div>
-                <div class="turbo-controls-row turbo-btn-pair">
-                  <button class="btn-secondary btn-sm" type="button" id="btn-open-github">
-                    <svg class="ico small" aria-hidden="true"><use href="#ico-code" /></svg>
-                    <span data-i18n="discord.githubBtn">GitHub Repo</span>
-                  </button>
+                <div class="play-recent-list" id="play-recent-list" role="list"></div>
+                <div class="card-footer-actions">
                   <button class="btn-secondary btn-sm" type="button" id="btn-open-gamedir">
                     <svg class="ico small" aria-hidden="true"><use href="#ico-folder" /></svg>
                     <span data-i18n="discord.gameDirBtn">Game Folder</span>
                   </button>
+                  <button class="btn-subtle btn-sm" type="button" id="btn-goto-worlds-bottom" data-i18n="play.manageSaves">
+                    Manage saves
+                  </button>
                 </div>
               </section>
-            </div>
 
-            <div class="play-runtime-strip" aria-label="Client parameters" data-i18n-aria="play.specsTitle">
-              <div class="runtime-pill-item">
-                <span class="kv-key" data-i18n="play.specsTitle">Client &amp; runtime</span>
-                <strong class="tabular" id="play-specs-version-badge">Vanilla 1.21.4 · LWJGL 3</strong>
-              </div>
-              <div class="runtime-pill-item">
-                <span class="kv-key" data-i18n="play.specJdk">Java Runtime</span>
-                <strong class="tabular" id="play-spec-jdk">Java 21</strong>
-              </div>
-              <div class="runtime-pill-item">
-                <span class="kv-key" data-i18n="play.specRam">JVM Memory &amp; GC</span>
-                <strong class="tabular" id="play-spec-ram">4096 MB (G1GC)</strong>
-              </div>
-              <div class="runtime-pill-item">
-                <span class="kv-key" data-i18n="play.specChunks">Render Distance</span>
-                <strong class="tabular" id="play-spec-chunks">12 chunk</strong>
-              </div>
-              <div class="runtime-pill-item runtime-pill-wide">
-                <span class="kv-key" data-i18n="play.hwProfile">Hardware profile</span>
-                <strong class="tabular" id="play-hw-summary" data-i18n="play.hwLoading">Loading hardware profile...</strong>
-              </div>
+              <section class="panel-card" aria-label="Client parameters" data-i18n-aria="play.specsTitle">
+                <div class="section-head">
+                  <h2 data-i18n="play.specsTitle">Client &amp; runtime</h2>
+                  <span class="tabular" id="play-specs-version-badge">Vanilla 1.21.4</span>
+                </div>
+                <dl class="instance-metrics-grid" id="play-client-specs">
+                  <div class="metric-box">
+                    <dt class="kv-key" data-i18n="play.specJdk">Java Runtime</dt>
+                    <dd class="tabular" id="play-spec-jdk">-</dd>
+                  </div>
+                  <div class="metric-box">
+                    <dt class="kv-key" data-i18n="play.specRam">JVM Memory &amp; GC</dt>
+                    <dd class="tabular" id="play-spec-ram">-</dd>
+                  </div>
+                  <div class="metric-box">
+                    <dt class="kv-key" data-i18n="play.specChunks">Render Distance</dt>
+                    <dd class="tabular" id="play-spec-chunks">-</dd>
+                  </div>
+                  <div class="metric-box">
+                    <dt class="kv-key" id="play-spec-mod-label" data-i18n="play.specMod">Vanilla Cache</dt>
+                    <dd class="tabular" id="play-spec-mod">-</dd>
+                  </div>
+                </dl>
+                <div class="card-footer-actions card-footer-split">
+                  <span class="hw-inline-summary tabular" id="play-hw-summary" data-i18n="play.hwLoading">Loading hardware profile...</span>
+                  <button class="btn-subtle btn-sm" type="button" id="btn-play-goto-settings" data-i18n="profile.settingsRedirectBtn">
+                    Open Settings
+                  </button>
+                </div>
+              </section>
             </div>
           </div>
         </section>
@@ -632,29 +541,21 @@
                     <dd class="kv-val tabular" id="profile-uuid-preview">-</dd>
                   </div>
                   <div class="kv-row">
+                    <dt class="kv-key" data-i18n="skin.modelSelectLabel">Arm model (Slim / Classic)</dt>
+                    <dd class="kv-val tabular" id="profile-arm-summary">Slim · 3 px</dd>
+                  </div>
+                  <div class="kv-row">
                     <dt class="kv-key" data-i18n="profile.packPathLabel">Active Skin Pack</dt>
                     <dd class="kv-val tabular">run/resourcepacks/basalt_skin.zip</dd>
                   </div>
-                  <div class="kv-row">
-                    <dt class="kv-key" data-i18n="discord.cardTitle">Discord Activity &amp; GitHub</dt>
-                    <dd class="kv-val tabular" id="profile-discord-summary">Active · github.com/Markesrrr/Basalt</dd>
-                  </div>
-                  <div class="kv-row">
-                    <dt class="kv-key" data-i18n="turbo.dlTitle">IDM Turbo Downloader</dt>
-                    <dd class="kv-val tabular" id="profile-turbo-summary">8× Range · 24 Streams</dd>
-                  </div>
                 </dl>
                 <div class="profile-quick-actions spaced-top-sm">
-                  <button class="btn-secondary btn-sm" type="button" id="btn-goto-settings" data-i18n="profile.settingsRedirectBtn">
-                    Open Settings
-                  </button>
                   <button class="btn-secondary btn-sm" type="button" id="btn-profile-gamedir">
                     <svg class="ico small" aria-hidden="true"><use href="#ico-folder" /></svg>
                     <span data-i18n="discord.gameDirBtn">Game Folder</span>
                   </button>
-                  <button class="btn-secondary btn-sm" type="button" id="btn-profile-github">
-                    <svg class="ico small" aria-hidden="true"><use href="#ico-code" /></svg>
-                    <span data-i18n="discord.githubBtn">GitHub Repo</span>
+                  <button class="btn-subtle btn-sm" type="button" id="btn-goto-settings" data-i18n="profile.settingsRedirectBtn">
+                    Open Settings
                   </button>
                 </div>
               </div>
@@ -761,44 +662,15 @@
                   <option value="1.16.5">1.16.5 (Protocol 754)</option>
                 </select>
               </div>
-
-              <div class="setting-tile">
-                <label for="pref-dl-threads" data-i18n="turbo.dlThreadsLabel">Parallel streams</label>
-                <select id="pref-dl-threads">
-                  <option value="8">8 Streams (Standard)</option>
-                  <option value="16">16 Streams (Fast)</option>
-                  <option value="24" selected>24 Streams (IDM Turbo)</option>
-                  <option value="32">32 Streams (Extreme)</option>
-                </select>
-              </div>
-
-              <div class="setting-tile">
-                <label data-i18n="discord.quickLinksLabel">Repository &amp; local files</label>
-                <div class="turbo-btn-pair">
-                  <button class="btn-secondary btn-sm" type="button" id="btn-settings-github">
-                    <svg class="ico small" aria-hidden="true"><use href="#ico-code" /></svg>
-                    <span data-i18n="discord.githubBtn">GitHub Repo</span>
-                  </button>
-                  <button class="btn-secondary btn-sm" type="button" id="btn-settings-gamedir">
-                    <svg class="ico small" aria-hidden="true"><use href="#ico-folder" /></svg>
-                    <span data-i18n="discord.gameDirBtn">Game Folder</span>
-                  </button>
-                </div>
-              </div>
             </div>
 
             <div class="gfx-switches-grid spaced-top-sm">
               <div class="setting-toggle">
-                <label for="pref-discord-rpc" data-i18n="discord.toggleLabel">Show playing activity on Discord</label>
+                <div class="setting-toggle-copy">
+                  <label for="pref-discord-rpc" data-i18n="discord.toggleLabel">Discord Rich Presence</label>
+                  <span class="subtle-inline-tag tabular" id="discord-status-badge">Active</span>
+                </div>
                 <input class="switch" type="checkbox" id="pref-discord-rpc" checked />
-              </div>
-              <div class="setting-toggle">
-                <label for="pref-net-boost" data-i18n="turbo.netBoostLabel">Low-Ping TCP &amp; Pooled Netty Buffers</label>
-                <input class="switch" type="checkbox" id="pref-net-boost" checked />
-              </div>
-              <div class="setting-toggle">
-                <label for="pref-proc-boost" data-i18n="turbo.procBoostLabel">JVM RAM Pre-Touch &amp; Above-Normal Priority</label>
-                <input class="switch" type="checkbox" id="pref-proc-boost" checked />
               </div>
               <div class="setting-toggle">
                 <label for="pref-sounds" data-i18n="pref.sounds">Desktop UI sound effects</label>
@@ -1134,9 +1006,44 @@
                 </div>
               </form>
 
+              <div class="network-opt-block spaced-top-sm">
+                <div class="section-head">
+                  <h2 data-i18n="turbo.pingTitle">Network &amp; client optimization</h2>
+                  <span class="tabular" id="play-ping-badge">-- ms</span>
+                </div>
+                <div class="gfx-controls-grid">
+                  <div class="setting-tile">
+                    <label for="pref-dl-threads" data-i18n="turbo.dlThreadsLabel">Concurrent downloads</label>
+                    <select id="pref-dl-threads">
+                      <option value="8">8 Threads</option>
+                      <option value="16">16 Threads</option>
+                      <option value="24" selected>24 Threads (Default)</option>
+                      <option value="32">32 Threads (Max)</option>
+                    </select>
+                  </div>
+                  <div class="setting-tile">
+                    <label data-i18n="turbo.networkDiagLabel">Network diagnostics</label>
+                    <button class="btn-secondary btn-sm btn-block" type="button" id="btn-optimize-now">
+                      <span data-i18n="turbo.optimizeNowBtn">Test Latency &amp; Flush DNS</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="gfx-switches-grid spaced-top-sm">
+                  <div class="setting-toggle">
+                    <label for="pref-net-boost" data-i18n="turbo.netBoostLabel">Low-latency network stack (IPv4 &amp; Netty pool)</label>
+                    <input class="switch" type="checkbox" id="pref-net-boost" checked />
+                  </div>
+                  <div class="setting-toggle">
+                    <label for="pref-proc-boost" data-i18n="turbo.procBoostLabel">Memory pre-touch &amp; high process priority</label>
+                    <input class="switch" type="checkbox" id="pref-proc-boost" checked />
+                  </div>
+                </div>
+                <p class="muted-copy muted-compact spaced-top-sm tabular" id="play-opt-summary" hidden></p>
+              </div>
+
               <details class="settings-drawer spaced-top-sm" id="hardware-runtime-drawer">
                 <summary class="settings-drawer-summary">
-                  <span data-i18n="system.drawerTitle">Hardware &amp; Runtime Diagnostics</span>
+                  <span data-i18n="system.drawerTitle">Hardware, Runtime &amp; About</span>
                   <svg class="ico small drawer-chevron" aria-hidden="true"><use href="#ico-chevron" /></svg>
                 </summary>
                 <div class="settings-drawer-body">
@@ -1152,7 +1059,7 @@
                   </dl>
 
                   <div class="section-head spaced-top-sm">
-                    <h2 data-i18n="system.gradleTitle">Vanilla 1.21.4 runtime</h2>
+                    <h2 data-i18n="system.gradleTitle">Vanilla runtime &amp; directories</h2>
                     <span class="tabular" id="gradle-status-tag">-</span>
                   </div>
                   <dl class="hw-table">
@@ -1170,6 +1077,14 @@
                     </button>
                     <button class="btn-secondary btn-sm" type="button" id="btn-system-open-java" data-i18n="system.openJavaBtn">
                       Adoptium JDK 21 Page
+                    </button>
+                    <button class="btn-secondary btn-sm" type="button" id="btn-settings-gamedir">
+                      <svg class="ico small" aria-hidden="true"><use href="#ico-folder" /></svg>
+                      <span data-i18n="discord.gameDirBtn">Game Folder</span>
+                    </button>
+                    <button class="btn-secondary btn-sm" type="button" id="btn-settings-github">
+                      <svg class="ico small" aria-hidden="true"><use href="#ico-code" /></svg>
+                      <span data-i18n="discord.githubBtn">GitHub</span>
                     </button>
                   </div>
                 </div>

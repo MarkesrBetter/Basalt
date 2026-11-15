@@ -1433,7 +1433,7 @@ where
         let streams = parallel_streams.clamp(4, 32);
         log(
             &format!(
-                "[IDM Turbo {streams}x + 8-Part Range] Downloading {total} verified Vanilla {ver} file(s) from Mojang CDN..."
+                "[Downloader · {streams} threads] Downloading {total} verified Vanilla {ver} file(s) from Mojang CDN..."
             ),
             false,
         );
@@ -1450,7 +1450,7 @@ where
             let mbps = (chunk_bytes as f64 / (1024.0 * 1024.0)) / secs;
             log(
                 &format!(
-                    "[IDM Turbo {streams}x · {mbps:.1} MB/s] Vanilla {ver} progress: {completed} / {total} verified."
+                    "[Downloader · {mbps:.1} MB/s] Vanilla {ver} progress: {completed} / {total} verified."
                 ),
                 false,
             );

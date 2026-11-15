@@ -673,52 +673,99 @@ function renderPlayView(): void {
     cacheReady ? "play.prepareHintReady" : "play.prepareHintWait"
   );
 
-  // Turbo Downloader, Low-Ping & Discord Rich Presence Command Deck
-  const dlThreads = config.download_threads || 24;
-  byId<HTMLSpanElement>("play-idm-badge").textContent = `8× RANGE · ${dlThreads}× STREAM`;
-  byId<HTMLSelectElement>("play-dl-threads").value = String(dlThreads);
-  byId<HTMLButtonElement>("btn-turbo-verify").disabled =
-    state.running_session !== null || !vanilla.java_ready;
+  // Quick Jump · Worlds & Servers list on Play view
+  const recentList = byId<HTMLDivElement>("play-recent-list");
+  recentList.innerHTML = "";
 
-  const segBar = document.getElementById("idm-segments-bar");
-  if (segBar) {
-    const segs = Array.from(segBar.querySelectorAll<HTMLElement>(".idm-seg"));
-    const isRunningPrepare = state.running_session?.kind === "prepare";
-    segs.forEach((seg, idx) => {
-      seg.classList.toggle("is-ready", cacheReady && !isRunningPrepare);
-      seg.classList.toggle("is-active", isRunningPrepare || (!cacheReady && idx < 4));
+  interface QuickJumpEntry {
+    kind: "world" | "server";
+    title: string;
+    meta: string;
+    isSelected?: boolean;
+    saveId?: string;
+    serverAddr?: string;
+  }
+
+  const jumpEntries: QuickJumpEntry[] = [];
+  for (const save of saves.slice(0, 3)) {
+    jumpEntries.push({
+      kind: "world",
+      title: save.id,
+      meta: tr(lang, "play.recentWorldMeta", {
+        size: formatBytes(save.size_bytes),
+        date: formatEpoch(save.modified_epoch_secs),
+      }),
+      isSelected: save.id === activeSaveId,
+      saveId: save.id,
+    });
+  }
+  for (const srv of config.saved_servers.slice(0, Math.max(0, 3 - jumpEntries.length))) {
+    jumpEntries.push({
+      kind: "server",
+      title: srv.name,
+      meta: tr(lang, "play.recentServerMeta", { addr: srv.address }),
+      serverAddr: srv.address,
     });
   }
 
-  byId<HTMLInputElement>("play-net-boost").checked = config.network_boost;
-  byId<HTMLInputElement>("play-proc-boost").checked = config.process_boost;
-  byId<HTMLElement>("chip-ipv4").classList.toggle("is-on", config.network_boost);
-  byId<HTMLElement>("chip-netty").classList.toggle("is-on", config.network_boost);
-  byId<HTMLElement>("chip-pretouch").classList.toggle("is-on", config.process_boost);
-  byId<HTMLElement>("chip-prio").classList.toggle("is-on", config.process_boost);
+  const totalTargets = saves.length + config.saved_servers.length;
+  byId<HTMLSpanElement>("play-recent-count").textContent = tr(lang, "deck.itemsCount", {
+    count: totalTargets,
+  });
 
-  const rpc = state.discord_rpc_status;
-  byId<HTMLInputElement>("play-discord-rpc").checked = config.discord_rpc;
-  const rpcBadge = byId<HTMLSpanElement>("discord-status-badge");
-  const rpcDot = byId<HTMLSpanElement>("discord-live-dot");
-  if (!config.discord_rpc) {
-    rpcBadge.textContent = tr(lang, "discord.statusDisabled");
-    rpcDot.dataset.state = "off";
-  } else if (rpc?.connected) {
-    rpcBadge.textContent = tr(lang, "discord.statusConnected", { pipe: rpc.pipe_name });
-    rpcDot.dataset.state = "live";
+  if (jumpEntries.length === 0) {
+    const emptyEl = document.createElement("p");
+    emptyEl.className = "muted-copy recent-empty-note";
+    emptyEl.textContent = tr(lang, "play.recentEmpty");
+    recentList.appendChild(emptyEl);
   } else {
-    rpcBadge.textContent = tr(lang, "discord.statusStandby");
-    rpcDot.dataset.state = "standby";
+    for (const item of jumpEntries) {
+      const row = document.createElement("div");
+      row.className = item.isSelected ? "recent-jump-row is-active" : "recent-jump-row";
+      row.setAttribute("role", "listitem");
+
+      const copy = document.createElement("div");
+      copy.className = "recent-jump-copy";
+
+      const titleLine = document.createElement("div");
+      titleLine.className = "recent-jump-title";
+      const nameSpan = document.createElement("span");
+      nameSpan.textContent = item.title;
+      titleLine.appendChild(nameSpan);
+
+      if (item.isSelected) {
+        const tag = document.createElement("span");
+        tag.className = "row-tag";
+        tag.textContent = tr(lang, "worlds.selectedTag");
+        titleLine.appendChild(tag);
+      }
+
+      const metaLine = document.createElement("div");
+      metaLine.className = "recent-jump-meta tabular";
+      metaLine.textContent = item.meta;
+
+      copy.append(titleLine, metaLine);
+
+      const actionBtn = document.createElement("button");
+      actionBtn.type = "button";
+      actionBtn.className = "btn-secondary btn-sm";
+      actionBtn.disabled = state.running_session !== null || !vanilla.java_ready;
+      actionBtn.textContent = tr(
+        lang,
+        item.kind === "world" ? "worlds.btnLaunch" : "servers.btnConnect"
+      );
+      actionBtn.addEventListener("click", () => {
+        if (item.kind === "world" && item.saveId) {
+          void handleLaunchClient("singleplayer", item.saveId, null);
+        } else if (item.kind === "server" && item.serverAddr) {
+          void handleLaunchClient("multiplayer", null, item.serverAddr);
+        }
+      });
+
+      row.append(copy, actionBtn);
+      recentList.appendChild(row);
+    }
   }
-  byId<HTMLElement>("discord-preview-details").textContent =
-    rpc?.details || `Minecraft ${config.mc_version} (Vanilla)`;
-  byId<HTMLElement>("discord-preview-state").textContent = state.running_session
-    ? `Playing · ${state.running_session.label} (${config.username})`
-    : rpc?.state_label || `In Launcher · Ready (${config.username})`;
-  byId<HTMLElement>("discord-pipe-label").textContent = rpc?.connected
-    ? `IPC · ${rpc.pipe_name}`
-    : "IPC / WebRTC";
 
   if (getEffectiveLayout() === "DeckMode") {
     renderConsoleHome();
@@ -1264,11 +1311,20 @@ function renderProfileView(): void {
   byId<HTMLSelectElement>("pref-dl-threads").value = String(config.download_threads || 24);
 
   byId<HTMLElement>("profile-uuid-preview").textContent = computeOfflineUuidPreview(config.username);
-  byId<HTMLElement>("profile-discord-summary").textContent = config.discord_rpc
-    ? `${state.discord_rpc_status?.connected ? "Live" : "IPC Standby"} · github.com/Markesrrr/Basalt`
-    : `${tr(lang, "discord.statusDisabled")} · github.com/Markesrrr/Basalt`;
-  byId<HTMLElement>("profile-turbo-summary").textContent =
-    `8× Range · ${config.download_threads || 24} Streams · ${config.network_boost ? "Low-Ping ON" : "Standard"}`;
+  byId<HTMLElement>("profile-arm-summary").textContent = tr(
+    lang,
+    skin_is_slim ? "skin.badgeSlim" : "skin.badgeClassic"
+  );
+
+  const rpc = state.discord_rpc_status;
+  const rpcBadge = byId<HTMLSpanElement>("discord-status-badge");
+  if (!config.discord_rpc) {
+    rpcBadge.textContent = tr(lang, "discord.statusDisabled");
+  } else if (rpc?.connected) {
+    rpcBadge.textContent = tr(lang, "discord.statusConnected");
+  } else {
+    rpcBadge.textContent = tr(lang, "discord.statusStandby");
+  }
 
   byId<HTMLSpanElement>("skin-resolved-badge").textContent = tr(
     lang,
@@ -2553,6 +2609,14 @@ function wireEvents(): void {
     setActiveView("worlds", true, true);
   });
 
+  byId<HTMLButtonElement>("btn-goto-worlds-bottom").addEventListener("click", () => {
+    setActiveView("worlds", true, true);
+  });
+
+  byId<HTMLButtonElement>("btn-play-goto-settings").addEventListener("click", () => {
+    setActiveView("system", true, true);
+  });
+
   byId<HTMLButtonElement>("btn-goto-settings").addEventListener("click", () => {
     setActiveView("system", true, true);
   });
@@ -2576,17 +2640,8 @@ function wireEvents(): void {
     void handlePrepareVanilla();
   });
 
-  byId<HTMLButtonElement>("btn-turbo-verify").addEventListener("click", () => {
-    void handlePrepareVanilla();
-  });
-
   byId<HTMLButtonElement>("btn-optimize-now").addEventListener("click", () => {
     void handleOptimizeClientNow();
-  });
-
-  byId<HTMLSelectElement>("play-dl-threads").addEventListener("change", (e) => {
-    const val = Number((e.currentTarget as HTMLSelectElement).value) || 24;
-    void handleSaveTurboSettings({ download_threads: val });
   });
 
   byId<HTMLSelectElement>("pref-dl-threads").addEventListener("change", (e) => {
@@ -2594,21 +2649,9 @@ function wireEvents(): void {
     void handleSaveTurboSettings({ download_threads: val });
   });
 
-  byId<HTMLInputElement>("play-net-boost").addEventListener("change", (e) => {
-    void handleSaveTurboSettings({
-      network_boost: (e.currentTarget as HTMLInputElement).checked,
-    });
-  });
-
   byId<HTMLInputElement>("pref-net-boost").addEventListener("change", (e) => {
     void handleSaveTurboSettings({
       network_boost: (e.currentTarget as HTMLInputElement).checked,
-    });
-  });
-
-  byId<HTMLInputElement>("play-proc-boost").addEventListener("change", (e) => {
-    void handleSaveTurboSettings({
-      process_boost: (e.currentTarget as HTMLInputElement).checked,
     });
   });
 
@@ -2618,24 +2661,13 @@ function wireEvents(): void {
     });
   });
 
-  byId<HTMLInputElement>("play-discord-rpc").addEventListener("change", (e) => {
-    void handleSaveTurboSettings({
-      discord_rpc: (e.currentTarget as HTMLInputElement).checked,
-    });
-  });
-
   byId<HTMLInputElement>("pref-discord-rpc").addEventListener("change", (e) => {
     void handleSaveTurboSettings({
       discord_rpc: (e.currentTarget as HTMLInputElement).checked,
     });
   });
 
-  for (const id of [
-    "btn-open-github",
-    "btn-rail-github",
-    "btn-profile-github",
-    "btn-settings-github",
-  ]) {
+  for (const id of ["btn-rail-github", "btn-settings-github"]) {
     byId<HTMLButtonElement>(id).addEventListener("click", () => {
       void handleOpenGithubPage();
     });

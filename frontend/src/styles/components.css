@@ -1921,51 +1921,72 @@ dialog p {
   justify-content: center;
 }
 
-/* ---------- 3-Card Turbo, Low-Ping & Discord Rich Presence Command Deck ---------- */
+/* ---------- Play Under-Grid: Quick Jump & Client Overview Cards ---------- */
 
-.play-turbo-grid {
-  flex: 0 0 auto;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.95rem;
-}
-
-@media (max-width: 1120px) {
-  .play-turbo-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.turbo-card {
+.panel-card {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 0.65rem;
-  padding: 0.95rem 1.05rem;
+  gap: 0.78rem;
+  padding: 1.05rem 1.2rem;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   background: var(--bg-surface);
   min-width: 0;
 }
 
-.turbo-card-head {
+.play-recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.48rem;
+  min-height: 7.2rem;
+  justify-content: center;
+}
+
+.recent-empty-note {
+  margin: 0;
+  padding: 0.85rem 0.95rem;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-subtle);
+  background: var(--bg-surface-alt);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.recent-jump-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.55rem;
-  padding-bottom: 0.52rem;
-  border-bottom: 1px solid var(--border-subtle);
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-alt);
+  transition: border-color 140ms ease, background-color 140ms ease;
 }
 
-.turbo-title-wrap {
+.recent-jump-row:hover {
+  border-color: var(--border-control);
+}
+
+.recent-jump-row.is-active {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border-subtle));
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-surface-alt));
+}
+
+.recent-jump-copy {
   display: flex;
-  align-items: center;
-  gap: 0.45rem;
+  flex-direction: column;
+  gap: 0.14rem;
   min-width: 0;
 }
 
-.turbo-title-wrap h2 {
-  font-size: 0.96rem;
+.recent-jump-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;
@@ -1973,195 +1994,40 @@ dialog p {
   text-overflow: ellipsis;
 }
 
-.turbo-ico {
-  color: var(--accent-fg);
-  flex: 0 0 auto;
-}
-
-.turbo-badge {
-  flex: 0 0 auto;
-  padding: 0.18rem 0.48rem;
-  border: 1px solid var(--border-control);
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface-alt);
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--accent-fg);
-}
-
-.turbo-desc {
-  margin: 0;
-  font-size: 0.82rem;
+.recent-jump-meta {
+  font-size: 0.76rem;
   color: var(--text-muted);
-  line-height: 1.42;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.idm-segments-bar {
+.instance-metrics-grid {
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 0.28rem;
-}
-
-.idm-seg {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 1.45rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-surface-alt);
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--text-subtle);
-  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
-}
-
-.idm-seg.is-ready {
-  border-color: color-mix(in srgb, var(--success) 55%, var(--border-subtle));
-  background: color-mix(in srgb, var(--success) 14%, var(--bg-surface-alt));
-  color: var(--success);
-}
-
-.idm-seg.is-active {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 18%, var(--bg-surface-alt));
-  color: var(--accent-fg);
-}
-
-.turbo-kv-inline {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.65rem;
-  padding: 0.35rem 0.55rem;
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface-alt);
-  border: 1px solid var(--border-subtle);
-}
-
-.turbo-kv-inline .kv-val {
-  flex: 0 1 auto;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.turbo-controls-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.55rem;
-  margin-top: auto;
 }
 
-.turbo-select-inline {
-  flex: 1 1 auto;
-  min-width: 0;
+.metric-box {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-}
-
-.turbo-select-inline label {
-  font-size: 0.76rem;
-  color: var(--text-subtle);
-}
-
-.turbo-select-inline select {
-  min-height: 2.2rem;
-  padding: 0.25rem 0.55rem;
-  font-size: 0.84rem;
-}
-
-.turbo-flags-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.32rem;
-}
-
-.turbo-chip {
-  padding: 0.16rem 0.46rem;
-  border-radius: var(--radius-sm);
+  gap: 0.18rem;
+  padding: 0.58rem 0.75rem;
   border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
   background: var(--bg-surface-alt);
-  font-family: var(--font-mono);
+  min-width: 0;
+}
+
+.metric-label {
   font-size: 0.72rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--text-subtle);
 }
 
-.turbo-chip.is-on {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--border-subtle));
-  color: var(--accent-fg);
-  background: color-mix(in srgb, var(--accent) 12%, var(--bg-surface-alt));
-}
-
-.turbo-toggles-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.turbo-toggle-compact {
-  padding: 0.36rem 0.6rem;
-  background: var(--bg-surface-alt);
-}
-
-.turbo-toggle-compact label {
-  font-size: 0.81rem;
-  font-weight: 600;
-}
-
-.turbo-status-line {
-  margin: 0;
-  font-size: 0.76rem;
-  color: var(--text-muted);
-  line-height: 1.35;
-}
-
-.discord-rpc-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 0.42rem;
-  padding: 0.55rem 0.68rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-control);
-  background: var(--bg-surface-alt);
-}
-
-.discord-rpc-row {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  min-width: 0;
-}
-
-.discord-live-dot {
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 50%;
-  background: var(--success);
-  flex: 0 0 auto;
-}
-
-.discord-live-dot[data-state="standby"] {
-  background: var(--accent);
-}
-
-.discord-live-dot[data-state="off"] {
-  background: var(--text-subtle);
-}
-
-.discord-rpc-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-}
-
-.discord-rpc-copy strong {
+.metric-value {
   font-size: 0.86rem;
   font-weight: 700;
   color: var(--text);
@@ -2170,84 +2036,82 @@ dialog p {
   text-overflow: ellipsis;
 }
 
-.discord-rpc-copy span {
-  font-size: 0.78rem;
+.instance-hw-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.42rem 0.65rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-alt);
+  min-width: 0;
+}
+
+.instance-hw-line .kv-val {
+  font-size: 0.8rem;
+  font-weight: 600;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.discord-rpc-meta {
+.card-footer-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.45rem;
-  padding-top: 0.32rem;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0.45rem;
   border-top: 1px solid var(--border-subtle);
-  font-size: 0.72rem;
-  color: var(--text-subtle);
 }
 
-.discord-repo-tag {
-  color: var(--accent-fg);
-  font-weight: 600;
-}
+/* ---------- Settings: Network & Client Optimization Block ---------- */
 
-.turbo-btn-pair {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.48rem;
-  width: 100%;
-}
-
-.play-runtime-strip {
-  flex: 0 0 auto;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.65rem;
-  padding: 0.65rem 0.9rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-}
-
-.runtime-pill-item {
+.network-opt-block {
+  margin-top: 1.15rem;
+  padding-top: 1.05rem;
+  border-top: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  gap: 0.16rem;
-  min-width: 0;
-  padding-right: 0.5rem;
-  border-right: 1px solid var(--border-subtle);
+  gap: 0.75rem;
 }
 
-.runtime-pill-item:last-child {
-  border-right: 0;
-  padding-right: 0;
+.network-opt-block .subheading-row {
+  margin: 0;
 }
 
-.runtime-pill-item .kv-key {
-  font-size: 0.74rem;
-  color: var(--text-subtle);
+.turbo-toggles-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
-.runtime-pill-item strong {
-  font-size: 0.84rem;
-  font-weight: 700;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.turbo-status-line {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
 }
 
-@media (max-width: 1040px) {
-  .play-runtime-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.setting-toggle-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
 
-  .runtime-pill-item {
-    border-right: 0;
-  }
+.subtle-inline-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.42rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-alt);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
 .profile-meta-card {
