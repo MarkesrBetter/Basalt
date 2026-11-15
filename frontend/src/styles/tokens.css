@@ -26,12 +26,12 @@
   --focus-ring: #f2aa7e;
 
   --edge-highlight: rgba(255, 255, 255, 0.08);
-  --hairline: color-mix(in srgb, var(--text) 9%, transparent);
-  --hairline-strong: color-mix(in srgb, var(--text) 16%, transparent);
-  --control-bg: color-mix(in srgb, var(--bg-surface-alt) 82%, var(--bg-hover));
-  --control-bg-hover: color-mix(in srgb, var(--bg-hover) 90%, var(--text) 5%);
-  --field-bg: color-mix(in srgb, var(--bg-canvas) 58%, var(--bg-surface));
-  --shadow-surface: 0 4px 16px rgba(0, 0, 0, 0.28);
+  --hairline: color-mix(in srgb, var(--text) 8%, transparent);
+  --hairline-strong: color-mix(in srgb, var(--text) 14%, transparent);
+  --control-bg: color-mix(in srgb, var(--bg-surface-alt) 84%, var(--bg-hover));
+  --control-bg-hover: color-mix(in srgb, var(--bg-hover) 92%, var(--text) 6%);
+  --field-bg: color-mix(in srgb, var(--bg-canvas) 62%, var(--bg-surface));
+  --shadow-surface: 0 2px 10px rgba(0, 0, 0, 0.22);
 
   --brand-left: #3d4552;
   --brand-right: #292f38;
@@ -42,9 +42,9 @@
   --success: #7fd6a3;
   --warning: #f2b763;
 
-  --radius-sm: 0.65rem;
-  --radius-md: 1.05rem;
-  --radius-btn: 0.85rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.82rem;
+  --radius-btn: 0.52rem;
   --radius-pill: 9999px;
 
   --titlebar-h: 2.15rem;

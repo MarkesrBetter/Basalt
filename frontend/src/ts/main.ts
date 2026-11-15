@@ -536,10 +536,10 @@ function syncVersionUi(): void {
   if (railVerTag) railVerTag.textContent = `MC ${ver}`;
 
   const launchHeroVer = document.getElementById("launch-version-hero");
-  if (launchHeroVer) launchHeroVer.textContent = `VANILLA ${ver}`;
+  if (launchHeroVer) launchHeroVer.textContent = ver;
 
   const launchProtoBadge = document.getElementById("launch-proto-badge");
-  if (launchProtoBadge) launchProtoBadge.textContent = `PROTO ${proto}`;
+  if (launchProtoBadge) launchProtoBadge.textContent = `Vanilla · ${proto}`;
 
   const playSpecsBadge = document.getElementById("play-specs-version-badge");
   if (playSpecsBadge) playSpecsBadge.textContent = `Vanilla ${ver} · LWJGL 3`;
@@ -892,7 +892,10 @@ function buildDeckCards(): DeckCard[] {
       kind: "nav",
       kicker: tr(lang, "worlds.heading").toUpperCase(),
       title: tr(lang, "worlds.heading"),
-      meta: tr(lang, "worlds.countLabel", { count: saves.length }),
+      meta:
+        saves.length === 1
+          ? tr(lang, "worlds.countOne")
+          : tr(lang, "worlds.countLabel", { count: saves.length }),
       sub: tr(lang, "deck.cardNavWorldsSub"),
       tag: tr(lang, "deck.cardNavWorldsTag"),
       seedKey: "nav-worlds",
@@ -1258,9 +1261,11 @@ function renderWorldsView(): void {
           shown: formatLocaleNumber(filteredSaves.length, lang, 0),
           total: formatLocaleNumber(saves.length, lang, 0),
         })
-      : tr(lang, "worlds.countLabel", {
-          count: formatLocaleNumber(saves.length, lang, 0),
-        });
+      : saves.length === 1
+        ? tr(lang, "worlds.countOne")
+        : tr(lang, "worlds.countLabel", {
+            count: formatLocaleNumber(saves.length, lang, 0),
+          });
 
   const banner = byId<HTMLDivElement>("worlds-state-banner");
   const list = byId<HTMLDivElement>("worlds-list");
@@ -1294,6 +1299,11 @@ function renderWorldsView(): void {
     const row = document.createElement("div");
     row.className = isActive ? "world-row is-active" : "world-row";
     row.setAttribute("role", "listitem");
+
+    const iconWrap = document.createElement("div");
+    iconWrap.className = "world-row-icon";
+    iconWrap.setAttribute("aria-hidden", "true");
+    iconWrap.innerHTML = `<svg class="ico small"><use href="#ico-cube" /></svg>`;
 
     const main = document.createElement("div");
     main.className = "row-main";
@@ -1357,7 +1367,7 @@ function renderWorldsView(): void {
     });
 
     actions.append(selectBtn, playBtn, deleteBtn);
-    row.append(main, actions);
+    row.append(iconWrap, main, actions);
     list.appendChild(row);
   }
 }
@@ -3081,12 +3091,38 @@ function wireEvents(): void {
     }
   });
 
-  // Kinetic WebUI: accordions, roving tab groups, OS reduced-motion & window lifecycle
-  for (const drawerId of ["appearance-drawer", "hardware-runtime-drawer"]) {
-    const drawerEl = document.getElementById(drawerId);
-    if (drawerEl instanceof HTMLDetailsElement) {
-      wireDetailsAccordion(drawerEl, getEffectiveMotion);
+  // Settings sub-tabs (General / Game & JVM / Network & Servers / Appearance)
+  const settingsTabBar = document.querySelector<HTMLElement>(".settings-nav-bar");
+  const settingsTabs = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-settings-tab]"));
+  const settingsPanels = Array.from(document.querySelectorAll<HTMLElement>("[data-settings-panel]"));
+  const activateSettingsTab = (tabId: string): void => {
+    for (const btn of settingsTabs) {
+      const active = btn.dataset.settingsTab === tabId;
+      btn.classList.toggle("active", active);
+      btn.setAttribute("aria-selected", active ? "true" : "false");
     }
+    for (const panel of settingsPanels) {
+      const active = panel.dataset.settingsPanel === tabId;
+      panel.hidden = !active;
+    }
+  };
+  for (const btn of settingsTabs) {
+    btn.addEventListener("click", () => {
+      const tabId = btn.dataset.settingsTab;
+      if (tabId) {
+        playMcSound("tab");
+        activateSettingsTab(tabId);
+      }
+    });
+  }
+  if (settingsTabBar) {
+    wireRovingTabGroup(settingsTabBar, "[data-settings-tab]");
+  }
+
+  // Kinetic WebUI: accordions, roving tab groups, OS reduced-motion & window lifecycle
+  const hwDrawerEl = document.getElementById("hardware-runtime-drawer");
+  if (hwDrawerEl instanceof HTMLDetailsElement) {
+    wireDetailsAccordion(hwDrawerEl, getEffectiveMotion);
   }
 
   const navContainer = document.querySelector<HTMLElement>("aside.rail .nav");
