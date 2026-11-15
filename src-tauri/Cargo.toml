@@ -1,6 +1,6 @@
 [package]
 name = "basalt-desktop"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 description = "Basalt desktop WebUI shell powered by Tauri 2 and Basalt Rust core"
 
