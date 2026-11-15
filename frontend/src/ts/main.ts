@@ -708,8 +708,8 @@ function renderRailTargets(): void {
     launchBtn.type = "button";
     launchBtn.className = "rail-target-launch";
     launchBtn.disabled = launchDisabled;
-    launchBtn.title = tr(lang, "worlds.launch");
-    launchBtn.setAttribute("aria-label", `${tr(lang, "worlds.launch")}: ${opts.title}`);
+    launchBtn.title = tr(lang, "worlds.btnLaunch");
+    launchBtn.setAttribute("aria-label", `${tr(lang, "worlds.btnLaunch")}: ${opts.title}`);
     launchBtn.innerHTML = `<svg class="ico small" aria-hidden="true"><use href="#ico-play" /></svg>`;
     launchBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -805,10 +805,15 @@ function renderPlayView(): void {
   const tuneRam = document.getElementById("play-tune-ram");
   if (tuneRam) tuneRam.textContent = `${config.graphics.jvm_ram_mb} MB · ${config.graphics.jvm_gc}`;
   const tuneGfx = document.getElementById("play-tune-gfx");
-  if (tuneGfx) tuneGfx.textContent = `${config.graphics.render_distance} chunk · ${config.graphics.preset}`;
+  if (tuneGfx) {
+    tuneGfx.textContent = tr(lang, "play.tuneGfxVal", {
+      n: config.graphics.render_distance,
+      preset: config.graphics.preset,
+    });
+  }
   const tuneNet = document.getElementById("play-tune-net");
   if (tuneNet) {
-    tuneNet.textContent = config.network_boost ? "HTTP/2 · TCP Low-Latency" : "Standard HTTP";
+    tuneNet.textContent = tr(lang, config.network_boost ? "play.netBoostVal" : "play.netStdVal");
   }
   const playSkinName = document.getElementById("play-skin-name");
   if (playSkinName) playSkinName.textContent = config.username;
@@ -831,7 +836,7 @@ function renderPlayView(): void {
   for (const save of saves) {
     const opt = document.createElement("option");
     opt.value = save.id;
-    opt.textContent = `${save.id} (${formatBytes(save.size_bytes)})`;
+    opt.textContent = save.id;
     select.appendChild(opt);
   }
   select.value = activeSaveId ?? "";
@@ -840,7 +845,9 @@ function renderPlayView(): void {
     ? "Java 21"
     : tr(lang, "play.specJdkMissing");
   byId<HTMLElement>("play-spec-ram").textContent = `${config.graphics.jvm_ram_mb} MB (${config.graphics.jvm_gc})`;
-  byId<HTMLElement>("play-spec-chunks").textContent = `${config.graphics.render_distance} chunk`;
+  byId<HTMLElement>("play-spec-chunks").textContent = tr(lang, "play.chunksValue", {
+    n: config.graphics.render_distance,
+  });
   byId<HTMLElement>("play-spec-mod").textContent = tr(
     lang,
     cacheReady ? "play.specModReady" : "play.specModAuto"
@@ -1127,7 +1134,7 @@ function renderConsoleHero(card: DeckCard): void {
   appendHeroSpec(
     specsEl,
     tr(lang, "system.renderDist").toUpperCase(),
-    `${config.graphics.render_distance} chunk`
+    tr(lang, "play.chunksValue", { n: config.graphics.render_distance })
   );
   appendHeroSpec(
     specsEl,
@@ -1672,6 +1679,25 @@ function renderVanillaStatus(vanilla: VanillaEnvStatus): void {
   );
   byId<HTMLElement>("gradle-dir-label").textContent = vanilla.vanilla_dir;
   byId<HTMLElement>("gradle-saves-dir").textContent = vanilla.saves_dir;
+
+  const genJava = document.getElementById("general-java-status");
+  if (genJava) {
+    genJava.textContent = vanilla.java_ready
+      ? vanilla.java_version_label
+      : tr(lang, "play.specJdkMissing");
+  }
+  const genCache = document.getElementById("general-cache-status");
+  if (genCache) {
+    genCache.textContent = tr(
+      lang,
+      ready ? "system.modJarBuilt" : "system.modJarAuto"
+    );
+  }
+  const genDir = document.getElementById("general-vanilla-dir");
+  if (genDir) {
+    genDir.textContent = vanilla.vanilla_dir;
+  }
+
   byId<HTMLButtonElement>("btn-system-install-java").hidden = vanilla.java_ready;
   const hwDrawer = document.getElementById("hardware-runtime-drawer");
   if (hwDrawer instanceof HTMLDetailsElement && !vanilla.java_ready) {
@@ -3082,8 +3108,8 @@ function wireEvents(): void {
     });
   });
 
-  for (const id of ["btn-rail-github", "btn-settings-github"]) {
-    byId<HTMLButtonElement>(id).addEventListener("click", () => {
+  for (const id of ["btn-rail-github", "btn-settings-github", "btn-general-github"]) {
+    document.getElementById(id)?.addEventListener("click", () => {
       void handleOpenGithubPage();
     });
   }
@@ -3093,11 +3119,33 @@ function wireEvents(): void {
     "btn-rail-gamedir",
     "btn-profile-gamedir",
     "btn-settings-gamedir",
+    "btn-general-gamedir",
   ]) {
-    byId<HTMLButtonElement>(id).addEventListener("click", () => {
+    document.getElementById(id)?.addEventListener("click", () => {
       void handleOpenGameFolder();
     });
   }
+
+  document.getElementById("btn-general-console")?.addEventListener("click", () => {
+    enterConsoleMode();
+  });
+
+  const wireLiveUsernameClear = (inputId: string, errId: string): void => {
+    const inputEl = document.getElementById(inputId);
+    const errEl = document.getElementById(errId);
+    if (!(inputEl instanceof HTMLInputElement) || !errEl) return;
+    inputEl.addEventListener("input", () => {
+      const validation = validateUsername(inputEl.value);
+      if (!validation) {
+        errEl.hidden = true;
+        errEl.textContent = "";
+      } else if (!errEl.hidden) {
+        errEl.textContent = validation;
+      }
+    });
+  };
+  wireLiveUsernameClear("play-username", "play-username-error");
+  wireLiveUsernameClear("profile-username", "profile-username-error");
 
   byId<HTMLButtonElement>("btn-install-java").addEventListener("click", () => {
     void handleInstallJava21();

@@ -683,8 +683,9 @@ input[type="search"].invalid {
 
 .worlds-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
   gap: 0.72rem;
+  max-width: 78rem;
 }
 
 .worlds-list .world-row {
@@ -1228,6 +1229,7 @@ input[type="checkbox"].switch:checked::after {
 }
 
 .skin-viewport {
+  position: relative;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -1238,6 +1240,19 @@ input[type="checkbox"].switch:checked::after {
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
   box-shadow: inset 0 1px 0 var(--edge-highlight), var(--shadow-surface);
+}
+
+.skin-viewport:has(#skin-preview-canvas:not([hidden]))::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 17.55rem;
+  width: 58%;
+  height: 1.35rem;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--stage-shadow, rgba(0, 0, 0, 0.48)) 0%, transparent 100%);
+  pointer-events: none;
 }
 
 #skin-preview-canvas {
@@ -1251,6 +1266,10 @@ input[type="checkbox"].switch:checked::after {
   );
   border: 1px solid var(--hairline);
   border-radius: var(--radius-sm);
+}
+
+:root[data-theme="light"] #skin-preview-canvas {
+  background: radial-gradient(ellipse 75% 65% at 50% 45%, #e6edf5 0%, #cfd8e4 84%);
 }
 
 #skin-atlas-canvas {
@@ -1458,20 +1477,21 @@ dialog p {
 
 .toast {
   position: fixed;
+  top: calc(var(--win-titlebar-h) + 3.85rem);
   right: 1.4rem;
-  bottom: 1.4rem;
-  z-index: 40;
-  max-width: min(28rem, calc(100vw - 2.8rem));
-  padding: 0.78rem 1.2rem;
-  border-radius: var(--radius-pill);
+  z-index: 45;
+  max-width: min(25rem, calc(100vw - 2.8rem));
+  padding: 0.68rem 1.05rem;
+  border-radius: var(--radius-btn);
   background: var(--bg-surface-alt);
   border: 1px solid var(--hairline-strong);
   box-shadow:
     inset 0 1px 0 var(--edge-highlight),
-    0 12px 28px rgba(0, 0, 0, 0.34);
+    0 12px 28px rgba(0, 0, 0, 0.32);
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: 0.86rem;
   font-weight: 600;
+  pointer-events: auto;
 }
 
 .toast[data-tone="error"] {
@@ -2065,6 +2085,7 @@ dialog p {
 }
 
 .console-skin-pedestal {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2078,6 +2099,23 @@ dialog p {
     var(--bg-rail) 80%
   );
   overflow: hidden;
+}
+
+.console-skin-pedestal::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0.72rem;
+  width: 54%;
+  height: 1.45rem;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--stage-shadow, rgba(0, 0, 0, 0.48)) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+:root[data-theme="light"] .console-skin-pedestal {
+  background: radial-gradient(ellipse 72% 62% at 50% 44%, #e5ecf4 0%, #cdd6e2 84%);
 }
 
 #deck-skin-canvas {
@@ -2159,8 +2197,8 @@ dialog p {
 
 .deck-card {
   position: relative;
-  flex: 1 0 12.2rem;
-  min-width: 12.2rem;
+  flex: 0 0 13.8rem;
+  min-width: 13.8rem;
   max-width: 19.5rem;
   display: flex;
   flex-direction: column;
@@ -2211,11 +2249,12 @@ dialog p {
 }
 
 .deck-card-kicker {
-  font-size: 0.7rem;
+  font-size: 0.66rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-subtle);
+  white-space: nowrap;
 }
 
 .deck-card-title {
@@ -2484,12 +2523,12 @@ dialog p {
 }
 
 .play-tune-v {
-  font-size: 0.84rem;
+  font-size: 0.81rem;
   font-weight: 700;
+  line-height: 1.25;
   color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
   max-width: 100%;
 }
 
@@ -2560,6 +2599,7 @@ dialog p {
 }
 
 .play-skin-stage {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2571,6 +2611,23 @@ dialog p {
     var(--field-bg) 80%
   );
   border: 1px solid var(--hairline);
+}
+
+.play-skin-stage::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0.62rem;
+  width: 56%;
+  height: 1.35rem;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--stage-shadow, rgba(0, 0, 0, 0.48)) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+:root[data-theme="light"] .play-skin-stage {
+  background: radial-gradient(ellipse 74% 64% at 50% 44%, #e5ecf4 0%, #cfd8e4 84%);
 }
 
 #play-skin-canvas {
@@ -2593,6 +2650,11 @@ dialog p {
   align-items: center;
   justify-content: space-between;
   gap: 0.65rem;
+}
+
+.play-skin-footer .btn-sm {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .play-skin-meta {
@@ -2785,17 +2847,17 @@ dialog p {
 
 .card-footer-split {
   justify-content: space-between;
-  gap: 0.65rem;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.65rem;
 }
 
 .hw-inline-summary {
-  flex: 1 1 auto;
+  flex: 1 1 12rem;
   min-width: 0;
   font-size: 0.78rem;
+  line-height: 1.35;
   color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
 }
 
 .card-footer-actions button {

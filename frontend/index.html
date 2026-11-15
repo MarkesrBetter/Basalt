@@ -153,22 +153,22 @@
       <p class="rail-label" data-i18n="nav.menuLabel">MENU</p>
       <nav class="nav" aria-label="Sections" data-i18n-aria="nav.sectionsAria">
         <span class="deck-shoulder" aria-hidden="true">L1</span>
-        <button class="nav-btn active" type="button" data-nav="play" aria-current="page">
+        <button class="nav-btn active" type="button" data-nav="play" aria-current="page" data-i18n-title="nav.play">
           <svg class="ico" aria-hidden="true"><use href="#ico-play" /></svg>
           <span class="nav-text" data-i18n="nav.play">Play</span>
           <span class="nav-index">01</span>
         </button>
-        <button class="nav-btn" type="button" data-nav="worlds">
+        <button class="nav-btn" type="button" data-nav="worlds" data-i18n-title="nav.worlds">
           <svg class="ico" aria-hidden="true"><use href="#ico-layers" /></svg>
           <span class="nav-text" data-i18n="nav.worlds">Saves</span>
           <span class="nav-index">02</span>
         </button>
-        <button class="nav-btn" type="button" data-nav="profile">
+        <button class="nav-btn" type="button" data-nav="profile" data-i18n-title="nav.profile">
           <svg class="ico" aria-hidden="true"><use href="#ico-user" /></svg>
           <span class="nav-text" data-i18n="nav.profile">Profile &amp; Skin</span>
           <span class="nav-index">03</span>
         </button>
-        <button class="nav-btn" type="button" data-nav="system">
+        <button class="nav-btn" type="button" data-nav="system" data-i18n-title="nav.system">
           <svg class="ico" aria-hidden="true"><use href="#ico-sliders" /></svg>
           <span class="nav-text" data-i18n="nav.system">Settings</span>
           <span class="nav-index">04</span>
@@ -380,7 +380,7 @@
                   <div class="field-group">
                     <label for="play-version-select" data-i18n="play.versionSelectLabel">Minecraft version</label>
                     <select id="play-version-select">
-                      <option value="1.21.4">1.21.4 (Latest)</option>
+                      <option value="1.21.4" data-i18n="version.latestOption">1.21.4 (Latest)</option>
                       <option value="1.21.3">1.21.3</option>
                       <option value="1.21.2">1.21.2</option>
                       <option value="1.21.1">1.21.1</option>
@@ -700,7 +700,7 @@
                       <option value="Classic" data-i18n="skin.modelClassic">Classic Arms (Wide · 4 px)</option>
                     </select>
                   </div>
-                  <p class="muted-copy skin-note-compact" data-i18n="skin.noteCompact" hidden>
+                  <p class="muted-copy skin-note-compact" data-i18n="skin.noteCompact">
                     64×64 and legacy 64×32 PNG skins plus Slim / Classic arms are packaged automatically on launch.
                   </p>
                   <div class="skin-btn-row">
@@ -755,85 +755,121 @@
           </div>
 
           <div class="settings-tab-panel" data-settings-panel="general" role="tabpanel">
-            <div class="panel-card settings-list-card">
-              <div class="section-head">
-                <h2 data-i18n="system.generalTitle">General application, language &amp; version</h2>
-              </div>
+            <div class="system-grid">
+              <div class="panel-card settings-list-card">
+                <div class="section-head">
+                  <h2 data-i18n="system.generalTitle">General application, language &amp; version</h2>
+                </div>
 
-              <div class="settings-list">
-                <div class="setting-row">
-                  <div class="setting-row-copy">
-                    <label data-i18n="pref.language">Interface language</label>
+                <div class="settings-list">
+                  <div class="setting-row">
+                    <div class="setting-row-copy">
+                      <label data-i18n="pref.language">Interface language</label>
+                    </div>
+                    <div class="setting-row-control">
+                      <div class="corner-seg" role="group" aria-label="Language" data-i18n-aria="pref.language">
+                        <button class="seg-btn active" type="button" data-lang-choice="En" aria-pressed="true">English</button>
+                        <button class="seg-btn" type="button" data-lang-choice="Tr" aria-pressed="false">Türkçe</button>
+                        <button class="seg-btn" type="button" data-lang-choice="De" aria-pressed="false">Deutsch</button>
+                      </div>
+                    </div>
                   </div>
-                  <div class="setting-row-control">
-                    <div class="corner-seg" role="group" aria-label="Language" data-i18n-aria="pref.language">
-                      <button class="seg-btn active" type="button" data-lang-choice="En" aria-pressed="true">English</button>
-                      <button class="seg-btn" type="button" data-lang-choice="Tr" aria-pressed="false">Türkçe</button>
-                      <button class="seg-btn" type="button" data-lang-choice="De" aria-pressed="false">Deutsch</button>
+
+                  <div class="setting-row">
+                    <div class="setting-row-copy">
+                      <label for="settings-version-select" data-i18n="play.versionSelectLabel">Minecraft version</label>
+                    </div>
+                    <div class="setting-row-control">
+                      <select id="settings-version-select">
+                        <option value="1.21.4" data-i18n="version.latestOption">1.21.4 (Latest)</option>
+                        <option value="1.21.3">1.21.3</option>
+                        <option value="1.21.2">1.21.2</option>
+                        <option value="1.21.1">1.21.1</option>
+                        <option value="1.21">1.21</option>
+                        <option value="1.20.6">1.20.6</option>
+                        <option value="1.20.4">1.20.4</option>
+                        <option value="1.20.2">1.20.2</option>
+                        <option value="1.20.1">1.20.1</option>
+                        <option value="1.20">1.20</option>
+                        <option value="1.19.4">1.19.4</option>
+                        <option value="1.19.2">1.19.2</option>
+                        <option value="1.18.2">1.18.2</option>
+                        <option value="1.17.1">1.17.1</option>
+                        <option value="1.16.5">1.16.5</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="setting-row">
+                    <div class="setting-row-copy">
+                      <label for="pref-discord-rpc" data-i18n="discord.toggleLabel">Discord Rich Presence</label>
+                      <span class="subtle-inline-tag tabular" id="discord-status-badge">Active</span>
+                    </div>
+                    <div class="setting-row-control">
+                      <input class="switch" type="checkbox" id="pref-discord-rpc" checked />
+                    </div>
+                  </div>
+
+                  <div class="setting-row">
+                    <div class="setting-row-copy">
+                      <label for="pref-sounds" data-i18n="pref.sounds">Desktop UI sound effects</label>
+                    </div>
+                    <div class="setting-row-control">
+                      <input class="switch" type="checkbox" id="pref-sounds" title="Console mode enables UI sound feedback automatically." data-i18n-title="pref.soundsHint" />
+                    </div>
+                  </div>
+
+                  <div class="setting-row">
+                    <div class="setting-row-copy">
+                      <label for="pref-reduced-motion" data-i18n="pref.reducedMotion">Reduce animations</label>
+                    </div>
+                    <div class="setting-row-control">
+                      <input class="switch" type="checkbox" id="pref-reduced-motion" />
+                    </div>
+                  </div>
+
+                  <div class="setting-row">
+                    <div class="setting-row-copy">
+                      <label for="pref-compact" data-i18n="pref.compact">Compact row density</label>
+                    </div>
+                    <div class="setting-row-control">
+                      <input class="switch" type="checkbox" id="pref-compact" />
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <div class="setting-row">
-                  <div class="setting-row-copy">
-                    <label for="settings-version-select" data-i18n="play.versionSelectLabel">Minecraft version</label>
-                  </div>
-                  <div class="setting-row-control">
-                    <select id="settings-version-select">
-                      <option value="1.21.4">1.21.4 (Latest)</option>
-                      <option value="1.21.3">1.21.3</option>
-                      <option value="1.21.2">1.21.2</option>
-                      <option value="1.21.1">1.21.1</option>
-                      <option value="1.21">1.21</option>
-                      <option value="1.20.6">1.20.6</option>
-                      <option value="1.20.4">1.20.4</option>
-                      <option value="1.20.2">1.20.2</option>
-                      <option value="1.20.1">1.20.1</option>
-                      <option value="1.20">1.20</option>
-                      <option value="1.19.4">1.19.4</option>
-                      <option value="1.19.2">1.19.2</option>
-                      <option value="1.18.2">1.18.2</option>
-                      <option value="1.17.1">1.17.1</option>
-                      <option value="1.16.5">1.16.5</option>
-                    </select>
-                  </div>
+              <div class="panel-card">
+                <div class="section-head">
+                  <h2 data-i18n="general.storageTitle">Runtime environment &amp; storage</h2>
                 </div>
-
-                <div class="setting-row">
-                  <div class="setting-row-copy">
-                    <label for="pref-discord-rpc" data-i18n="discord.toggleLabel">Discord Rich Presence</label>
-                    <span class="subtle-inline-tag tabular" id="discord-status-badge">Active</span>
+                <dl class="readiness-list">
+                  <div class="kv-row">
+                    <dt class="kv-key" data-i18n="play.specJdk">Java Runtime</dt>
+                    <dd class="kv-val tabular" id="general-java-status">-</dd>
                   </div>
-                  <div class="setting-row-control">
-                    <input class="switch" type="checkbox" id="pref-discord-rpc" checked />
+                  <div class="kv-row">
+                    <dt class="kv-key" data-i18n="play.specMod">Game cache</dt>
+                    <dd class="kv-val tabular" id="general-cache-status">-</dd>
                   </div>
-                </div>
-
-                <div class="setting-row">
-                  <div class="setting-row-copy">
-                    <label for="pref-sounds" data-i18n="pref.sounds">Desktop UI sound effects</label>
+                  <div class="kv-row">
+                    <dt class="kv-key" data-i18n="general.dirLabel">Game &amp; worlds directory</dt>
+                    <dd class="kv-val tabular" id="general-vanilla-dir">-</dd>
                   </div>
-                  <div class="setting-row-control">
-                    <input class="switch" type="checkbox" id="pref-sounds" title="Console mode enables UI sound feedback automatically." data-i18n-title="pref.soundsHint" />
-                  </div>
-                </div>
-
-                <div class="setting-row">
-                  <div class="setting-row-copy">
-                    <label for="pref-reduced-motion" data-i18n="pref.reducedMotion">Reduce animations</label>
-                  </div>
-                  <div class="setting-row-control">
-                    <input class="switch" type="checkbox" id="pref-reduced-motion" />
-                  </div>
-                </div>
-
-                <div class="setting-row">
-                  <div class="setting-row-copy">
-                    <label for="pref-compact" data-i18n="pref.compact">Compact row density</label>
-                  </div>
-                  <div class="setting-row-control">
-                    <input class="switch" type="checkbox" id="pref-compact" />
-                  </div>
+                </dl>
+                <div class="card-footer-actions">
+                  <button class="btn-secondary btn-sm" type="button" id="btn-general-gamedir">
+                    <svg class="ico small" aria-hidden="true"><use href="#ico-folder" /></svg>
+                    <span data-i18n="discord.gameDirBtn">Game Folder</span>
+                  </button>
+                  <button class="btn-secondary btn-sm" type="button" id="btn-general-console">
+                    <svg class="ico small" aria-hidden="true"><use href="#ico-gamepad" /></svg>
+                    <span data-i18n="general.consoleAction">Open Fullscreen Console</span>
+                  </button>
+                  <button class="btn-subtle btn-sm" type="button" id="btn-general-github">
+                    <svg class="ico small" aria-hidden="true"><use href="#ico-code" /></svg>
+                    <span data-i18n="rail.github">GitHub</span>
+                  </button>
                 </div>
               </div>
             </div>

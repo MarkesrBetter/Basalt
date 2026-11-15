@@ -179,8 +179,9 @@
   --border-control: #8b857b;
 
   --text: #17191c;
-  --text-muted: #505761;
-  --text-subtle: #5a626d;
+  --text-muted: #3c424c;
+  --text-subtle: #4b525d;
+  --stage-shadow: rgba(15, 22, 34, 0.30);
 
   --accent: #b34c19;
   --accent-hover: #9d4113;

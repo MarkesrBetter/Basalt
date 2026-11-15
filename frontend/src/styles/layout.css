@@ -1415,6 +1415,36 @@ body.compact .world-row {
   display: none;
 }
 
+@media (max-width: 1180px) {
+  :root[data-layout="deck"] .rail {
+    padding: 0.45rem 0.9rem;
+    gap: 0.4rem;
+  }
+
+  :root[data-layout="deck"] .brand {
+    padding-right: 0.6rem;
+  }
+
+  :root[data-layout="deck"] .nav {
+    gap: 0.28rem;
+  }
+
+  :root[data-layout="deck"] .nav-btn {
+    padding: 0 0.56rem;
+    min-height: 2.25rem;
+  }
+
+  :root[data-layout="deck"] .nav-text {
+    font-size: 0.84rem;
+  }
+
+  :root[data-layout="deck"] .deck-exit-btn {
+    padding: 0 0.68rem;
+    min-height: 2.15rem;
+    font-size: 0.8rem;
+  }
+}
+
 @media (max-width: 960px) {
   :root[data-layout="deck"] main {
     padding: 0.95rem 1.1rem;
