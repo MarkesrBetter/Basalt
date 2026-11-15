@@ -1,5 +1,12 @@
 import { applyDynamicDesignTokens, normalizeHex } from "./colors";
 import {
+  compareLocaleStrings,
+  formatLocaleBytes,
+  formatLocaleEpoch,
+  formatLocaleNumber,
+  toLocaleLowerFold,
+} from "./formatting";
+import {
   ACCENT_LABELS,
   CORNER_LABELS,
   GPU_TIER_LABELS,
@@ -172,6 +179,8 @@ function getEffectiveLanguage(): UiLanguage {
 let pendingLaunch = false;
 let pendingSaveProfile = false;
 let pendingSaveGfx = false;
+let worldsFilterQuery = "";
+let worldsSortOrder: "recent" | "name" | "size" = "recent";
 
 function getEffectiveMotion(): EffectiveMotion {
   return resolveEffectiveMotion(Boolean(state?.config.ui_reduced_motion));
@@ -226,24 +235,12 @@ function setBanner(
 }
 
 function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "0 KB";
-  if (bytes < 1024 * 1024) {
-    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  }
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return formatLocaleBytes(bytes, getEffectiveLanguage());
 }
 
 function formatEpoch(secs: number): string {
   const lang = getEffectiveLanguage();
-  if (!Number.isFinite(secs) || secs <= 0) return tr(lang, "misc.unknownDate");
-  try {
-    return new Intl.DateTimeFormat(LANG_INTL_LOCALE[lang], {
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(new Date(secs * 1000));
-  } catch {
-    return new Date(secs * 1000).toISOString().slice(0, 16).replace("T", " ");
-  }
+  return formatLocaleEpoch(secs, lang, tr(lang, "misc.unknownDate"));
 }
 
 function validateUsername(raw: string): string | null {
@@ -1222,9 +1219,49 @@ function renderWorldsView(): void {
   const lang = getEffectiveLanguage();
   const { saves, config, vanilla } = state;
 
-  byId<HTMLSpanElement>("worlds-count-label").textContent = tr(lang, "worlds.countLabel", {
-    count: saves.length,
-  });
+  const filterInput = document.getElementById("worlds-filter-input") as HTMLInputElement | null;
+  const sortSelect = document.getElementById("worlds-sort-select") as HTMLSelectElement | null;
+  const clearFilterBtn = document.getElementById("btn-clear-world-filter") as HTMLButtonElement | null;
+
+  const trimmedQuery = worldsFilterQuery.trim();
+  const foldedQuery = trimmedQuery ? toLocaleLowerFold(trimmedQuery, lang) : "";
+
+  if (clearFilterBtn) {
+    clearFilterBtn.hidden = trimmedQuery.length === 0;
+  }
+  if (filterInput && document.activeElement !== filterInput && filterInput.value !== worldsFilterQuery) {
+    filterInput.value = worldsFilterQuery;
+  }
+  if (sortSelect && sortSelect.value !== worldsSortOrder) {
+    sortSelect.value = worldsSortOrder;
+  }
+
+  const filteredSaves = saves
+    .filter((save) => {
+      if (!foldedQuery) return true;
+      return toLocaleLowerFold(save.id, lang).includes(foldedQuery);
+    })
+    .slice()
+    .sort((a, b) => {
+      if (worldsSortOrder === "name") {
+        return compareLocaleStrings(a.id, b.id, lang);
+      }
+      if (worldsSortOrder === "size") {
+        return b.size_bytes - a.size_bytes;
+      }
+      return b.modified_epoch_secs - a.modified_epoch_secs;
+    });
+
+  byId<HTMLSpanElement>("worlds-count-label").textContent =
+    trimmedQuery.length > 0
+      ? tr(lang, "worlds.filteredCountLabel", {
+          shown: formatLocaleNumber(filteredSaves.length, lang, 0),
+          total: formatLocaleNumber(saves.length, lang, 0),
+        })
+      : tr(lang, "worlds.countLabel", {
+          count: formatLocaleNumber(saves.length, lang, 0),
+        });
+
   const banner = byId<HTMLDivElement>("worlds-state-banner");
   const list = byId<HTMLDivElement>("worlds-list");
   list.innerHTML = "";
@@ -1238,9 +1275,21 @@ function renderWorldsView(): void {
     return;
   }
 
+  if (filteredSaves.length === 0) {
+    setBanner(
+      banner,
+      tr(lang, "worlds.zeroFilterBanner", {
+        query: trimmedQuery,
+        total: formatLocaleNumber(saves.length, lang, 0),
+      }),
+      "neutral"
+    );
+    return;
+  }
+
   setBanner(banner, null);
 
-  for (const save of saves) {
+  for (const save of filteredSaves) {
     const isActive = config.last_save_id === save.id;
     const row = document.createElement("div");
     row.className = isActive ? "world-row is-active" : "world-row";
@@ -1278,6 +1327,10 @@ function renderWorldsView(): void {
     selectBtn.type = "button";
     selectBtn.className = "btn-secondary btn-sm";
     selectBtn.textContent = tr(lang, isActive ? "worlds.btnSelected" : "worlds.btnSelect");
+    selectBtn.setAttribute(
+      "aria-label",
+      isActive ? tr(lang, "worlds.selectedTag") : tr(lang, "worlds.ariaSelectTarget", { id: save.id })
+    );
     selectBtn.disabled = isActive;
     selectBtn.addEventListener("click", () => {
       void handleSelectSave(save.id);
@@ -1287,6 +1340,7 @@ function renderWorldsView(): void {
     playBtn.type = "button";
     playBtn.className = "btn-primary btn-sm";
     playBtn.textContent = tr(lang, "worlds.btnLaunch");
+    playBtn.setAttribute("aria-label", tr(lang, "worlds.ariaLaunchWorld", { id: save.id }));
     playBtn.disabled = state?.running_session !== null;
     playBtn.addEventListener("click", () => {
       void handleLaunchClient("singleplayer", save.id, null);
@@ -1296,6 +1350,7 @@ function renderWorldsView(): void {
     deleteBtn.type = "button";
     deleteBtn.className = "btn-danger btn-sm";
     deleteBtn.textContent = tr(lang, "worlds.btnDelete");
+    deleteBtn.setAttribute("aria-label", tr(lang, "worlds.ariaDeleteWorld", { id: save.id }));
     deleteBtn.disabled = state?.running_session !== null;
     deleteBtn.addEventListener("click", () => {
       openDeleteDialog(save, deleteBtn);
@@ -1485,6 +1540,10 @@ function renderServersList(): void {
       lang,
       check.status === "checking" ? "servers.btnChecking" : "servers.btnPing"
     );
+    pingBtn.setAttribute(
+      "aria-label",
+      tr(lang, "servers.ariaPing", { name: srv.name, addr: srv.address })
+    );
     pingBtn.disabled = check.status === "checking";
     pingBtn.addEventListener("click", () => {
       void handlePingServer(srv.address);
@@ -1494,6 +1553,10 @@ function renderServersList(): void {
     probeBtn.type = "button";
     probeBtn.className = "btn-secondary btn-sm";
     probeBtn.textContent = tr(lang, "servers.btnProbe");
+    probeBtn.setAttribute(
+      "aria-label",
+      tr(lang, "servers.ariaProbe", { name: srv.name, addr: srv.address })
+    );
     probeBtn.addEventListener("click", () => {
       void handleProbeServer(srv.address);
     });
@@ -1502,6 +1565,10 @@ function renderServersList(): void {
     connectBtn.type = "button";
     connectBtn.className = "btn-primary btn-sm";
     connectBtn.textContent = tr(lang, "servers.btnConnect");
+    connectBtn.setAttribute(
+      "aria-label",
+      tr(lang, "servers.ariaConnect", { name: srv.name, addr: srv.address })
+    );
     connectBtn.disabled = state?.running_session !== null;
     connectBtn.addEventListener("click", () => {
       void handleLaunchClient("multiplayer", null, srv.address);
@@ -1511,6 +1578,10 @@ function renderServersList(): void {
     removeBtn.type = "button";
     removeBtn.className = "btn-danger btn-sm";
     removeBtn.textContent = tr(lang, "servers.btnRemove");
+    removeBtn.setAttribute(
+      "aria-label",
+      tr(lang, "servers.ariaRemove", { name: srv.name, addr: srv.address })
+    );
     removeBtn.addEventListener("click", () => {
       void handleRemoveServer(index);
     });
@@ -1533,10 +1604,14 @@ function renderSystemView(): void {
   byId<HTMLSpanElement>("hw-tier-tag").textContent = tierLabel;
   byId<HTMLElement>("hw-cpu").textContent = hardware.cpu_name;
   byId<HTMLElement>("hw-cores").textContent = tr(lang, "system.coresVal", {
-    phys: hardware.physical_cores,
-    log: hardware.logical_cores,
+    phys: formatLocaleNumber(hardware.physical_cores, lang, 0),
+    log: formatLocaleNumber(hardware.logical_cores, lang, 0),
   });
-  byId<HTMLElement>("hw-ram").textContent = `${hardware.available_ram_mb} MB / ${hardware.total_ram_mb} MB`;
+  byId<HTMLElement>("hw-ram").textContent = `${formatLocaleNumber(
+    hardware.available_ram_mb,
+    lang,
+    0
+  )} MB / ${formatLocaleNumber(hardware.total_ram_mb, lang, 0)} MB`;
   byId<HTMLElement>("hw-gpu").textContent = `${hardware.gpu_name} (${hardware.gpu_backend})`;
 
   const gfx = config.graphics;
@@ -1658,15 +1733,22 @@ async function handleOptimizeClientNow(): Promise<void> {
   try {
     const report = await ipc.optimizeClientNow();
     if (report.cdn_ping_ms !== null) {
-      pingBadge.textContent = `${report.cdn_ping_ms} ms CDN`;
+      pingBadge.textContent = `${formatLocaleNumber(report.cdn_ping_ms, lang, 0)} ms CDN`;
     } else if (report.local_ping_ms !== null) {
-      pingBadge.textContent = `${report.local_ping_ms} ms LAN`;
+      pingBadge.textContent = `${formatLocaleNumber(report.local_ping_ms, lang, 0)} ms LAN`;
     } else {
-      pingBadge.textContent = "OPTIMIZED";
+      pingBadge.textContent = tr(lang, "turbo.pingOptimized");
     }
-    const cdnStr = report.cdn_ping_ms !== null ? `${report.cdn_ping_ms} ms` : "N/A";
-    const dnsStr = report.dns_flushed ? "DNS flushed" : "TCP tuned";
-    const summaryText = `CDN Ping: ${cdnStr} · ${dnsStr} · ${report.applied_flags_count} active JVM/Netty flags`;
+    const cdnStr =
+      report.cdn_ping_ms !== null
+        ? `${formatLocaleNumber(report.cdn_ping_ms, lang, 0)} ms`
+        : tr(lang, "turbo.pingNa");
+    const dnsStr = tr(lang, report.dns_flushed ? "turbo.dnsFlushed" : "turbo.tcpTuned");
+    const summaryText = tr(lang, "turbo.optResult", {
+      cdn: cdnStr,
+      dns: dnsStr,
+      flags: formatLocaleNumber(report.applied_flags_count, lang, 0),
+    });
     summaryEl.textContent = summaryText;
     showToast(summaryText, "success");
   } catch (err) {
@@ -2801,6 +2883,26 @@ function wireEvents(): void {
 
   byId<HTMLButtonElement>("btn-open-mc-for-world").addEventListener("click", () => {
     void handleLaunchClient("title", null, null);
+  });
+
+  const worldsFilterInput = byId<HTMLInputElement>("worlds-filter-input");
+  worldsFilterInput.addEventListener("input", () => {
+    worldsFilterQuery = worldsFilterInput.value;
+    renderWorldsView();
+  });
+
+  const worldsSortSelect = byId<HTMLSelectElement>("worlds-sort-select");
+  worldsSortSelect.addEventListener("change", () => {
+    const val = worldsSortSelect.value;
+    worldsSortOrder = val === "name" || val === "size" ? val : "recent";
+    renderWorldsView();
+  });
+
+  byId<HTMLButtonElement>("btn-clear-world-filter").addEventListener("click", () => {
+    worldsFilterQuery = "";
+    worldsFilterInput.value = "";
+    renderWorldsView();
+    worldsFilterInput.focus();
   });
 
   byId<HTMLFormElement>("profile-form").addEventListener("submit", (e) => {

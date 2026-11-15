@@ -1,0 +1,103 @@
+{
+  "schema": "textcraft-type-tokens/v1",
+  "product": "Basalt",
+  "font_stacks": {
+    "ui": "\"Segoe UI Variable Text\", \"Segoe UI Variable\", \"Segoe UI\", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif",
+    "mono": "\"Cascadia Code\", \"Cascadia Mono\", \"Consolas\", ui-monospace, \"Liberation Mono\", monospace"
+  },
+  "roles": {
+    "display": {
+      "token_size": "--type-display-size",
+      "size": "clamp(1.75rem, 1.35rem + 1.2vw, 2.35rem)",
+      "line_height": 1.12,
+      "weight": 700,
+      "letter_spacing": "-0.02em",
+      "usage": "Tanıtım sitesi ana başlığı ve tam ekran konsol hero başlığı"
+    },
+    "page-title": {
+      "token_size": "--type-title-size",
+      "size": "clamp(1.4rem, 1.15rem + 0.8vw, 1.85rem)",
+      "line_height": 1.2,
+      "weight": 700,
+      "letter_spacing": "-0.015em",
+      "usage": "Görünüm ana başlıkları (h1: Oyna, Kayıtlı Dünyalar, Profil ve Skin, Ayarlar)"
+    },
+    "section-title": {
+      "token_size": "--type-section-size",
+      "size": "clamp(1.0625rem, 0.98rem + 0.35vw, 1.25rem)",
+      "line_height": 1.28,
+      "weight": 700,
+      "letter_spacing": "-0.01em",
+      "usage": "Panel ve kart grup başlıkları (h2)"
+    },
+    "body": {
+      "token_size": "--type-body-size",
+      "size": "1rem",
+      "line_height": 1.5,
+      "weight": 400,
+      "max_measure": "66ch",
+      "usage": "Açıklama paragrafları, durum bildirimleri ve modal açıklamaları"
+    },
+    "body-strong": {
+      "token_size": "--type-body-size",
+      "size": "1rem",
+      "line_height": 1.45,
+      "weight": 600,
+      "usage": "Ayar satırı başlıkları, dünya ve sunucu adları"
+    },
+    "field-label": {
+      "token_size": "--type-label-size",
+      "size": "0.875rem",
+      "line_height": 1.38,
+      "weight": 600,
+      "usage": "Kalıcı form etiketleri (<label for>)"
+    },
+    "helper": {
+      "token_size": "--type-helper-size",
+      "size": "0.84375rem",
+      "line_height": 1.42,
+      "weight": 400,
+      "usage": "Form yardımcı metinleri ve satır içi doğrulama uyarıları"
+    },
+    "metric": {
+      "token_size": "--type-metric-size",
+      "size": "1.0625rem",
+      "line_height": 1.25,
+      "weight": 700,
+      "numeric_variant": "tabular-nums",
+      "usage": "Sürüm numarası, RAM/chunk/FOV çıktıları ve ping göstergeleri"
+    },
+    "tabular-data": {
+      "token_size": "--type-data-size",
+      "size": "0.9375rem",
+      "line_height": 1.4,
+      "weight": 500,
+      "numeric_variant": "tabular-nums",
+      "usage": "Dünya boyutu, son kayıt tarihi, donanım tablosu değerleri"
+    },
+    "code": {
+      "token_size": "--type-code-size",
+      "size": "0.84375rem",
+      "line_height": 1.5,
+      "weight": 500,
+      "font_family": "var(--font-mono)",
+      "ligatures": "none",
+      "usage": "SHA-256 özeti, UUID, dosya yolları, çalışma zamanı günlüğü"
+    },
+    "caption": {
+      "token_size": "--type-caption-size",
+      "size": "0.8125rem",
+      "line_height": 1.42,
+      "weight": 500,
+      "usage": "İkincil meta bilgiler ve kısayol açıklamaları"
+    },
+    "status": {
+      "token_size": "--type-status-size",
+      "size": "0.8125rem",
+      "line_height": 1.35,
+      "weight": 600,
+      "numeric_variant": "tabular-nums",
+      "usage": "Durum rozetleri (Hazır, Java 21 Gerekli, SHA-1 Doğrulandı)"
+    }
+  }
+}

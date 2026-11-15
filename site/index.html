@@ -28,7 +28,7 @@
       --border-strong: #3d4758;
       --text: #f2f4f7;
       --text-muted: #9da7b5;
-      --text-subtle: #788393;
+      --text-subtle: #8b96a5;
       --accent: #e07d44;
       --accent-hover: #ec8f58;
       --accent-ink: #140903;
@@ -37,8 +37,8 @@
       --ok: #4ec982;
       --ok-soft: rgba(78, 201, 130, 0.14);
       --shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-      --font-sans: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
-      --font-mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+      --font-sans: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+      --font-mono: "Cascadia Code", "Cascadia Mono", "Consolas", ui-monospace, "Liberation Mono", monospace;
     }
 
     :root[data-theme="light"] {
@@ -52,7 +52,7 @@
       --border-strong: #b8b0a2;
       --text: #16181c;
       --text-muted: #4e5663;
-      --text-subtle: #68707d;
+      --text-subtle: #59616d;
       --accent: #b84a18;
       --accent-hover: #9f3e11;
       --accent-ink: #ffffff;
@@ -68,6 +68,19 @@
       --kin-hover: 125ms;
       --kin-ease-control: cubic-bezier(0.2, 0.8, 0.2, 1);
       --kin-press-scale: 0.986;
+      --type-display-size: clamp(2.1rem, 3vw + 0.9rem, 3.35rem);
+      --type-title-size: clamp(1.55rem, 1.4vw + 0.95rem, 2.15rem);
+      --type-section-size: clamp(1.125rem, 0.6vw + 0.95rem, 1.4rem);
+      --type-body-size: 1rem;
+      --type-label-size: 0.875rem;
+      --type-caption-size: 0.8125rem;
+      --type-data-size: 0.9375rem;
+      --type-line-display: 1.1;
+      --type-line-title: 1.2;
+      --type-line-body: 1.55;
+      --type-line-label: 1.4;
+      --type-line-caption: 1.45;
+      --type-measure: 66ch;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -75,6 +88,12 @@
         --kin-press: 0ms;
         --kin-hover: 0ms;
       }
+    }
+
+    html {
+      text-size-adjust: 100%;
+      -webkit-text-size-adjust: 100%;
+      font-kerning: normal;
     }
 
     *,
@@ -1192,7 +1211,7 @@
           <article class="card">
             <div class="card-head">
               <h3>basalt.exe · v0.1.0</h3>
-              <span class="card-tag" id="download-meta-size">13.83 MB (14,505,984 B)</span>
+              <span class="card-tag" id="download-meta-size">13.84 MB (14,507,520 B)</span>
             </div>
             <p data-i18n="dl.desc">
               Runs on 64-bit Windows 10 and Windows 11 with Microsoft Edge WebView2 Runtime. Official Minecraft files are cached locally on first launch.
@@ -1224,7 +1243,7 @@
                 <span data-i18n="dl.shaLabel">SHA-256 Checksum</span>
                 <button type="button" class="copy-btn" id="copy-sha-btn" data-i18n="dl.copySha">Copy SHA-256</button>
               </div>
-              <p class="hash-code" id="sha-value">d33dc3405e00fbdd157781fc446af767be04ad53b8e2a53d35e6b4d228b664e4</p>
+              <p class="hash-code" id="sha-value">8c457df6d7eefd91031de7dd8ffd9d31ddf817a6b152fff87143ef7947decd2b</p>
             </div>
 
             <div class="hash-box">
@@ -1286,8 +1305,8 @@
       "use strict";
 
       const DEFAULT_GITHUB_REPO = "Markesrrr/Basalt";
-      const EXE_SHA256 = "d33dc3405e00fbdd157781fc446af767be04ad53b8e2a53d35e6b4d228b664e4";
-      const EXE_SIZE_DISPLAY = "13.83 MB (14,505,984 B)";
+      const EXE_SHA256 = "8c457df6d7eefd91031de7dd8ffd9d31ddf817a6b152fff87143ef7947decd2b";
+      const EXE_SIZE_DISPLAY = "13.84 MB (14,507,520 B)";
 
       const I18N = {
         en: {

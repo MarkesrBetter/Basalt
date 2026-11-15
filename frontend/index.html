@@ -375,6 +375,7 @@
                       type="text"
                       maxlength="16"
                       autocomplete="off"
+                      aria-describedby="play-username-error"
                       placeholder="e.g. Player"
                       data-i18n-placeholder="play.usernamePlaceholder"
                     />
@@ -492,7 +493,33 @@
             </div>
           </div>
 
-          <div class="state-banner" id="worlds-state-banner" hidden></div>
+          <div class="worlds-toolbar">
+            <div class="field-group">
+              <label for="worlds-filter-input" data-i18n="worlds.filterLabel">Filter worlds by name</label>
+              <input
+                id="worlds-filter-input"
+                type="search"
+                autocomplete="off"
+                placeholder="e.g. Survival, İzmir, Skyblock"
+                data-i18n-placeholder="worlds.filterPlaceholder"
+              />
+            </div>
+            <div class="field-group">
+              <label for="worlds-sort-select" data-i18n="worlds.sortLabel">Sort order</label>
+              <select id="worlds-sort-select">
+                <option value="recent" data-i18n="worlds.sortRecent">Last saved (newest)</option>
+                <option value="name" data-i18n="worlds.sortName">World name (A–Z)</option>
+                <option value="size" data-i18n="worlds.sortSize">Size (largest)</option>
+              </select>
+            </div>
+            <div class="field-group submit-cell">
+              <button class="btn-subtle btn-sm" type="button" id="btn-clear-world-filter" data-i18n="worlds.clearFilter" hidden>
+                Clear filter
+              </button>
+            </div>
+          </div>
+
+          <div class="state-banner" id="worlds-state-banner" role="status" aria-live="polite" hidden></div>
 
           <div class="worlds-list" id="worlds-list" role="list" aria-label="Minecraft world saves" data-i18n-aria="worlds.listAria"></div>
         </section>
@@ -519,7 +546,7 @@
                 <div class="field-group">
                   <label for="profile-username" data-i18n="profile.usernameLabel">Username (1-16 chars: letters, digits, _ or -)</label>
                   <div class="profile-id-row">
-                    <input id="profile-username" type="text" maxlength="16" required />
+                    <input id="profile-username" type="text" maxlength="16" aria-describedby="profile-username-error" required />
                     <button class="btn-primary btn-sm" type="submit" id="btn-save-profile">
                       <svg class="ico small" aria-hidden="true"><use href="#ico-check" /></svg>
                       <span data-i18n="profile.saveBtn">Save</span>
@@ -1107,7 +1134,7 @@
                 </div>
                 <div class="field-group">
                   <label for="srv-addr" data-i18n="servers.addrLabel">Address (host:port)</label>
-                  <input id="srv-addr" type="text" maxlength="64" value="127.0.0.1:25565" required />
+                  <input id="srv-addr" type="text" maxlength="64" value="127.0.0.1:25565" aria-describedby="server-form-error" required />
                 </div>
                 <div class="field-group submit-cell">
                   <button class="btn-secondary btn-sm" type="submit" id="btn-add-server" data-i18n="servers.addBtn">Add</button>

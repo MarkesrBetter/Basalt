@@ -6,6 +6,7 @@ label {
 }
 
 input[type="text"],
+input[type="search"],
 select {
   width: 100%;
   min-height: 2.65rem;
@@ -19,11 +20,13 @@ select {
 }
 
 input[type="text"]:hover,
+input[type="search"]:hover,
 select:hover {
   background: var(--bg-hover);
 }
 
-input[type="text"].invalid {
+input[type="text"].invalid,
+input[type="search"].invalid {
   border-color: var(--danger);
 }
 
@@ -566,6 +569,24 @@ input[type="text"].invalid {
   justify-content: flex-end;
 }
 
+.worlds-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(11rem, 0.75fr) auto;
+  gap: 0.85rem;
+  align-items: end;
+  margin-bottom: 0.95rem;
+  padding: 0.85rem 1rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+@media (max-width: 720px) {
+  .worlds-toolbar {
+    grid-template-columns: 1fr;
+  }
+}
+
 .worlds-list,
 .servers-list {
   display: flex;
@@ -594,7 +615,7 @@ input[type="text"].invalid {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  min-width: 14rem;
+  min-width: min(14rem, 100%);
   flex: 1;
 }
 
@@ -603,7 +624,9 @@ input[type="text"].invalid {
   font-weight: 700;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.55rem;
+  overflow-wrap: anywhere;
 }
 
 .row-tag {

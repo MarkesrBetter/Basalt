@@ -1,0 +1,66 @@
+{
+  "product": "Basalt",
+  "version": "0.1.0",
+  "locales": ["en-US", "tr-TR", "de-DE"],
+  "voice_principles": [
+    {
+      "trait": "Doğrudan ve Görev Odaklı (Direct & Task-First)",
+      "rule": "Her buton ve başlık eylemi ve hedef nesneyi açıkça söyler (örn. 'Minecraft'ı Başlat', 'Kaydı diskten sil', 'Otomatik Java 21 Kur').",
+      "forbidden_example": "Deneyiminizi bir üst seviyeye taşıyın / Hemen keşfedin!"
+    },
+    {
+      "trait": "Teknik Olarak Dürüst (Technically Honest)",
+      "rule": "Yalnızca gerçekte ölçülen veya doğrulanan durumları bildirir (SHA-1/SHA-256 özeti, gerçek PID, gerçek CDN/LAN ms, gerçek süreç çıkışı). Bilinmeyen ilerleme için sahte yüzde göstermez.",
+      "forbidden_example": "%100 garantili en hızlı performans / Kaydediliyor... %88"
+    },
+    {
+      "trait": "Kurtarma Odaklı (Recovery-Oriented)",
+      "rule": "Hata mesajları neyin başarısız olduğunu, biliniyorsa nedenini ve kullanıcının hemen yapabileceği adımı belirtir.",
+      "forbidden_example": "Bir hata oluştu / Bir şeyler yanlış gitti."
+    }
+  ],
+  "canonical_terms": {
+    "launch": {
+      "en": "Launch",
+      "tr": "Başlat",
+      "de": "Starten",
+      "usage": "Minecraft istemcisini veya seçili bir dünyayı java.exe ile başlatmak için kullanılır. 'Çalıştır' veya 'Aç' ile karıştırılmaz.",
+      "forbidden_synonyms_tr": ["Ateşle", "Şimdi Oyna!", "Hemen Başla"]
+    },
+    "save_settings": {
+      "en": "Save",
+      "tr": "Kaydet",
+      "de": "Speichern",
+      "usage": "Kullanıcı adını veya options.txt/JVM yapılandırmasını diske kalıcı olarak yazmak için kullanılır.",
+      "forbidden_synonyms_tr": ["Tamam", "Onayla", "Gönder"]
+    },
+    "set_target": {
+      "en": "Set target",
+      "tr": "Hedef seç",
+      "de": "Als Ziel wählen",
+      "usage": "Bir dünyayı oyunu başlatmadan yalnızca varsayılan Quick Play hedefi olarak işaretlemek için kullanılır.",
+      "forbidden_synonyms_tr": ["Aktif et", "Kur"]
+    },
+    "delete_permanently": {
+      "en": "Delete permanently",
+      "tr": "Kalıcı olarak sil",
+      "de": "Endgültig löschen",
+      "usage": "Geri alınamaz disk silme onayı butonunda kullanılır; liste satırındaki tetikleyici 'Sil' ('Delete'), vazgeçme eylemi 'Vazgeç' ('Cancel') olarak ayrılır.",
+      "forbidden_synonyms_tr": ["Evet", "Tamam", "Kaldır"]
+    },
+    "remove_from_list": {
+      "en": "Remove",
+      "tr": "Kaldır",
+      "de": "Entfernen",
+      "usage": "Diskten dosya silmeyen, yalnızca kayıtlı sunucu listesinden girdiyi çıkaran işlem için kullanılır.",
+      "forbidden_synonyms_tr": ["Kalıcı sil", "Yok et"]
+    },
+    "filter": {
+      "en": "Filter worlds by name",
+      "tr": "Dünyaları ada göre filtrele",
+      "de": "Welten nach Namen filtern",
+      "usage": "Bellekteki yerel kayıt listesini anlık daraltan giriş alanı için kullanılır.",
+      "forbidden_synonyms_tr": ["Tüm içerikte ara", "Keşfet"]
+    }
+  }
+}

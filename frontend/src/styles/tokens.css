@@ -44,8 +44,31 @@
   --rail-w: 15.2rem;
   --topbar-h: 3.35rem;
 
-  --font-sans: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-mono: "Consolas", ui-monospace, monospace;
+  --font-sans: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  --font-mono: "Cascadia Code", "Cascadia Mono", "Consolas", ui-monospace, "Liberation Mono", monospace;
+  --font-ui: var(--font-sans);
+
+  /* TEXTCRAFT semantic typography role tokens */
+  --type-display-size: clamp(1.75rem, 1.35rem + 1.2vw, 2.35rem);
+  --type-title-size: clamp(1.4rem, 1.15rem + 0.8vw, 1.85rem);
+  --type-section-size: clamp(1.0625rem, 0.98rem + 0.35vw, 1.25rem);
+  --type-body-size: 1rem;
+  --type-body-strong-weight: 600;
+  --type-label-size: 0.875rem;
+  --type-helper-size: 0.84375rem;
+  --type-metric-size: 1.0625rem;
+  --type-data-size: 0.9375rem;
+  --type-code-size: 0.84375rem;
+  --type-caption-size: 0.8125rem;
+  --type-status-size: 0.8125rem;
+  --type-line-display: 1.12;
+  --type-line-title: 1.2;
+  --type-line-section: 1.28;
+  --type-line-body: 1.5;
+  --type-line-label: 1.38;
+  --type-line-caption: 1.42;
+  --type-measure: 66ch;
+  --type-measure-tight: 52ch;
 
   /* Kinetic WebUI motion token vocabulary (calibrated for desktop launcher feel) */
   --kin-press: 100ms;
