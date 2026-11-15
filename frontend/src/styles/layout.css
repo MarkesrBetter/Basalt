@@ -145,7 +145,7 @@
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 0.28rem;
+  gap: 0.32rem;
 }
 
 .nav-btn {
@@ -153,11 +153,10 @@
   min-height: 2.75rem;
   display: flex;
   align-items: center;
-  gap: 0.7rem;
-  padding: 0 0.7rem;
+  gap: 0.72rem;
+  padding: 0 0.85rem;
   border: 1px solid transparent;
-  border-left: 0.22rem solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-btn);
   background: transparent;
   color: var(--text-muted);
   text-align: left;
@@ -165,6 +164,7 @@
     background-color var(--kin-hover) ease,
     color var(--kin-hover) ease,
     border-color var(--kin-hover) ease,
+    box-shadow var(--kin-hover) ease,
     transform var(--kin-press) var(--kin-ease-control);
 }
 
@@ -173,14 +173,15 @@
 }
 
 .nav-btn:hover {
-  background: var(--bg-hover);
+  background: var(--control-bg);
+  border-color: var(--hairline);
   color: var(--text);
 }
 
 .nav-btn.active {
-  background: var(--bg-surface-alt);
-  border-color: var(--border-subtle);
-  border-left-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-surface-alt));
+  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
+  box-shadow: inset 0 1px 0 var(--edge-highlight);
   color: var(--text);
   font-weight: 600;
 }
@@ -330,12 +331,13 @@
 .player-chip {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.26rem 0.7rem 0.26rem 0.35rem;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  font-size: 0.88rem;
+  gap: 0.52rem;
+  padding: 0.24rem 0.78rem 0.24rem 0.34rem;
+  background: var(--control-bg);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-pill);
+  box-shadow: inset 0 1px 0 var(--edge-highlight);
+  font-size: 0.86rem;
   font-weight: 600;
 }
 
@@ -343,16 +345,17 @@
   width: 1.45rem;
   height: 1.45rem;
   image-rendering: pixelated;
-  border-radius: 0.15rem;
+  border-radius: 50%;
   background: var(--bg-surface-alt);
 }
 
 .engine-pill {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  padding: 0.28rem 0.7rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
+  padding: 0.26rem 0.78rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--hairline);
+  background: var(--control-bg);
   color: var(--text-muted);
 }
 
@@ -633,16 +636,14 @@ body.compact .world-row {
 
 :root[data-layout="topbar"] .nav-btn {
   width: auto;
-  min-height: 2.5rem;
-  padding: 0 0.78rem;
-  border-left-width: 1px;
-  border-bottom: 2px solid transparent;
+  min-height: 2.35rem;
+  padding: 0 0.9rem;
+  border-radius: var(--radius-pill);
 }
 
 :root[data-layout="topbar"] .nav-btn.active {
-  background: var(--bg-surface-alt);
-  border-left-color: transparent;
-  border-bottom-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-surface-alt));
+  border-color: color-mix(in srgb, var(--accent) 36%, transparent);
 }
 
 :root[data-layout="topbar"] .rail-footer {
@@ -797,16 +798,14 @@ body.compact .world-row {
 
 :root[data-layout="compact-deck"] .nav-btn {
   width: auto;
-  min-height: 2.25rem;
-  padding: 0 0.7rem;
-  border-left-width: 1px;
-  border-bottom: 2px solid transparent;
+  min-height: 2.2rem;
+  padding: 0 0.85rem;
+  border-radius: var(--radius-pill);
 }
 
 :root[data-layout="compact-deck"] .nav-btn.active {
-  background: var(--bg-surface-alt);
-  border-left-color: transparent;
-  border-bottom-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-surface-alt));
+  border-color: color-mix(in srgb, var(--accent) 36%, transparent);
 }
 
 :root[data-layout="compact-deck"] .nav-text {
@@ -913,8 +912,8 @@ body.compact .world-row {
 }
 
 :root[data-layout="right-rail"] .nav-btn.active {
-  border-left-color: transparent;
-  border-right: 0.22rem solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-surface-alt));
+  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
 }
 
 :root[data-layout="right-rail"] .play-hero {
@@ -1012,12 +1011,12 @@ body.compact .world-row {
   padding: 0.55rem 0.28rem;
   min-height: 3.7rem;
   text-align: center;
-  border-left-width: 1px;
+  border-radius: var(--radius-btn);
 }
 
 :root[data-layout="minimal-rail"] .nav-btn.active {
-  border-left-color: var(--accent);
-  background: var(--bg-surface-alt);
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-surface-alt));
+  border-color: color-mix(in srgb, var(--accent) 36%, transparent);
 }
 
 :root[data-layout="minimal-rail"] .nav-text {

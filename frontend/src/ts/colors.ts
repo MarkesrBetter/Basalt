@@ -253,14 +253,19 @@ export function applyDynamicDesignTokens(
   const root = document.documentElement;
   const light = isLightTheme(theme);
 
-  const radiusMap: Record<CornerStyle, { sm: string; md: string }> = {
-    Sharp: { sm: "0.14rem", md: "0.22rem" },
-    Balanced: { sm: "0.35rem", md: "0.55rem" },
-    Soft: { sm: "0.55rem", md: "0.85rem" },
+  const radiusMap: Record<
+    CornerStyle,
+    { sm: string; md: string; btn: string; pill: string }
+  > = {
+    Sharp: { sm: "0.26rem", md: "0.48rem", btn: "0.35rem", pill: "0.45rem" },
+    Balanced: { sm: "0.65rem", md: "1.05rem", btn: "0.85rem", pill: "9999px" },
+    Soft: { sm: "0.92rem", md: "1.35rem", btn: "9999px", pill: "9999px" },
   };
   const rad = radiusMap[corner] ?? radiusMap.Balanced;
   root.style.setProperty("--radius-sm", rad.sm);
   root.style.setProperty("--radius-md", rad.md);
+  root.style.setProperty("--radius-btn", rad.btn);
+  root.style.setProperty("--radius-pill", rad.pill);
 
   const props = [
     "--accent",
