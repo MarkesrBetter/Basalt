@@ -318,10 +318,18 @@ pub fn probe_java21_environment(runtime_dir: Option<&Path>) -> JavaDiscovery {
         }
     }
 
-    if let Ok(env_jh) = std::env::var("JAVA_HOME") {
-        let cleaned = env_jh.trim().trim_matches('"');
-        if !cleaned.is_empty() {
-            candidates.push(PathBuf::from(cleaned));
+    for env_key in [
+        "JAVA_HOME",
+        "JAVA_HOME_21_X64",
+        "JAVA_HOME_22_X64",
+        "JAVA_HOME_23_X64",
+        "JAVA_HOME_24_X64",
+    ] {
+        if let Ok(env_jh) = std::env::var(env_key) {
+            let cleaned = env_jh.trim().trim_matches('"');
+            if !cleaned.is_empty() {
+                candidates.push(PathBuf::from(cleaned));
+            }
         }
     }
 
