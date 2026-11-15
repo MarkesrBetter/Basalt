@@ -182,6 +182,27 @@
           <button class="rail-targets-action" type="button" id="btn-rail-manage-saves" data-i18n="rail.manageTargets">All</button>
         </div>
         <div class="rail-targets-list" id="rail-targets-list" role="list"></div>
+
+        <button class="rail-runtime-card" type="button" id="btn-rail-runtime">
+          <div class="rail-rt-head">
+            <span class="rail-rt-title" data-i18n="rail.runtimeTitle">RUNTIME</span>
+            <span class="rail-rt-link" data-i18n="rail.tuneLink">Tune</span>
+          </div>
+          <div class="rail-rt-rows tabular">
+            <div class="rail-rt-row">
+              <span data-i18n="play.specJdk">Java Runtime</span>
+              <strong id="rail-rt-java">Java 21</strong>
+            </div>
+            <div class="rail-rt-row">
+              <span data-i18n="play.specMod">Game cache</span>
+              <strong id="rail-rt-cache">Ready</strong>
+            </div>
+            <div class="rail-rt-row">
+              <span data-i18n="rail.transferLabel">Transfer</span>
+              <strong>HTTP/2 · 8× Range</strong>
+            </div>
+          </div>
+        </button>
       </div>
 
       <div class="rail-footer">
@@ -286,8 +307,6 @@
 
           <div class="console-home" id="console-home" hidden>
             <div class="console-hero">
-              <svg id="deck-hero-svg" class="console-hero-backdrop" viewBox="0 0 480 220" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
-              <div class="console-hero-scrim" aria-hidden="true"></div>
               <div class="console-hero-content">
                 <div class="console-hero-info">
                   <div class="console-badge-row">
@@ -306,8 +325,8 @@
                     <button class="btn-secondary console-btn-act" type="button" id="btn-deck-secondary">
                       <span id="deck-secondary-label">Manage saves</span>
                     </button>
-                    <button class="btn-subtle console-btn-act" type="button" id="btn-deck-prepare">
-                      <span data-i18n="play.prepareBtn">Verify / Pre-download</span>
+                    <button class="btn-secondary console-btn-act" type="button" id="btn-deck-prepare">
+                      <span data-i18n="play.prepareBtn">Verify</span>
                     </button>
                   </div>
                   <p class="console-status-line tabular" id="deck-status-line">
@@ -316,8 +335,8 @@
                 </div>
 
                 <div class="console-hero-skin">
-                  <div class="console-skin-pedestal">
-                    <canvas id="deck-skin-canvas" width="196" height="236" aria-label="Console character preview" data-i18n-aria="skin.previewAria"></canvas>
+                  <div class="console-skin-pedestal" id="deck-skin-stage" title="Tracks cursor · Drag to rotate" data-i18n-title="play.skin3dHint">
+                    <canvas id="deck-skin-canvas" width="240" height="300" aria-label="Console character preview" data-i18n-aria="skin.previewAria"></canvas>
                   </div>
                   <div class="console-skin-meta">
                     <span class="console-skin-name" id="deck-skin-caption">Player</span>
@@ -438,16 +457,31 @@
                       <span data-i18n="play.prepareBtn">Verify</span>
                     </button>
                   </div>
-                  <span class="inline-status" id="prepare-status-hint" data-i18n="play.prepareHintWait">Optional: download game assets before launch</span>
+                  <span class="inline-status" id="prepare-status-hint">Optional: download game assets before launch</span>
                   <div class="action-feedback" id="launch-feedback" aria-live="polite" hidden></div>
                   <pre class="gradle-log-box tabular" id="gradle-log-box" hidden></pre>
                 </div>
               </div>
 
+              <div class="play-tuning-strip" aria-label="Quick tuning">
+                <button class="play-tune-tile" type="button" id="btn-play-tune-jvm">
+                  <span class="play-tune-k" data-i18n="play.specRam">JVM Memory &amp; GC</span>
+                  <strong class="play-tune-v tabular" id="play-tune-ram">4096 MB · ZGC</strong>
+                </button>
+                <button class="play-tune-tile" type="button" id="btn-play-tune-gfx">
+                  <span class="play-tune-k" data-i18n="play.specChunks">Render Distance</span>
+                  <strong class="play-tune-v tabular" id="play-tune-gfx">16 chunk · Ultra</strong>
+                </button>
+                <button class="play-tune-tile" type="button" id="btn-play-tune-net">
+                  <span class="play-tune-k" data-i18n="play.tuneNetTitle">Network &amp; Speed</span>
+                  <strong class="play-tune-v tabular" id="play-tune-net">HTTP/2 · TCP Low-Latency</strong>
+                </button>
+              </div>
+
               <section class="play-library-section" aria-labelledby="play-recent-heading">
                 <div class="play-library-head">
                   <div style="display:flex;align-items:baseline;gap:0.55rem;">
-                    <h2 id="play-recent-heading" data-i18n="play.recentTitle">Quick jump · Worlds &amp; servers</h2>
+                    <h2 id="play-recent-heading" data-i18n="play.recentTitle">Quick jump</h2>
                     <span class="count-label tabular" id="play-recent-count">0</span>
                   </div>
                   <div class="play-library-actions">
@@ -461,18 +495,23 @@
                   </div>
                 </div>
                 <div class="play-recent-list" id="play-recent-list" role="list"></div>
+                <div class="play-library-footer">
+                  <span class="muted-copy" data-i18n="play.libraryFooterHint">Launch worlds directly or manage custom local servers in Network settings.</span>
+                  <button class="btn-subtle btn-sm" type="button" id="btn-play-add-server" data-i18n="play.addServerLink">Add server</button>
+                </div>
               </section>
             </div>
 
             <aside class="play-side-col">
               <section class="play-skin-card" aria-label="Active character">
-                <div class="play-skin-stage" id="play-skin-stage" role="button" tabindex="0" title="Click to rotate character" data-i18n-title="play.rotateSkinHint">
-                  <canvas id="play-skin-canvas" width="160" height="196" aria-label="Active player skin" data-i18n-aria="skin.previewAria"></canvas>
+                <div class="play-skin-stage" id="play-skin-stage" title="Tracks cursor · Drag to rotate" data-i18n-title="play.skin3dHint">
+                  <canvas id="play-skin-canvas" width="260" height="310" aria-label="Active player skin" data-i18n-aria="skin.previewAria"></canvas>
                 </div>
                 <div class="play-skin-footer">
                   <div class="play-skin-meta">
                     <strong id="play-skin-name">Player</strong>
                     <span class="tabular" id="play-skin-model">Slim · 3 px</span>
+                    <span class="play-skin-hint" data-i18n="play.skin3dHint">Tracks cursor · Drag to rotate</span>
                   </div>
                   <button class="btn-secondary btn-sm" type="button" id="btn-play-goto-profile" data-i18n="play.customizeSkin">
                     Edit skin
@@ -632,10 +671,17 @@
                 <div class="skin-viewport">
                   <canvas
                     id="skin-preview-canvas"
-                    width="220"
-                    height="264"
+                    width="260"
+                    height="310"
                     aria-label="Selected character skin preview"
                     data-i18n-aria="skin.previewAria"
+                  ></canvas>
+                  <canvas
+                    id="skin-atlas-canvas"
+                    width="240"
+                    height="240"
+                    aria-label="64x64 skin UV atlas"
+                    hidden
                   ></canvas>
                   <div class="skin-view-modes" role="group" aria-label="Skin camera angle" data-i18n-aria="skin.viewAria">
                     <button class="seg-btn active" type="button" data-skin-view="front" data-i18n="skin.viewFront">Front</button>

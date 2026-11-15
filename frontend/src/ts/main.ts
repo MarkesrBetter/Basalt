@@ -33,10 +33,9 @@ import {
 import {
   drawSkinPreview,
   drawTopbarHead,
-  renderClientStratumSvg,
-  renderDeckCardThumbSvg,
   type SkinViewMode,
 } from "./skin_canvas";
+import { Skin3DViewer } from "./skin3d";
 import { initMinecraftSounds, playMcSound, setSoundsEnabled, unlockAudioContext } from "./sounds";
 import {
   type AccentTone,
@@ -145,9 +144,11 @@ interface DeckCard {
 
 let state: BootstrapDto | null = null;
 let skinViewMode: SkinViewMode = "front";
-let playSkinMode: SkinViewMode = "front";
 let pendingDeleteSaveId: string | null = null;
 let lastExpandedRailLayout: LayoutMode = "Sidebar";
+let playSkin3d: Skin3DViewer | null = null;
+let profileSkin3d: Skin3DViewer | null = null;
+let deckSkin3d: Skin3DViewer | null = null;
 let lastDialogTrigger: HTMLElement | null = null;
 let toastTimer: number | null = null;
 let logLines: string[] = [];
@@ -434,6 +435,10 @@ function applyPreferences(): void {
   applyDynamicDesignTokens(theme, accent, customHex, corner);
   document.body.classList.toggle("compact", state.config.ui_compact);
   syncRootMotionAttribute(state.config.ui_reduced_motion);
+  const reducedMotion = getEffectiveMotion() === "none";
+  playSkin3d?.setReducedMotion(reducedMotion);
+  profileSkin3d?.setReducedMotion(reducedMotion);
+  deckSkin3d?.setReducedMotion(reducedMotion);
 
   byId<HTMLSpanElement>("rail-theme-label").textContent = THEME_SHORT_LABELS[lang][theme];
   byId<HTMLSpanElement>("rail-layout-label").textContent = LAYOUT_SHORT_LABELS[lang][layout];
@@ -572,6 +577,15 @@ function renderTopbarAndSession(): void {
     railHwMini.textContent = state.vanilla.java_ready
       ? `${state.config.graphics.jvm_ram_mb} MB`
       : tr(lang, "play.specJdkMissing");
+  }
+  const rtJava = document.getElementById("rail-rt-java");
+  if (rtJava) {
+    rtJava.textContent = state.vanilla.java_ready ? "Java 21" : tr(lang, "play.specJdkMissing");
+  }
+  const rtCache = document.getElementById("rail-rt-cache");
+  if (rtCache) {
+    const ready = state.vanilla.client_ready && state.vanilla.assets_ready;
+    rtCache.textContent = tr(lang, ready ? "play.specModReady" : "play.specModAuto");
   }
   renderRailTargets();
 
@@ -778,7 +792,23 @@ function renderPlayView(): void {
 
   const playSkinCanvas = document.getElementById("play-skin-canvas");
   if (playSkinCanvas instanceof HTMLCanvasElement) {
-    drawSkinPreview(playSkinCanvas, state.skin_rgba, playSkinMode, state.skin_is_slim);
+    if (!playSkin3d) {
+      playSkin3d = new Skin3DViewer(playSkinCanvas, {
+        interactive: true,
+        trackCursor: true,
+        onClickFlip: () => playMcSound("tab"),
+      });
+    }
+    playSkin3d.setReducedMotion(getEffectiveMotion() === "none");
+    playSkin3d.setSkin(state.skin_rgba, state.skin_is_slim);
+  }
+  const tuneRam = document.getElementById("play-tune-ram");
+  if (tuneRam) tuneRam.textContent = `${config.graphics.jvm_ram_mb} MB · ${config.graphics.jvm_gc}`;
+  const tuneGfx = document.getElementById("play-tune-gfx");
+  if (tuneGfx) tuneGfx.textContent = `${config.graphics.render_distance} chunk · ${config.graphics.preset}`;
+  const tuneNet = document.getElementById("play-tune-net");
+  if (tuneNet) {
+    tuneNet.textContent = config.network_boost ? "HTTP/2 · TCP Low-Latency" : "Standard HTTP";
   }
   const playSkinName = document.getElementById("play-skin-name");
   if (playSkinName) playSkinName.textContent = config.username;
@@ -1080,11 +1110,6 @@ function renderConsoleHero(card: DeckCard): void {
   const lang = getEffectiveLanguage();
   const { config, vanilla, hardware, running_session, skin_rgba, skin_is_slim } = state;
 
-  const heroSvg = document.getElementById("deck-hero-svg");
-  if (heroSvg instanceof SVGSVGElement) {
-    renderClientStratumSvg(heroSvg, card.seedKey, true);
-  }
-
   byId<HTMLElement>("deck-hero-kicker").textContent = running_session
     ? `${card.kicker} · PID ${running_session.pid}`
     : card.kicker;
@@ -1146,7 +1171,16 @@ function renderConsoleHero(card: DeckCard): void {
     });
   }
 
-  drawSkinPreview(byId<HTMLCanvasElement>("deck-skin-canvas"), skin_rgba, "front", skin_is_slim);
+  const deckCanvas = byId<HTMLCanvasElement>("deck-skin-canvas");
+  if (!deckSkin3d) {
+    deckSkin3d = new Skin3DViewer(deckCanvas, {
+      interactive: true,
+      trackCursor: true,
+      onClickFlip: () => playMcSound("tab"),
+    });
+  }
+  deckSkin3d.setReducedMotion(getEffectiveMotion() === "none");
+  deckSkin3d.setSkin(skin_rgba, skin_is_slim);
   byId<HTMLElement>("deck-skin-caption").textContent = config.username;
   byId<HTMLElement>("deck-skin-model-badge").textContent = tr(
     lang,
@@ -1252,19 +1286,31 @@ function renderConsoleHome(): void {
       btn.classList.add("is-selected");
     }
 
-    const coverSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    coverSvg.setAttribute("class", "deck-card-cover");
-    coverSvg.setAttribute("viewBox", "0 0 240 84");
-    coverSvg.setAttribute("preserveAspectRatio", "xMidYMid slice");
-    coverSvg.setAttribute("aria-hidden", "true");
-    renderDeckCardThumbSvg(coverSvg, card.seedKey, card.kind);
+    const cardIconId =
+      card.kind === "world"
+        ? "ico-cube"
+        : card.kind === "server"
+        ? "ico-globe"
+        : card.targetView === "profile"
+        ? "ico-user"
+        : card.targetView === "system"
+        ? "ico-sliders"
+        : card.targetView === "worlds"
+        ? "ico-layers"
+        : "ico-play";
 
-    const body = document.createElement("span");
-    body.className = "deck-card-body";
-
+    const topRow = document.createElement("span");
+    topRow.className = "deck-card-top";
+    const iconBox = document.createElement("span");
+    iconBox.className = "deck-card-icon";
+    iconBox.innerHTML = `<svg class="ico small" aria-hidden="true"><use href="#${cardIconId}" /></svg>`;
     const kicker = document.createElement("span");
     kicker.className = "deck-card-kicker";
     kicker.textContent = card.kicker;
+    topRow.append(iconBox, kicker);
+
+    const body = document.createElement("span");
+    body.className = "deck-card-body";
 
     const title = document.createElement("span");
     title.className = "deck-card-title";
@@ -1274,8 +1320,8 @@ function renderConsoleHome(): void {
     meta.className = "deck-card-meta";
     meta.textContent = card.meta;
 
-    body.append(kicker, title, meta);
-    btn.append(coverSvg, body);
+    body.append(title, meta);
+    btn.append(topRow, body);
 
     btn.addEventListener("click", () => {
       unlockAudioContext();
@@ -1567,7 +1613,34 @@ function renderProfileView(): void {
   byId<HTMLParagraphElement>("skin-file-label").textContent =
     config.skin_file ?? tr(lang, "skin.defaultFileLabel");
 
-  drawSkinPreview(byId<HTMLCanvasElement>("skin-preview-canvas"), skin_rgba, skinViewMode, skin_is_slim);
+  const skinCanvas3d = byId<HTMLCanvasElement>("skin-preview-canvas");
+  const skinAtlasCanvas = document.getElementById("skin-atlas-canvas");
+  if (!profileSkin3d) {
+    profileSkin3d = new Skin3DViewer(skinCanvas3d, {
+      interactive: true,
+      trackCursor: true,
+      initialView: skinViewMode === "back" ? "back" : "front",
+      onClickFlip: (next) => {
+        skinViewMode = next;
+        playMcSound("tab");
+        for (const b of Array.from(document.querySelectorAll<HTMLButtonElement>("[data-skin-view]"))) {
+          b.classList.toggle("active", b.dataset.skinView === next);
+        }
+      },
+    });
+  }
+  profileSkin3d.setReducedMotion(getEffectiveMotion() === "none");
+  profileSkin3d.setSkin(skin_rgba, skin_is_slim);
+
+  if (skinViewMode === "atlas" && skinAtlasCanvas instanceof HTMLCanvasElement) {
+    skinCanvas3d.hidden = true;
+    skinAtlasCanvas.hidden = false;
+    drawSkinPreview(skinAtlasCanvas, skin_rgba, "atlas", skin_is_slim);
+  } else {
+    skinCanvas3d.hidden = false;
+    if (skinAtlasCanvas instanceof HTMLCanvasElement) skinAtlasCanvas.hidden = true;
+    profileSkin3d.setPresetView(skinViewMode === "back" ? "back" : "front");
+  }
 
   const viewBtns = document.querySelectorAll<HTMLButtonElement>("[data-skin-view]");
   for (const btn of Array.from(viewBtns)) {
@@ -2952,25 +3025,16 @@ function wireEvents(): void {
     setActiveView("profile", true, true);
   });
 
-  const playSkinStage = document.getElementById("play-skin-stage");
-  if (playSkinStage) {
-    const flipPlaySkin = (): void => {
-      if (!state) return;
-      playSkinMode = playSkinMode === "front" ? "back" : "front";
-      playMcSound("tab");
-      const canvas = document.getElementById("play-skin-canvas");
-      if (canvas instanceof HTMLCanvasElement) {
-        drawSkinPreview(canvas, state.skin_rgba, playSkinMode, state.skin_is_slim);
-      }
-    };
-    playSkinStage.addEventListener("click", flipPlaySkin);
-    playSkinStage.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        flipPlaySkin();
-      }
-    });
-  }
+  const openSettingsTab = (tab: string): void => {
+    setActiveView("system", true, true);
+    document.querySelector<HTMLButtonElement>(`[data-settings-tab="${tab}"]`)?.click();
+  };
+
+  document.getElementById("btn-rail-runtime")?.addEventListener("click", () => openSettingsTab("game"));
+  document.getElementById("btn-play-tune-jvm")?.addEventListener("click", () => openSettingsTab("game"));
+  document.getElementById("btn-play-tune-gfx")?.addEventListener("click", () => openSettingsTab("game"));
+  document.getElementById("btn-play-tune-net")?.addEventListener("click", () => openSettingsTab("network"));
+  document.getElementById("btn-play-add-server")?.addEventListener("click", () => openSettingsTab("network"));
 
   byId<HTMLSelectElement>("play-save-select").addEventListener("change", (e) => {
     const val = (e.currentTarget as HTMLSelectElement).value;
