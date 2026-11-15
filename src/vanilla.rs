@@ -872,6 +872,89 @@ fn commit_verified_part(part_path: &Path, dest: &Path) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CurlCapabilities {
+    pub supports_http2: bool,
+    pub supports_parallel: bool,
+}
+
+impl CurlCapabilities {
+    pub fn parse_version_output(output: &str) -> Self {
+        let mut supports_http2 = false;
+        let mut supports_parallel = false;
+
+        for line in output.lines() {
+            let trimmed = line.trim();
+            if let Some(rest) = trimmed.strip_prefix("curl ") {
+                let ver_str = rest.split_whitespace().next().unwrap_or("");
+                let mut parts = ver_str.split('.').filter_map(|p| p.parse::<u32>().ok());
+                if let (Some(maj), Some(min)) = (parts.next(), parts.next()) {
+                    supports_parallel = (maj, min) >= (7, 66);
+                }
+            } else if let Some(rest) = trimmed.strip_prefix("Features:") {
+                supports_http2 = rest
+                    .split_whitespace()
+                    .any(|feat| feat.eq_ignore_ascii_case("HTTP2"));
+            }
+        }
+
+        Self {
+            supports_http2,
+            supports_parallel,
+        }
+    }
+
+    fn detect() -> Self {
+        static CACHE: std::sync::OnceLock<CurlCapabilities> = std::sync::OnceLock::new();
+        *CACHE.get_or_init(|| {
+            let mut cmd = Command::new("curl.exe");
+            cmd.arg("--version").stdin(Stdio::null());
+            hide_window(&mut cmd);
+            if let Ok(out) = cmd.output()
+                && out.status.success()
+            {
+                let text = String::from_utf8_lossy(&out.stdout);
+                return Self::parse_version_output(&text);
+            }
+            Self {
+                supports_http2: false,
+                supports_parallel: false,
+            }
+        })
+    }
+}
+
+fn build_curl_transfer_args(
+    caps: CurlCapabilities,
+    parallel_max: Option<&str>,
+    connect_timeout_secs: &str,
+    create_dirs: bool,
+) -> Vec<String> {
+    let mut args = vec![
+        "-sS".to_string(),
+        "-fL".to_string(),
+        "--tcp-nodelay".to_string(),
+    ];
+    if caps.supports_http2 {
+        args.push("--http2".to_string());
+    }
+    if caps.supports_parallel {
+        args.push("--parallel".to_string());
+        if let Some(max_s) = parallel_max {
+            args.push("--parallel-max".to_string());
+            args.push(max_s.to_string());
+        }
+    }
+    args.push("--retry".to_string());
+    args.push("2".to_string());
+    args.push("--connect-timeout".to_string());
+    args.push(connect_timeout_secs.to_string());
+    if create_dirs {
+        args.push("--create-dirs".to_string());
+    }
+    args
+}
+
 /// Splits a large file (`>= 4 MB`) into `segments` concurrent HTTP `Range` requests (IDM-style multi-segment download),
 /// stitches the segments in order, and verifies the resulting SHA-1 digest.
 fn download_segmented_with_curl(
@@ -879,6 +962,10 @@ fn download_segmented_with_curl(
     temp_dir: &Path,
     segments: usize,
 ) -> Result<bool, String> {
+    let caps = CurlCapabilities::detect();
+    if !caps.supports_parallel {
+        return Ok(false);
+    }
     let seg_count = segments.clamp(2, 16) as u64;
     if task.size < 4 * 1024 * 1024 {
         return Ok(false);
@@ -911,23 +998,12 @@ fn download_segmented_with_curl(
         .map_err(|e| format!("Failed to write segmented curl config: {e}"))?;
 
     let seg_max_str = seg_paths.len().to_string();
+    let args = build_curl_transfer_args(caps, Some(&seg_max_str), "15", false);
     let mut cmd = Command::new("curl.exe");
-    cmd.args([
-        "-sS",
-        "-fL",
-        "--http2",
-        "--tcp-nodelay",
-        "--parallel",
-        "--parallel-max",
-        &seg_max_str,
-        "--retry",
-        "2",
-        "--connect-timeout",
-        "15",
-        "-K",
-    ])
-    .arg(&cfg_path)
-    .stdin(Stdio::null());
+    cmd.args(&args)
+        .arg("-K")
+        .arg(&cfg_path)
+        .stdin(Stdio::null());
     hide_window(&mut cmd);
     let out = cmd.output();
     let _ = fs::remove_file(&cfg_path);
@@ -1013,6 +1089,7 @@ fn download_batch_with_curl(
     }
 
     let mut last_err = String::new();
+    let mut caps = CurlCapabilities::detect();
     let max_streams = parallel_streams.clamp(4, 32).to_string();
 
     for attempt in 0..3 {
@@ -1036,24 +1113,12 @@ fn download_batch_with_curl(
         } else {
             "6"
         };
+        let args = build_curl_transfer_args(caps, Some(parallel_max), "20", true);
         let mut cmd = Command::new("curl.exe");
-        cmd.args([
-            "-sS",
-            "-fL",
-            "--http2",
-            "--tcp-nodelay",
-            "--parallel",
-            "--parallel-max",
-            parallel_max,
-            "--retry",
-            "2",
-            "--connect-timeout",
-            "20",
-            "--create-dirs",
-            "-K",
-        ])
-        .arg(&cfg_path)
-        .stdin(Stdio::null());
+        cmd.args(&args)
+            .arg("-K")
+            .arg(&cfg_path)
+            .stdin(Stdio::null());
         hide_window(&mut cmd);
         let out = cmd
             .output()
@@ -1061,6 +1126,13 @@ fn download_batch_with_curl(
         let _ = fs::remove_file(&cfg_path);
 
         if !out.status.success() {
+            // If curl exits with code 2 (unrecognized/unsupported flag), drop optional HTTP/2 + parallel flags on retry
+            if out.status.code() == Some(2) {
+                caps = CurlCapabilities {
+                    supports_http2: false,
+                    supports_parallel: false,
+                };
+            }
             let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
             last_err = format!(
                 "curl exit code {:?}{}",
@@ -2327,14 +2399,15 @@ mod tests {
     use std::path::{Path, PathBuf};
 
     use super::{
-        DEFAULT_SKIN_PATHS, MINECRAFT_1_21_4_NAME, MojangAssetIndexInfo, MojangArtifactInfo,
-        MojangLibDownloads, MojangLibrary, MojangLoggingClient, MojangLoggingFile,
-        MojangLoggingSection, MojangRule, MojangRuleOs, MojangVersionDownloads,
-        MojangVersionManifest, VanillaLaunchConfig, align_uuid_for_skin_model, build_stored_zip,
-        build_vanilla_launch_args, check_vanilla_assets_ready_for, compute_sha1_hex,
-        compute_sha256_hex, default_skin_slot, evaluate_jdk_candidates, is_ascii_path,
-        is_library_allowed_for_target, load_cached_version_manifest_for, parse_java_major,
-        summarize_process_failure, version_supports_quick_play, write_basalt_skin_resource_pack,
+        CurlCapabilities, DEFAULT_SKIN_PATHS, MINECRAFT_1_21_4_NAME, MojangAssetIndexInfo,
+        MojangArtifactInfo, MojangLibDownloads, MojangLibrary, MojangLoggingClient,
+        MojangLoggingFile, MojangLoggingSection, MojangRule, MojangRuleOs,
+        MojangVersionDownloads, MojangVersionManifest, VanillaLaunchConfig,
+        align_uuid_for_skin_model, build_stored_zip, build_vanilla_launch_args,
+        check_vanilla_assets_ready_for, compute_sha1_hex, compute_sha256_hex, default_skin_slot,
+        evaluate_jdk_candidates, is_ascii_path, is_library_allowed_for_target,
+        load_cached_version_manifest_for, parse_java_major, summarize_process_failure,
+        version_supports_quick_play, write_basalt_skin_resource_pack,
     };
     use crate::config::{GraphicsSettings, JvmGcMode, normalize_mc_version};
     use crate::protocol::local_player_uuid_bytes;
@@ -2686,6 +2759,31 @@ mod tests {
         assert_eq!(normalize_mc_version("1.20.4"), "1.20.4");
         assert_eq!(normalize_mc_version("1.16.5"), "1.16.5");
         assert_eq!(normalize_mc_version("invalid"), "1.21.4");
+
+        let win_schannel = "curl 8.22.0 (Windows) libcurl/8.22.0 Schannel zlib/1.3.2\nFeatures: alt-svc AsynchDNS HSTS IPv6 Largefile SSL SSPI";
+        assert_eq!(
+            CurlCapabilities::parse_version_output(win_schannel),
+            CurlCapabilities {
+                supports_http2: false,
+                supports_parallel: true,
+            }
+        );
+        let legacy_win10 = "curl 7.55.1 (Windows) libcurl/7.55.1 WinSSL\nFeatures: AsynchDNS IPv6 Largefile SSPI";
+        assert_eq!(
+            CurlCapabilities::parse_version_output(legacy_win10),
+            CurlCapabilities {
+                supports_http2: false,
+                supports_parallel: false,
+            }
+        );
+        let with_nghttp2 = "curl 8.5.0 (x86_64) libcurl/8.5.0 nghttp2/1.59.0\nFeatures: AsynchDNS HTTP2 HTTPS-proxy";
+        assert_eq!(
+            CurlCapabilities::parse_version_output(with_nghttp2),
+            CurlCapabilities {
+                supports_http2: true,
+                supports_parallel: true,
+            }
+        );
 
         let _ = fs::remove_dir_all(&tmp);
     }
