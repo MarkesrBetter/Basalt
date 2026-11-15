@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Basalt - Minecraft Vanilla Launcher</title>
+  <title>Basalt - Minecraft Launcher</title>
   <link
     rel="icon"
     type="image/svg+xml"
@@ -121,7 +121,6 @@
           <polygon points="28,10.5 16.5,16.8 16.5,28.5 28,22" fill="var(--brand-right)" />
         </svg>
         <span class="titlebar-name">BASALT</span>
-        <span class="titlebar-tag tabular" id="titlebar-version-tag">1.21.4</span>
       </div>
       <div class="titlebar-actions">
         <button class="titlebar-btn" type="button" id="btn-win-minimize" aria-label="Minimize" title="Minimize" data-i18n-aria="win.minimize" data-i18n-title="win.minimize">
@@ -180,7 +179,7 @@
       <div class="rail-footer">
         <div class="rail-status" id="rail-status-row" data-state="ready">
           <span class="status-led" aria-hidden="true"></span>
-          <span id="rail-status-text" data-i18n="rail.statusReady">Vanilla 1.21.4 ready</span>
+          <span id="rail-status-text" data-i18n="rail.statusReady">Ready</span>
         </div>
         <div class="rail-quick-actions rail-quick-actions-3">
           <button class="btn-subtle btn-rail-mini" type="button" id="btn-rail-theme" title="Switch color theme" aria-label="Switch color theme" data-i18n-title="rail.themeBtn" data-i18n-aria="rail.themeBtn">
@@ -218,8 +217,7 @@
           </button>
         </div>
         <div class="rail-build">
-          <span id="rail-build-ver">VANILLA JAVA · 1.21.4</span>
-          <span class="tabular" id="rail-version-tag" data-i18n="rail.protocol">PROTOCOL 769</span>
+          <span id="rail-build-ver">Minecraft 1.21.4</span>
         </div>
       </div>
     </aside>
@@ -259,7 +257,7 @@
               <h1 id="play-heading" data-i18n="play.heading">Launch Minecraft</h1>
             </div>
             <p class="view-lead" data-i18n="play.lead">
-              Run the official Minecraft Java 1.21.4 Vanilla client directly with hardware-calibrated settings and a local skin pack.
+              Launch Minecraft Java directly with hardware-calibrated settings and a local skin pack.
             </p>
           </div>
 
@@ -271,11 +269,10 @@
                 <div class="console-hero-info">
                   <div class="console-badge-row">
                     <span class="console-kicker" id="deck-hero-kicker">SINGLEPLAYER · 1.21.4</span>
-                    <span class="console-proto-badge tabular" id="deck-hero-tag">Vanilla · Protocol 769</span>
                   </div>
                   <h2 class="console-hero-title" id="deck-hero-title">Minecraft 1.21.4</h2>
                   <p class="console-hero-sub" id="deck-hero-sub">
-                    Launch the official Vanilla 1.21.4 client directly with one press using your selected world and local PNG skin.
+                    Launch Minecraft directly with one press using your selected world and local PNG skin.
                   </p>
                   <div class="console-spec-pills" id="deck-hero-specs"></div>
                   <div class="console-hero-actions">
@@ -342,35 +339,34 @@
 
               <aside class="launch-deck" aria-label="Launch controls" data-i18n-aria="play.controlsAria">
                 <div class="launch-version-header">
-                  <span class="field-kicker" data-i18n="play.clientKicker">TARGET CLIENT · PURE VANILLA</span>
+                  <span class="field-kicker" data-i18n="play.clientKicker">MINECRAFT JAVA EDITION</span>
                   <div class="launch-version-row">
                     <span class="version-hero tabular" id="launch-version-hero">1.21.4</span>
-                    <span class="proto-badge tabular" id="launch-proto-badge" data-i18n="play.protoBadge">Protocol 769</span>
                   </div>
                   <p class="version-summary" id="launch-version-summary" data-i18n="play.versionSummary">
-                    Launches official Vanilla 1.21.4 directly via java.exe with hardware-synced options.txt and your local skin pack.
+                    Launches Minecraft directly with hardware-synced options.txt and your local skin pack.
                   </p>
                 </div>
 
                 <div class="form-stack">
                   <div class="field-group">
-                    <label for="play-version-select" data-i18n="play.versionSelectLabel">Minecraft version (Vanilla)</label>
+                    <label for="play-version-select" data-i18n="play.versionSelectLabel">Minecraft version</label>
                     <select id="play-version-select">
-                      <option value="1.21.4">1.21.4 (Latest · Protocol 769)</option>
-                      <option value="1.21.3">1.21.3 (Protocol 768)</option>
-                      <option value="1.21.2">1.21.2 (Protocol 768)</option>
-                      <option value="1.21.1">1.21.1 (Protocol 767)</option>
-                      <option value="1.21">1.21 (Protocol 767)</option>
-                      <option value="1.20.6">1.20.6 (Protocol 766)</option>
-                      <option value="1.20.4">1.20.4 (Protocol 765)</option>
-                      <option value="1.20.2">1.20.2 (Protocol 764)</option>
-                      <option value="1.20.1">1.20.1 (Protocol 763)</option>
-                      <option value="1.20">1.20 (Protocol 763)</option>
-                      <option value="1.19.4">1.19.4 (Protocol 762)</option>
-                      <option value="1.19.2">1.19.2 (Protocol 760)</option>
-                      <option value="1.18.2">1.18.2 (Protocol 758)</option>
-                      <option value="1.17.1">1.17.1 (Protocol 756)</option>
-                      <option value="1.16.5">1.16.5 (Protocol 754)</option>
+                      <option value="1.21.4">1.21.4 (Latest)</option>
+                      <option value="1.21.3">1.21.3</option>
+                      <option value="1.21.2">1.21.2</option>
+                      <option value="1.21.1">1.21.1</option>
+                      <option value="1.21">1.21</option>
+                      <option value="1.20.6">1.20.6</option>
+                      <option value="1.20.4">1.20.4</option>
+                      <option value="1.20.2">1.20.2</option>
+                      <option value="1.20.1">1.20.1</option>
+                      <option value="1.20">1.20</option>
+                      <option value="1.19.4">1.19.4</option>
+                      <option value="1.19.2">1.19.2</option>
+                      <option value="1.18.2">1.18.2</option>
+                      <option value="1.17.1">1.17.1</option>
+                      <option value="1.16.5">1.16.5</option>
                     </select>
                   </div>
 
@@ -426,14 +422,14 @@
                       class="btn-secondary btn-launch-verify"
                       type="button"
                       id="btn-prepare-gradle"
-                      title="Verify &amp; Pre-download Vanilla Files"
+                      title="Verify &amp; Pre-download Game Files"
                       data-i18n-title="play.prepareTitle"
                     >
                       <svg class="ico small" aria-hidden="true"><use href="#ico-refresh" /></svg>
                       <span data-i18n="play.prepareBtn">Verify</span>
                     </button>
                   </div>
-                  <span class="inline-status" id="prepare-status-hint" data-i18n="play.prepareHintWait">Optional: download Vanilla 1.21.4 assets before launch</span>
+                  <span class="inline-status" id="prepare-status-hint" data-i18n="play.prepareHintWait">Optional: download game assets before launch</span>
                   <div class="action-feedback" id="launch-feedback" aria-live="polite" hidden></div>
                   <pre class="gradle-log-box tabular" id="gradle-log-box" hidden></pre>
                 </div>
@@ -461,7 +457,6 @@
               <section class="panel-card" aria-label="Client parameters" data-i18n-aria="play.specsTitle">
                 <div class="section-head">
                   <h2 data-i18n="play.specsTitle">Client &amp; runtime</h2>
-                  <span class="tabular" id="play-specs-version-badge">Vanilla 1.21.4</span>
                 </div>
                 <dl class="instance-metrics-grid" id="play-client-specs">
                   <div class="metric-box">
@@ -477,7 +472,7 @@
                     <dd class="tabular" id="play-spec-chunks">-</dd>
                   </div>
                   <div class="metric-box">
-                    <dt class="kv-key" id="play-spec-mod-label" data-i18n="play.specMod">Vanilla Cache</dt>
+                    <dt class="kv-key" id="play-spec-mod-label" data-i18n="play.specMod">Game cache</dt>
                     <dd class="tabular" id="play-spec-mod">-</dd>
                   </div>
                 </dl>
@@ -558,7 +553,6 @@
             <div class="panel-section panel-card">
               <div class="section-head">
                 <h2 data-i18n="profile.identityTitle">Player identity</h2>
-                <span class="tabular" data-i18n="profile.offlineUuid">OFFLINE UUID</span>
               </div>
               <form id="profile-form" class="profile-id-form" novalidate>
                 <div class="field-group">
@@ -578,7 +572,6 @@
               <div class="profile-meta-section">
                 <div class="section-head">
                   <h2 data-i18n="profile.sessionCardTitle">Offline session &amp; runtime</h2>
-                  <span class="tabular">UUID v3</span>
                 </div>
                 <dl class="readiness-list">
                   <div class="kv-row">
@@ -588,10 +581,6 @@
                   <div class="kv-row">
                     <dt class="kv-key" data-i18n="skin.modelSelectLabel">Arm model (Slim / Classic)</dt>
                     <dd class="kv-val tabular" id="profile-arm-summary">Slim · 3 px</dd>
-                  </div>
-                  <div class="kv-row">
-                    <dt class="kv-key" data-i18n="profile.packPathLabel">Active Skin Pack</dt>
-                    <dd class="kv-val tabular">run/resourcepacks/basalt_skin.zip</dd>
                   </div>
                 </dl>
                 <div class="profile-quick-actions spaced-top-sm">
@@ -640,7 +629,7 @@
                     </select>
                   </div>
                   <p class="muted-copy skin-note-compact" data-i18n="skin.noteCompact" hidden>
-                    64×64 and legacy 64×32 PNG skins plus Slim / Classic arms are packaged cleanly as a Vanilla resource pack on launch.
+                    64×64 and legacy 64×32 PNG skins plus Slim / Classic arms are packaged automatically on launch.
                   </p>
                   <div class="skin-btn-row">
                     <button class="btn-primary btn-sm" type="button" id="btn-pick-skin">
@@ -697,7 +686,6 @@
             <div class="panel-card settings-list-card">
               <div class="section-head">
                 <h2 data-i18n="system.generalTitle">General application, language &amp; version</h2>
-                <span class="tabular" id="settings-active-ver-badge">VANILLA 1.21.4</span>
               </div>
 
               <div class="settings-list">
@@ -716,25 +704,25 @@
 
                 <div class="setting-row">
                   <div class="setting-row-copy">
-                    <label for="settings-version-select" data-i18n="play.versionSelectLabel">Minecraft version (Vanilla)</label>
+                    <label for="settings-version-select" data-i18n="play.versionSelectLabel">Minecraft version</label>
                   </div>
                   <div class="setting-row-control">
                     <select id="settings-version-select">
-                      <option value="1.21.4">1.21.4 (Latest · Protocol 769)</option>
-                      <option value="1.21.3">1.21.3 (Protocol 768)</option>
-                      <option value="1.21.2">1.21.2 (Protocol 768)</option>
-                      <option value="1.21.1">1.21.1 (Protocol 767)</option>
-                      <option value="1.21">1.21 (Protocol 767)</option>
-                      <option value="1.20.6">1.20.6 (Protocol 766)</option>
-                      <option value="1.20.4">1.20.4 (Protocol 765)</option>
-                      <option value="1.20.2">1.20.2 (Protocol 764)</option>
-                      <option value="1.20.1">1.20.1 (Protocol 763)</option>
-                      <option value="1.20">1.20 (Protocol 763)</option>
-                      <option value="1.19.4">1.19.4 (Protocol 762)</option>
-                      <option value="1.19.2">1.19.2 (Protocol 760)</option>
-                      <option value="1.18.2">1.18.2 (Protocol 758)</option>
-                      <option value="1.17.1">1.17.1 (Protocol 756)</option>
-                      <option value="1.16.5">1.16.5 (Protocol 754)</option>
+                      <option value="1.21.4">1.21.4 (Latest)</option>
+                      <option value="1.21.3">1.21.3</option>
+                      <option value="1.21.2">1.21.2</option>
+                      <option value="1.21.1">1.21.1</option>
+                      <option value="1.21">1.21</option>
+                      <option value="1.20.6">1.20.6</option>
+                      <option value="1.20.4">1.20.4</option>
+                      <option value="1.20.2">1.20.2</option>
+                      <option value="1.20.1">1.20.1</option>
+                      <option value="1.20">1.20</option>
+                      <option value="1.19.4">1.19.4</option>
+                      <option value="1.19.2">1.19.2</option>
+                      <option value="1.18.2">1.18.2</option>
+                      <option value="1.17.1">1.17.1</option>
+                      <option value="1.16.5">1.16.5</option>
                     </select>
                   </div>
                 </div>
@@ -917,13 +905,13 @@
                     </dl>
 
                     <div class="section-head spaced-top-sm">
-                      <h2 data-i18n="system.gradleTitle">Vanilla runtime &amp; directories</h2>
+                      <h2 data-i18n="system.gradleTitle">Runtime &amp; directories</h2>
                       <span class="tabular" id="gradle-status-tag">-</span>
                     </div>
                     <dl class="hw-table">
                       <div><dt data-i18n="system.javaRuntime">Java Runtime</dt><dd class="tabular" id="gradle-java-label">-</dd></div>
-                      <div><dt data-i18n="system.modJar">Vanilla Files</dt><dd id="gradle-jar-status">-</dd></div>
-                      <div><dt data-i18n="system.workDir">Vanilla Cache Directory</dt><dd class="tabular mono-wrap" id="gradle-dir-label">-</dd></div>
+                      <div><dt data-i18n="system.modJar">Game files</dt><dd id="gradle-jar-status">-</dd></div>
+                      <div><dt data-i18n="system.workDir">Cache directory</dt><dd class="tabular mono-wrap" id="gradle-dir-label">-</dd></div>
                       <div><dt data-i18n="system.savesDir">Saves Directory (saves)</dt><dd class="tabular mono-wrap" id="gradle-saves-dir">-</dd></div>
                     </dl>
                     <div class="form-actions tight-top" id="system-java-actions">
@@ -1008,8 +996,7 @@
 
               <div class="panel-card">
                 <div class="section-head">
-                  <h2 data-i18n="servers.title">Local servers (1.21.4 · Protocol 769)</h2>
-                  <span data-i18n="servers.tag">SLP &amp; QUICK PLAY</span>
+                  <h2 data-i18n="servers.title">Local servers</h2>
                 </div>
                 <p class="muted-copy muted-compact" data-i18n="servers.note" hidden>
                   Queries and joins offline-mode (online-mode=false) servers. Servers requiring EncryptionRequest are never bypassed.
@@ -1040,7 +1027,6 @@
             <div class="panel-card">
               <div class="section-head">
                 <h2 data-i18n="profile.appearanceTitle">Appearance &amp; layout</h2>
-                <span>WCAG 2.2 AA</span>
               </div>
               <div class="appearance-studio" id="appearance-studio">
                 <div class="appearance-block">

@@ -39,7 +39,6 @@ import {
 } from "./skin_canvas";
 import { initMinecraftSounds, playMcSound, setSoundsEnabled, unlockAudioContext } from "./sounds";
 import {
-  MC_VERSION_PROTOCOLS,
   type AccentTone,
   type BootstrapDto,
   type CornerStyle,
@@ -521,31 +520,15 @@ function appendLogLine(line: string, isErr: boolean): void {
 function syncVersionUi(): void {
   if (!state) return;
   const ver = state.config.mc_version || "1.21.4";
-  const proto = MC_VERSION_PROTOCOLS[ver] ?? 769;
-
-  const titlebarTag = document.getElementById("titlebar-version-tag");
-  if (titlebarTag) titlebarTag.textContent = `VANILLA ${ver}`;
 
   const railSub = document.getElementById("rail-brand-sub");
-  if (railSub) railSub.textContent = `VANILLA ${ver}`;
+  if (railSub) railSub.textContent = ver;
 
   const railBuildVer = document.getElementById("rail-build-ver");
-  if (railBuildVer) railBuildVer.textContent = `MC ${ver} · Vanilla`;
-
-  const railVerTag = document.getElementById("rail-version-tag");
-  if (railVerTag) railVerTag.textContent = `MC ${ver}`;
+  if (railBuildVer) railBuildVer.textContent = `Minecraft ${ver}`;
 
   const launchHeroVer = document.getElementById("launch-version-hero");
   if (launchHeroVer) launchHeroVer.textContent = ver;
-
-  const launchProtoBadge = document.getElementById("launch-proto-badge");
-  if (launchProtoBadge) launchProtoBadge.textContent = `Vanilla · ${proto}`;
-
-  const playSpecsBadge = document.getElementById("play-specs-version-badge");
-  if (playSpecsBadge) playSpecsBadge.textContent = `Vanilla ${ver} · LWJGL 3`;
-
-  const settingsVerBadge = document.getElementById("settings-active-ver-badge");
-  if (settingsVerBadge) settingsVerBadge.textContent = `MC ${ver} · Proto ${proto}`;
 
   const playVerSelect = document.getElementById("play-version-select");
   if (playVerSelect instanceof HTMLSelectElement) {
@@ -850,7 +833,7 @@ function buildDeckCards(): DeckCard[] {
       sub: tr(lang, "deck.cardWorldSub", {
         date: formatEpoch(save.modified_epoch_secs),
       }),
-      tag: `QUICK PLAY · ${save.id}`,
+      tag: save.id,
       seedKey: save.id,
       primaryLabel: tr(lang, "deck.cardWorldPrimary"),
       secondaryLabel: tr(
@@ -957,10 +940,9 @@ function renderConsoleHero(card: DeckCard): void {
     renderClientStratumSvg(heroSvg, card.seedKey, true);
   }
 
-  byId<HTMLElement>("deck-hero-kicker").textContent = card.kicker;
-  byId<HTMLElement>("deck-hero-tag").textContent = running_session
-    ? `PID ${running_session.pid}`
-    : card.tag;
+  byId<HTMLElement>("deck-hero-kicker").textContent = running_session
+    ? `${card.kicker} · PID ${running_session.pid}`
+    : card.kicker;
   byId<HTMLElement>("deck-hero-title").textContent = card.title;
   byId<HTMLElement>("deck-hero-sub").textContent = card.sub;
 
@@ -1527,7 +1509,6 @@ function renderServersList(): void {
       sub.textContent = tr(lang, "servers.subOnline", {
         addr: srv.address,
         ver: check.ping.version_name,
-        proto: check.ping.protocol_version,
         desc: check.ping.description,
       });
     } else if (check.status === "error" && check.message) {
