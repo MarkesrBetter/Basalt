@@ -96,8 +96,25 @@ jobs:
             "$zipSha  $zipName"
           ) -join "`n" | Out-File -FilePath "dist-release/SHA256SUMS.txt" -Encoding ascii
 
-          $isPre = ("$tag" -match '-') -or ("$tag" -eq 'v0.2.0') -or ("${{ inputs.prerelease }}" -eq "true")
+          $isPre = ("$tag" -match '^v0\.') -or ("$tag" -match '-') -or ("${{ inputs.prerelease }}" -eq "true")
           $preLabel = if ($isPre) { "Pre-release" } else { "Release" }
+          $highlights = if ($tag -like 'v0.3*') {
+            @(
+              "- **Isolated Vanilla / Fabric / Forge Loader Profiles:** Separate per-version ``mods/`` folders (``loader_mods/fabric/<ver>`` via ``-Dfabric.modsFolder`` and ``profiles/forge/<ver>/mods`` via Forge BootstrapLauncher) while seamlessly sharing ``saves/``, ``shaderpacks/``, ``resourcepacks/``, ``screenshots/``, ``options.txt``, and ``servers.dat``"
+              "- **Built-in Modrinth v2 Library:** Browse & search **Mods**, **Shaders**, and **Resource Packs**, sort by downloads/relevance/follows/updated, view installed badges, and auto-install required mod dependencies (e.g. Fabric API)"
+              "- **1-Click Shader & FPS Kits:** Install **Fabric** (Fabric API + Sodium + Iris Shaders + Lithium + Complementary Unbound) or **Forge** (Embeddium + Oculus + Complementary Unbound) in a single click"
+              "- **OptiFine & Custom File Manager:** Import local ``.jar`` mods / OptiFine or ``.zip`` shader & resource packs; toggle ``.disabled`` status or remove files directly in the Installed tab"
+              "- **Full En / Tr / De Localization & Console Mode:** Play loader selector, responsive Library view across Light & Dark themes, and Fullscreen Console (DeckMode) Library card"
+              "- **Windows Schannel TLS & Unsigned Notice:** Includes ``--ssl-revoke-best-effort`` for reliable Modrinth/Fabric downloads; if SmartScreen appears on unsigned builds, extract the ``.zip`` or click **More info -> Run anyway**"
+            )
+          } else {
+            @(
+              "- Fix Windows built-in ``curl.exe`` (Schannel) download error ``exit code 2`` when ``--http2`` is unsupported, with automatic capability probing and fallback"
+              "- Live cursor-tracking 3D WebGL Minecraft skin viewer across Play, Profile & Skin, and Fullscreen Console"
+              "- Refined Daylight & Ember theme contrast, Fullscreen Console top bar spacing, Turkish localization, and Quick Launch sidebar density"
+              "- Unsigned open-source build: if Windows SmartScreen appears, extract the ``.zip`` or click **More info -> Run anyway**"
+            )
+          }
           $notes = @(
             "## Basalt $tag ($preLabel · Windows x64 Portable)"
             ""
@@ -105,11 +122,8 @@ jobs:
             "- **Portable EXE:** ``basalt.exe`` (``$exeMb MB`` / ``$exeBytesFmt bytes``) — SHA-256: ``$exeSha``"
             "- **Portable ZIP:** ``$zipName`` (``$zipMb MB`` / ``$zipBytesFmt bytes``) — SHA-256: ``$zipSha``"
             ""
-            "### Highlights"
-            "- Fix Windows built-in ``curl.exe`` (Schannel) download error ``exit code 2`` when ``--http2`` is unsupported, with automatic capability probing and fallback"
-            "- Live cursor-tracking 3D WebGL Minecraft skin viewer across Play, Profile & Skin, and Fullscreen Console"
-            "- Refined Daylight & Ember theme contrast, Fullscreen Console top bar spacing, Turkish localization, and Quick Launch sidebar density"
-            "- Unsigned open-source build: if Windows SmartScreen appears, extract the ``.zip`` or click **More info -> Run anyway**"
+            "### What's New"
+          ) + $highlights + @(
             ""
             "- **Commit:** ``${{ github.sha }}``"
             ""
