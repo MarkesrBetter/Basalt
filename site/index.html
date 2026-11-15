@@ -1305,8 +1305,9 @@
       "use strict";
 
       const DEFAULT_GITHUB_REPO = "Markesrrr/Basalt";
-      const EXE_SHA256 = "7f1f41980114032b6d9063cea93111bbdd504b2a6d342a4572c68ff96091c815";
-      const EXE_SIZE_DISPLAY = "13.84 MB (14,516,736 B)";
+      let liveExeSha256 = "7f1f41980114032b6d9063cea93111bbdd504b2a6d342a4572c68ff96091c815";
+      let liveExeSizeMb = "13.84 MB";
+      let liveExeSizeDisplay = "13.84 MB (14,516,736 B)";
 
       const I18N = {
         en: {
@@ -1589,8 +1590,14 @@
           }
         });
 
-        document.getElementById("download-meta-size").textContent = EXE_SIZE_DISPLAY;
-        document.getElementById("sha-value").textContent = EXE_SHA256;
+        document.getElementById("download-meta-size").textContent = liveExeSizeDisplay;
+        document.getElementById("sha-value").textContent = liveExeSha256;
+        const factSize = document.getElementById("hero-fact-size");
+        if (factSize) factSize.textContent = liveExeSizeMb + " · Single EXE";
+        const ctaLabel = document.getElementById("hero-cta-label");
+        if (ctaLabel) {
+          ctaLabel.textContent = ctaLabel.textContent.replace(/\(\s*[\d.]+\s*MB\s*\)/, "(" + liveExeSizeMb + ")");
+        }
       }
 
       document.querySelectorAll("[data-site-lang]").forEach((btn) => {
@@ -1616,7 +1623,7 @@
       }
 
       document.getElementById("copy-sha-btn").addEventListener("click", () => {
-        copyText(EXE_SHA256, I18N[activeLang].copyShaOk);
+        copyText(liveExeSha256, I18N[activeLang].copyShaOk);
       });
 
       document.getElementById("copy-ps-btn").addEventListener("click", () => {
@@ -1631,6 +1638,24 @@
       document.getElementById("releases-page-btn").href = releasesUrl;
 
       applyLanguage("en");
+
+      fetch("https://api.github.com/repos/" + DEFAULT_GITHUB_REPO + "/releases/latest", {
+        headers: { Accept: "application/vnd.github+json" }
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((rel) => {
+          if (!rel || !Array.isArray(rel.assets)) return;
+          const exe = rel.assets.find((a) => a && a.name === "basalt.exe");
+          if (!exe || typeof exe.size !== "number") return;
+          const mb = (exe.size / (1024 * 1024)).toFixed(2) + " MB";
+          liveExeSizeMb = mb;
+          liveExeSizeDisplay = mb + " (" + exe.size.toLocaleString("en-US") + " B)";
+          if (typeof exe.digest === "string" && exe.digest.startsWith("sha256:")) {
+            liveExeSha256 = exe.digest.slice(7);
+          }
+          applyLanguage(activeLang);
+        })
+        .catch(() => {});
     })();
   </script>
 </body>
