@@ -4,7 +4,7 @@ resolver = "2"
 
 [package]
 name = "basalt"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 description = "Basalt native Rust core powering direct Vanilla 1.21.4 Minecraft launching, hardware tuning, skin pack generation, and SLP diagnostics"
 

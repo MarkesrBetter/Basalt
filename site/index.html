@@ -1201,17 +1201,17 @@
       <div class="wrap">
         <div class="section-head">
           <p class="kicker"><span class="kicker-dot" aria-hidden="true"></span><span data-i18n="dl.kicker">Release &amp; Checksum</span></p>
-          <h2 data-i18n="dl.h2">Download Basalt v0.1.0 for Windows.</h2>
+          <h2 data-i18n="dl.h2">Download Basalt v0.2.0 (Pre-release) for Windows.</h2>
           <p data-i18n="dl.lead">
-            Portable single-file executable. Verify the downloaded binary against the SHA-256 digest below.
+            Portable single-file executable and ZIP bundle. Verify the downloaded binary against the SHA-256 digest below.
           </p>
         </div>
 
         <div class="cards-grid-2">
           <article class="card">
             <div class="card-head">
-              <h3>basalt.exe · v0.1.0</h3>
-              <span class="card-tag" id="download-meta-size">13.84 MB (14,516,736 B)</span>
+              <h3 id="dl-card-title">basalt.exe · v0.2.0</h3>
+              <span class="card-tag" id="download-meta-size">13.85 MB (14,518,784 B)</span>
             </div>
             <p data-i18n="dl.desc">
               Runs on 64-bit Windows 10 and Windows 11 with Microsoft Edge WebView2 Runtime. Official Minecraft files are cached locally on first launch.
@@ -1226,6 +1226,14 @@
               >
                 <svg class="ico" aria-hidden="true"><use href="#ico-download" /></svg>
                 <span id="primary-release-label" data-i18n="dl.primaryBtn">Download basalt.exe</span>
+              </a>
+              <a
+                class="btn btn-secondary"
+                id="zip-release-btn"
+                href="https://github.com/Markesrrr/Basalt/releases/download/v0.2.0/basalt-v0.2.0-windows-x64.zip"
+                download="basalt-v0.2.0-windows-x64.zip"
+              >
+                <span data-i18n="dl.zipBtn">Download .zip</span>
               </a>
               <a
                 class="btn btn-secondary"
@@ -1305,9 +1313,9 @@
       "use strict";
 
       const DEFAULT_GITHUB_REPO = "Markesrrr/Basalt";
-      let liveExeSha256 = "7f1f41980114032b6d9063cea93111bbdd504b2a6d342a4572c68ff96091c815";
-      let liveExeSizeMb = "13.84 MB";
-      let liveExeSizeDisplay = "13.84 MB (14,516,736 B)";
+      let liveExeSha256 = "53d7b3890865fda4ec439a2a1e449bcb1cc117d2d01636702becda03aebf4527";
+      let liveExeSizeMb = "13.85 MB";
+      let liveExeSizeDisplay = "13.85 MB (14,518,784 B)";
 
       const I18N = {
         en: {
@@ -1369,10 +1377,11 @@
             "specs.thRam": "JVM Heap",
             "specs.thChunks": "Render",
             "dl.kicker": "Release & Checksum",
-            "dl.h2": "Download Basalt v0.1.0 for Windows.",
-            "dl.lead": "Portable single-file executable. Verify the downloaded binary against the SHA-256 digest below.",
+            "dl.h2": "Download Basalt v0.2.0 (Pre-release) for Windows.",
+            "dl.lead": "Portable single-file executable and ZIP bundle. Verify the downloaded binary against the SHA-256 digest below.",
             "dl.desc": "Runs on 64-bit Windows 10 and Windows 11 with Microsoft Edge WebView2 Runtime. Official Minecraft files are cached locally on first launch.",
             "dl.primaryBtn": "Download basalt.exe",
+            "dl.zipBtn": "Download .zip",
             "dl.notesBtn": "GitHub Releases",
             "dl.shaLabel": "SHA-256 Checksum",
             "dl.copySha": "Copy SHA-256",
@@ -1453,10 +1462,11 @@
             "specs.thRam": "JVM Bellek",
             "specs.thChunks": "Görüş",
             "dl.kicker": "Sürüm ve Doğrulama",
-            "dl.h2": "Windows için Basalt v0.1.0 İndirin.",
-            "dl.lead": "Kurulum gerektirmeyen tek dosyalı taşınabilir uygulama. İndirdiğiniz dosyayı aşağıdaki SHA-256 özetiyle doğrulayabilirsiniz.",
+            "dl.h2": "Windows için Basalt v0.2.0 (Ön Sürüm) İndirin.",
+            "dl.lead": "Tek dosyalı taşınabilir uygulama ve ZIP paketi. İndirdiğiniz dosyayı aşağıdaki SHA-256 özetiyle doğrulayabilirsiniz.",
             "dl.desc": "Microsoft Edge WebView2 bulunan 64-bit Windows 10 ve Windows 11 sistemlerde doğrudan çalışır. Resmi oyun dosyaları ilk açılışta yerel önbelleğe indirilir.",
             "dl.primaryBtn": "basalt.exe İndir",
+            "dl.zipBtn": ".zip İndir",
             "dl.notesBtn": "GitHub Sürümleri",
             "dl.shaLabel": "SHA-256 Bütünlük Kodu",
             "dl.copySha": "SHA-256 Kopyala",
@@ -1537,10 +1547,11 @@
             "specs.thRam": "JVM-Speicher",
             "specs.thChunks": "Sichtweite",
             "dl.kicker": "Release & Prüfsumme",
-            "dl.h2": "Basalt v0.1.0 für Windows herunterladen.",
-            "dl.lead": "Portable Einzeldatei. Überprüfe die heruntergeladene Datei anhand des untenstehenden SHA-256-Werts.",
+            "dl.h2": "Basalt v0.2.0 (Pre-Release) für Windows herunterladen.",
+            "dl.lead": "Portable Einzeldatei und ZIP-Archiv. Überprüfe die heruntergeladene Datei anhand des untenstehenden SHA-256-Werts.",
             "dl.desc": "Läuft auf 64-Bit Windows 10 und Windows 11 mit Microsoft Edge WebView2 Runtime. Offizielle Spieldateien werden beim ersten Start lokal zwischengespeichert.",
             "dl.primaryBtn": "basalt.exe herunterladen",
+            "dl.zipBtn": ".zip herunterladen",
             "dl.notesBtn": "GitHub Releases",
             "dl.shaLabel": "SHA-256-Prüfsumme",
             "dl.copySha": "SHA-256 kopieren",
@@ -1630,22 +1641,42 @@
         copyText(document.getElementById("ps-verify-cmd").textContent, I18N[activeLang].copyPsOk);
       });
 
-      const directUrl = "https://github.com/" + DEFAULT_GITHUB_REPO + "/releases/latest/download/basalt.exe";
+      const directUrl = "https://github.com/" + DEFAULT_GITHUB_REPO + "/releases/download/v0.2.0/basalt.exe";
+      const zipFallbackUrl = "https://github.com/" + DEFAULT_GITHUB_REPO + "/releases/download/v0.2.0/basalt-v0.2.0-windows-x64.zip";
       const releasesUrl = "https://github.com/" + DEFAULT_GITHUB_REPO + "/releases";
       document.getElementById("header-download-cta").href = directUrl;
       document.getElementById("hero-download-cta").href = directUrl;
       document.getElementById("primary-release-btn").href = directUrl;
+      document.getElementById("zip-release-btn").href = zipFallbackUrl;
       document.getElementById("releases-page-btn").href = releasesUrl;
 
       applyLanguage("en");
 
-      fetch("https://api.github.com/repos/" + DEFAULT_GITHUB_REPO + "/releases/latest", {
+      fetch("https://api.github.com/repos/" + DEFAULT_GITHUB_REPO + "/releases?per_page=1", {
         headers: { Accept: "application/vnd.github+json" }
       })
         .then((res) => (res.ok ? res.json() : null))
-        .then((rel) => {
+        .then((list) => {
+          const rel = Array.isArray(list) ? list[0] : list;
           if (!rel || !Array.isArray(rel.assets)) return;
           const exe = rel.assets.find((a) => a && a.name === "basalt.exe");
+          const zip = rel.assets.find((a) => a && a.name && a.name.endsWith(".zip"));
+          if (exe && exe.browser_download_url) {
+            document.getElementById("header-download-cta").href = exe.browser_download_url;
+            document.getElementById("hero-download-cta").href = exe.browser_download_url;
+            document.getElementById("primary-release-btn").href = exe.browser_download_url;
+          }
+          if (zip && zip.browser_download_url) {
+            const zipBtn = document.getElementById("zip-release-btn");
+            zipBtn.href = zip.browser_download_url;
+            zipBtn.download = zip.name;
+          }
+          if (rel.tag_name) {
+            const cardTitle = document.getElementById("dl-card-title");
+            if (cardTitle) {
+              cardTitle.textContent = "basalt.exe · " + rel.tag_name + (rel.prerelease ? " (Pre-release)" : "");
+            }
+          }
           if (!exe || typeof exe.size !== "number") return;
           const mb = (exe.size / (1024 * 1024)).toFixed(2) + " MB";
           liveExeSizeMb = mb;

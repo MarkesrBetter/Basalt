@@ -9,7 +9,11 @@ on:
       tag:
         description: "Release tag to create or update"
         required: true
-        default: "v0.1.0"
+        default: "v0.2.0"
+      prerelease:
+        description: "Publish as GitHub Pre-release"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -20,7 +24,7 @@ concurrency:
 
 jobs:
   release-windows:
-    name: Windows x64 Release (basalt.exe)
+    name: Windows x64 Release (basalt.exe + .zip)
     runs-on: windows-latest
     steps:
       - name: Checkout repository
@@ -62,34 +66,63 @@ jobs:
       - name: Build release binary
         run: cargo build --release --workspace
 
-      - name: Generate checksum and release notes
+      - name: Package EXE, ZIP, checksums, and release notes
         id: meta
         shell: pwsh
         run: |
-          $tag = if ("${{ github.ref_type }}" -eq "tag") { "${{ github.ref_name }}" } else { "${{ inputs.tag || 'v0.1.0' }}" }
+          $tag = if ("${{ github.ref_type }}" -eq "tag") { "${{ github.ref_name }}" } else { "${{ inputs.tag || 'v0.2.0' }}" }
           $exe = "target/release/basalt.exe"
           if (-not (Test-Path $exe)) { throw "Missing release binary at $exe" }
-          $bytes = (Get-Item $exe).Length
-          $mb = [Math]::Round($bytes / 1MB, 2).ToString("0.00", [System.Globalization.CultureInfo]::InvariantCulture)
-          $sha = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+
           New-Item -ItemType Directory -Force -Path dist-release | Out-Null
-          Copy-Item $exe "dist-release/basalt.exe" -Force
-          "$sha  basalt.exe" | Out-File -FilePath "dist-release/SHA256SUMS.txt" -Encoding ascii -NoNewline
-          $bytesFmt = $bytes.ToString("N0", [System.Globalization.CultureInfo]::InvariantCulture)
+          $exeOut = "dist-release/basalt.exe"
+          $zipName = "basalt-$tag-windows-x64.zip"
+          $zipOut = "dist-release/$zipName"
+          Copy-Item $exe $exeOut -Force
+          Compress-Archive -Path $exeOut -DestinationPath $zipOut -Force
+
+          $exeBytes = (Get-Item $exeOut).Length
+          $exeMb = [Math]::Round($exeBytes / 1MB, 2).ToString("0.00", [System.Globalization.CultureInfo]::InvariantCulture)
+          $exeSha = (Get-FileHash $exeOut -Algorithm SHA256).Hash.ToLowerInvariant()
+          $exeBytesFmt = $exeBytes.ToString("N0", [System.Globalization.CultureInfo]::InvariantCulture)
+
+          $zipBytes = (Get-Item $zipOut).Length
+          $zipMb = [Math]::Round($zipBytes / 1MB, 2).ToString("0.00", [System.Globalization.CultureInfo]::InvariantCulture)
+          $zipSha = (Get-FileHash $zipOut -Algorithm SHA256).Hash.ToLowerInvariant()
+          $zipBytesFmt = $zipBytes.ToString("N0", [System.Globalization.CultureInfo]::InvariantCulture)
+
+          @(
+            "$exeSha  basalt.exe"
+            "$zipSha  $zipName"
+          ) -join "`n" | Out-File -FilePath "dist-release/SHA256SUMS.txt" -Encoding ascii
+
+          $isPre = ("$tag" -match '-') -or ("$tag" -eq 'v0.2.0') -or ("${{ inputs.prerelease }}" -eq "true")
+          $preLabel = if ($isPre) { "Pre-release" } else { "Release" }
           $notes = @(
-            "## Basalt $tag (Windows x64 Portable)"
+            "## Basalt $tag ($preLabel · Windows x64 Portable)"
             ""
-            "- **Binary:** ``basalt.exe`` (``$mb MB`` / ``$bytesFmt bytes``)"
-            "- **SHA-256:** ``$sha``"
+            "### Downloads"
+            "- **Portable EXE:** ``basalt.exe`` (``$exeMb MB`` / ``$exeBytesFmt bytes``) — SHA-256: ``$exeSha``"
+            "- **Portable ZIP:** ``$zipName`` (``$zipMb MB`` / ``$zipBytesFmt bytes``) — SHA-256: ``$zipSha``"
+            ""
+            "### Highlights"
+            "- Fix Windows built-in ``curl.exe`` (Schannel) download error ``exit code 2`` when ``--http2`` is unsupported, with automatic capability probing and fallback"
+            "- Live cursor-tracking 3D WebGL Minecraft skin viewer across Play, Profile & Skin, and Fullscreen Console"
+            "- Refined Daylight & Ember theme contrast, Fullscreen Console top bar spacing, Turkish localization, and Quick Launch sidebar density"
+            "- Unsigned open-source build: if Windows SmartScreen appears, extract the ``.zip`` or click **More info -> Run anyway**"
+            ""
             "- **Commit:** ``${{ github.sha }}``"
             ""
             "### Verification (PowerShell)"
             "``````powershell"
             "Get-FileHash .\basalt.exe -Algorithm SHA256"
+            "Get-FileHash .\$zipName -Algorithm SHA256"
             "``````"
           ) -join "`n"
           $notes | Out-File -FilePath "dist-release/RELEASE_NOTES.md" -Encoding utf8
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "zip_name=$zipName" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "is_pre=$isPre" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Publish or update GitHub Release
         shell: pwsh
@@ -97,10 +130,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $tag = "${{ steps.meta.outputs.tag }}"
+          $zipOut = "dist-release/${{ steps.meta.outputs.zip_name }}"
+          $isPre = "${{ steps.meta.outputs.is_pre }}" -eq "True"
+          $title = if ($isPre) { "Basalt $tag (Pre-release)" } else { "Basalt $tag" }
+          $flags = if ($isPre) { @("--prerelease") } else { @("--latest") }
+
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag dist-release/basalt.exe dist-release/SHA256SUMS.txt --clobber
-            gh release edit $tag --title "Basalt $tag" --notes-file dist-release/RELEASE_NOTES.md --latest
+            gh release upload $tag dist-release/basalt.exe $zipOut dist-release/SHA256SUMS.txt --clobber
+            gh release edit $tag --title $title --notes-file dist-release/RELEASE_NOTES.md @flags
           } else {
-            gh release create $tag dist-release/basalt.exe dist-release/SHA256SUMS.txt --title "Basalt $tag" --notes-file dist-release/RELEASE_NOTES.md --latest --target "${{ github.sha }}"
+            gh release create $tag dist-release/basalt.exe $zipOut dist-release/SHA256SUMS.txt --title $title --notes-file dist-release/RELEASE_NOTES.md @flags --target "${{ github.sha }}"
           }
