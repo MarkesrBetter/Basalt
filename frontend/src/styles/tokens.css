@@ -5,11 +5,11 @@
 :root,
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg-canvas: #111316;
-  --bg-rail: #15181c;
-  --bg-surface: #1b1f25;
-  --bg-surface-alt: #21262e;
-  --bg-hover: #272d37;
+  --bg-canvas: #12151a;
+  --bg-rail: #0d0f12;
+  --bg-surface: #181c22;
+  --bg-surface-alt: #1f242c;
+  --bg-hover: #262c36;
 
   --border-subtle: #2d3440;
   --border-control: #647082;

@@ -775,49 +775,52 @@ input[type="search"].invalid {
   border-top: 1px solid var(--hairline);
 }
 
-/* Settings Sub-Tabs & Grouped Hairline Lists (Modrinth / Linear Craft) */
+/* Settings Sub-Tabs (Clean Desktop Underline Strip) & Grouped Hairline Lists */
 .settings-nav-bar {
-  display: inline-flex;
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.24rem;
-  padding: 0.24rem;
-  margin-bottom: 1rem;
-  background: var(--field-bg);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-btn);
+  gap: 0.25rem;
+  padding: 0;
+  margin-bottom: 1.25rem;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 0;
 }
 
 .settings-tab {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  min-height: 1.98rem;
-  padding: 0 0.82rem;
-  border: 1px solid transparent;
-  border-radius: calc(var(--radius-btn) - 0.14rem);
+  min-height: 2.35rem;
+  padding: 0 0.85rem 0.15rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  margin-bottom: -1px;
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.84rem;
+  font-size: 0.88rem;
   font-weight: 600;
   white-space: nowrap;
   transition:
-    background-color var(--kin-hover) ease,
-    border-color var(--kin-hover) ease,
     color var(--kin-hover) ease,
+    border-color var(--kin-hover) ease,
     transform var(--kin-press) var(--kin-ease-control);
 }
 
 .settings-tab:hover:not(.active) {
   color: var(--text);
-  background: color-mix(in srgb, var(--text) 6%, transparent);
+  background: transparent;
 }
 
 .settings-tab.active {
-  background: var(--control-bg);
-  border-color: var(--hairline-strong);
+  background: transparent;
+  border-bottom-color: var(--accent);
   color: var(--text);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  box-shadow: none;
 }
 
 .settings-tab.active .ico {
@@ -829,7 +832,11 @@ input[type="search"].invalid {
 }
 
 .settings-list-card {
-  max-width: 58rem;
+  max-width: 48rem;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
 }
 
 .settings-list {
@@ -2318,7 +2325,210 @@ dialog p {
   justify-content: center;
 }
 
-/* ---------- Play Under-Grid: Quick Jump & Client Overview Cards ---------- */
+/* ---------- Play Workbench Cards, Hairline Quick Jump & Character Stage ---------- */
+
+.play-launch-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.15rem 1.25rem;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  box-shadow: inset 0 1px 0 var(--edge-highlight), var(--shadow-surface);
+}
+
+.play-launch-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.play-target-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  min-width: 0;
+}
+
+.play-launch-head .selected-world-title {
+  margin-top: 0;
+  font-size: 1.48rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.play-target-sub {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.field-row-3 {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.3fr) minmax(0, 0.85fr);
+  gap: 0.72rem;
+  align-items: end;
+}
+
+.field-row-3 .field-group label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.field-row-3 .field-group select {
+  padding-right: 1.9rem;
+  text-overflow: ellipsis;
+}
+
+.field-row-3 .field-group input,
+.field-row-3 .field-group select {
+  min-height: 2.38rem;
+}
+
+@media (max-width: 720px) {
+  .field-row-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.launch-action-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.play-launch-card .inline-status {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-subtle);
+}
+
+.play-library-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.play-library-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.75rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.play-library-head h2 {
+  font-size: 0.98rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.play-library-head .count-label {
+  white-space: nowrap;
+}
+
+.play-library-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.play-library-actions .btn-sm {
+  white-space: nowrap;
+}
+
+.play-skin-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  box-shadow: inset 0 1px 0 var(--edge-highlight), var(--shadow-surface);
+}
+
+.play-skin-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem;
+  border-radius: var(--radius-sm);
+  background: radial-gradient(
+    circle at 50% 42%,
+    color-mix(in srgb, var(--accent) 9%, var(--field-bg)) 0%,
+    var(--field-bg) 78%
+  );
+  border: 1px solid var(--hairline);
+  cursor: pointer;
+}
+
+#play-skin-canvas {
+  width: 10rem;
+  height: 12.2rem;
+  object-fit: contain;
+  image-rendering: pixelated;
+  display: block;
+}
+
+.play-skin-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.play-skin-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.play-skin-meta strong {
+  font-size: 0.92rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.play-skin-meta span {
+  font-size: 0.76rem;
+  color: var(--text-subtle);
+}
+
+.play-specs-card .readiness-list {
+  border-top: 0;
+}
+
+.play-specs-card .kv-row {
+  padding: 0.46rem 0;
+  gap: 0.65rem;
+}
+
+.play-specs-card .kv-row:last-child {
+  border-bottom: 0;
+}
+
+.play-specs-card .kv-key {
+  font-size: 0.8rem;
+}
+
+.play-specs-card .kv-val {
+  font-size: 0.82rem;
+  flex: 0 1 auto;
+}
 
 .panel-card {
   display: flex;
@@ -2336,9 +2546,7 @@ dialog p {
 .play-recent-list {
   display: flex;
   flex-direction: column;
-  gap: 0.42rem;
-  min-height: 5.5rem;
-  justify-content: center;
+  gap: 0;
 }
 
 .recent-empty-note {
@@ -2346,7 +2554,7 @@ dialog p {
   padding: 0.85rem 0.95rem;
   border-radius: var(--radius-sm);
   border: 1px dashed var(--border-subtle);
-  background: var(--bg-surface-alt);
+  background: var(--bg-surface);
   font-size: 0.84rem;
   line-height: 1.45;
   color: var(--text-muted);
@@ -2357,21 +2565,24 @@ dialog p {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.48rem 0.72rem;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-btn);
-  background: var(--bg-surface-alt);
-  transition: border-color var(--kin-hover) ease, background-color var(--kin-hover) ease;
+  padding: 0.58rem 0.45rem;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: 0;
+  background: transparent;
+  transition: background-color var(--kin-hover) ease;
+}
+
+.recent-jump-row:last-child {
+  border-bottom: 0;
 }
 
 .recent-jump-row:hover {
-  border-color: var(--hairline-strong);
-  background: var(--control-bg-hover);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
 }
 
 .recent-jump-row.is-active {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--border-subtle));
-  background: color-mix(in srgb, var(--accent) 8%, var(--bg-surface-alt));
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
 .recent-jump-copy {

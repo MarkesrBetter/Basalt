@@ -145,7 +145,9 @@ interface DeckCard {
 
 let state: BootstrapDto | null = null;
 let skinViewMode: SkinViewMode = "front";
+let playSkinMode: SkinViewMode = "front";
 let pendingDeleteSaveId: string | null = null;
+let lastExpandedRailLayout: LayoutMode = "Sidebar";
 let lastDialogTrigger: HTMLElement | null = null;
 let toastTimer: number | null = null;
 let logLines: string[] = [];
@@ -421,6 +423,9 @@ function applyPreferences(): void {
   const customHex = getEffectiveCustomHex();
   const corner = getEffectiveCorner();
   const layout = getEffectiveLayout();
+  if (layout === "Sidebar" || layout === "RightRail") {
+    lastExpandedRailLayout = layout;
+  }
   const sounds = getEffectiveSounds();
 
   setSoundsEnabled(sounds);
@@ -527,6 +532,9 @@ function syncVersionUi(): void {
   const railBuildVer = document.getElementById("rail-build-ver");
   if (railBuildVer) railBuildVer.textContent = `Minecraft ${ver}`;
 
+  const railPlayerVer = document.getElementById("rail-player-ver");
+  if (railPlayerVer) railPlayerVer.textContent = ver;
+
   const launchHeroVer = document.getElementById("launch-version-hero");
   if (launchHeroVer) launchHeroVer.textContent = ver;
 
@@ -552,6 +560,20 @@ function renderTopbarAndSession(): void {
   byId<HTMLSpanElement>("deck-username").textContent = state.config.username;
   drawTopbarHead(byId<HTMLCanvasElement>("topbar-head-canvas"), state.skin_rgba);
   drawTopbarHead(byId<HTMLCanvasElement>("deck-head-canvas"), state.skin_rgba);
+
+  const railUsername = document.getElementById("rail-username");
+  if (railUsername) railUsername.textContent = state.config.username;
+  const railHead = document.getElementById("rail-head-canvas");
+  if (railHead instanceof HTMLCanvasElement) {
+    drawTopbarHead(railHead, state.skin_rgba);
+  }
+  const railHwMini = document.getElementById("rail-hw-mini");
+  if (railHwMini) {
+    railHwMini.textContent = state.vanilla.java_ready
+      ? `${state.config.graphics.jvm_ram_mb} MB`
+      : tr(lang, "play.specJdkMissing");
+  }
+  renderRailTargets();
 
   const railStatusRow = byId<HTMLDivElement>("rail-status-row");
   const railStatusText = byId<HTMLSpanElement>("rail-status-text");
@@ -621,6 +643,116 @@ function renderTopbarAndSession(): void {
   }
 }
 
+function renderRailTargets(): void {
+  const list = document.getElementById("rail-targets-list");
+  if (!list || !state) return;
+
+  const lang = getEffectiveLanguage();
+  const { config, saves, vanilla, running_session } = state;
+  const activeSaveId = saves.some((s) => s.id === config.last_save_id) ? config.last_save_id : null;
+  const launchDisabled = !vanilla.java_ready || running_session !== null;
+  list.innerHTML = "";
+
+  const appendTarget = (opts: {
+    kind: "title" | "save" | "server";
+    title: string;
+    sub: string;
+    active: boolean;
+    onSelect: () => void;
+    onLaunch: () => void;
+  }): void => {
+    const item = document.createElement("div");
+    item.className = "rail-target-item" + (opts.active ? " is-active" : "");
+    item.setAttribute("role", "listitem");
+    item.dataset.kind = opts.kind;
+
+    const mainBtn = document.createElement("button");
+    mainBtn.type = "button";
+    mainBtn.className = "rail-target-main";
+    if (opts.active) mainBtn.setAttribute("aria-current", "true");
+    mainBtn.addEventListener("click", opts.onSelect);
+
+    const dot = document.createElement("span");
+    dot.className = "rail-target-dot";
+    dot.setAttribute("aria-hidden", "true");
+
+    const copy = document.createElement("span");
+    copy.className = "rail-target-copy";
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "rail-target-name";
+    nameSpan.textContent = opts.title;
+
+    const subSpan = document.createElement("span");
+    subSpan.className = "rail-target-sub tabular";
+    subSpan.textContent = opts.sub;
+
+    copy.append(nameSpan, subSpan);
+    mainBtn.append(dot, copy);
+
+    const launchBtn = document.createElement("button");
+    launchBtn.type = "button";
+    launchBtn.className = "rail-target-launch";
+    launchBtn.disabled = launchDisabled;
+    launchBtn.title = tr(lang, "worlds.launch");
+    launchBtn.setAttribute("aria-label", `${tr(lang, "worlds.launch")}: ${opts.title}`);
+    launchBtn.innerHTML = `<svg class="ico small" aria-hidden="true"><use href="#ico-play" /></svg>`;
+    launchBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      opts.onLaunch();
+    });
+
+    item.append(mainBtn, launchBtn);
+    list.appendChild(item);
+  };
+
+  appendTarget({
+    kind: "title",
+    title: tr(lang, "play.mainMenuTitle"),
+    sub: tr(lang, "rail.titleScreenSub"),
+    active: !activeSaveId,
+    onSelect: () => {
+      void handleSelectSave(null);
+      setActiveView("play", true, true);
+    },
+    onLaunch: () => {
+      void handleLaunchClient("title", null, null);
+    },
+  });
+
+  for (const save of saves.slice(0, 6)) {
+    appendTarget({
+      kind: "save",
+      title: save.id,
+      sub: tr(lang, "rail.worldSub", { size: formatBytes(save.size_bytes) }),
+      active: activeSaveId === save.id,
+      onSelect: () => {
+        void handleSelectSave(save.id);
+        setActiveView("play", true, true);
+      },
+      onLaunch: () => {
+        void handleLaunchClient("singleplayer", save.id, null);
+      },
+    });
+  }
+
+  for (const srv of config.saved_servers.slice(0, 4)) {
+    appendTarget({
+      kind: "server",
+      title: srv.name,
+      sub: tr(lang, "rail.serverSub", { addr: srv.address }),
+      active: false,
+      onSelect: () => {
+        setActiveView("system", true, true);
+        document.querySelector<HTMLButtonElement>('[data-settings-tab="network"]')?.click();
+      },
+      onLaunch: () => {
+        void handleLaunchClient("multiplayer", null, srv.address);
+      },
+    });
+  }
+}
+
 function renderPlayView(): void {
   if (!state) return;
   const lang = getEffectiveLanguage();
@@ -636,15 +768,28 @@ function renderPlayView(): void {
 
   byId<HTMLHeadingElement>("play-world-title").textContent =
     activeSaveId ?? tr(lang, "play.mainMenuTitle");
-  byId<HTMLDivElement>("stage-biome-tag").textContent = tr(
-    lang,
-    activeSaveId ? "play.stageTagSp" : "play.stageTagDefault"
-  );
 
-  const stratumSvg = document.getElementById("stratum-svg");
-  if (stratumSvg instanceof SVGSVGElement) {
-    renderClientStratumSvg(stratumSvg, activeSaveId ?? "basalt-1-21-4", true);
+  const targetSub = document.getElementById("play-target-sub");
+  if (targetSub) {
+    targetSub.textContent = selectedSave
+      ? `${formatBytes(selectedSave.size_bytes)} · ${formatEpoch(selectedSave.modified_epoch_secs)}`
+      : tr(lang, "play.titleScreenMeta", { ver: config.mc_version || "1.21.4" });
   }
+
+  const playSkinCanvas = document.getElementById("play-skin-canvas");
+  if (playSkinCanvas instanceof HTMLCanvasElement) {
+    drawSkinPreview(playSkinCanvas, state.skin_rgba, playSkinMode, state.skin_is_slim);
+  }
+  const playSkinName = document.getElementById("play-skin-name");
+  if (playSkinName) playSkinName.textContent = config.username;
+  const playSkinModel = document.getElementById("play-skin-model");
+  if (playSkinModel) {
+    playSkinModel.textContent = tr(
+      lang,
+      state.skin_is_slim ? "skin.badgeSlim" : "skin.badgeClassic"
+    );
+  }
+  renderRailTargets();
 
   const select = byId<HTMLSelectElement>("play-save-select");
   select.innerHTML = "";
@@ -1581,6 +1726,7 @@ function renderServersList(): void {
     row.append(main, actions);
     list.appendChild(row);
   });
+  renderRailTargets();
 }
 
 function renderSystemView(): void {
@@ -2083,6 +2229,8 @@ async function saveAccessibilityPrefs(
       updateMaximizeIconState(lastMaximizedState);
     } else {
       applyPreferences();
+      renderTopbarAndSession();
+      renderPlayView();
       renderProfileView();
     }
   } catch (err) {
@@ -2783,6 +2931,46 @@ function wireEvents(): void {
   byId<HTMLButtonElement>("btn-goto-settings").addEventListener("click", () => {
     setActiveView("system", true, true);
   });
+
+  document.getElementById("btn-toggle-rail")?.addEventListener("click", () => {
+    if (!state) return;
+    const current = getEffectiveLayout();
+    const next: LayoutMode = current === "MinimalRail" ? lastExpandedRailLayout : "MinimalRail";
+    playMcSound("click");
+    void saveAccessibilityPrefs({ ui_layout: next });
+  });
+
+  document.getElementById("btn-rail-manage-saves")?.addEventListener("click", () => {
+    setActiveView("worlds", true, true);
+  });
+
+  document.getElementById("btn-rail-profile")?.addEventListener("click", () => {
+    setActiveView("profile", true, true);
+  });
+
+  document.getElementById("btn-play-goto-profile")?.addEventListener("click", () => {
+    setActiveView("profile", true, true);
+  });
+
+  const playSkinStage = document.getElementById("play-skin-stage");
+  if (playSkinStage) {
+    const flipPlaySkin = (): void => {
+      if (!state) return;
+      playSkinMode = playSkinMode === "front" ? "back" : "front";
+      playMcSound("tab");
+      const canvas = document.getElementById("play-skin-canvas");
+      if (canvas instanceof HTMLCanvasElement) {
+        drawSkinPreview(canvas, state.skin_rgba, playSkinMode, state.skin_is_slim);
+      }
+    };
+    playSkinStage.addEventListener("click", flipPlaySkin);
+    playSkinStage.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        flipPlaySkin();
+      }
+    });
+  }
 
   byId<HTMLSelectElement>("play-save-select").addEventListener("change", (e) => {
     const val = (e.currentTarget as HTMLSelectElement).value;
