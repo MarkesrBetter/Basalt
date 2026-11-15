@@ -41,20 +41,34 @@ import {
   type AccentTone,
   type BootstrapDto,
   type CornerStyle,
-  type VanillaEnvStatus,
   type GraphicsSettings,
+  type InstalledLibraryItem,
   type LaunchMode,
   type LayoutMode,
+  type LibraryKind,
+  type LoaderKind,
   type MinecraftSaveSummary,
+  type ModrinthSearchHit,
   type SavedServer,
   type ServerPingInfo,
   type SkinModel,
   type ThemeMode,
   type UiLanguage,
+  type VanillaEnvStatus,
 } from "./types";
 
-type ViewId = "play" | "worlds" | "profile" | "system";
-const VIEW_ORDER: readonly ViewId[] = ["play", "worlds", "profile", "system"];
+type ViewId = "play" | "library" | "worlds" | "profile" | "system";
+const VIEW_ORDER: readonly ViewId[] = ["play", "library", "worlds", "profile", "system"];
+
+let libActiveTab: LibraryKind | "installed" = "mod";
+let libTargetLoader: LoaderKind = "Fabric";
+let libInstalledKind: LibraryKind = "mod";
+let libCatalogHits: ModrinthSearchHit[] = [];
+let libTotalHits = 0;
+let libInstalledItems: InstalledLibraryItem[] = [];
+let libCatalogLoading = false;
+let libLastCatalogKey = "";
+const installingProjects = new Set<string>();
 
 interface ServerCheckState {
   status: "idle" | "checking" | "online" | "error";
@@ -500,6 +514,15 @@ function setActiveView(view: ViewId, updateHash = true, withSound = false): void
   if (view === "play" && getEffectiveLayout() === "DeckMode") {
     renderConsoleHome();
   }
+  if (view === "library" && state) {
+    renderLibraryView();
+    const currentKey = `${libActiveTab}:${libTargetLoader}:${state.config.mc_version}`;
+    if (libActiveTab !== "installed" && libLastCatalogKey !== currentKey) {
+      void loadLibraryCatalog(false);
+    } else if (libActiveTab === "installed") {
+      void loadLibraryInstalled();
+    }
+  }
   if (withSound && changed) {
     playMcSound("tab");
   }
@@ -507,7 +530,7 @@ function setActiveView(view: ViewId, updateHash = true, withSound = false): void
 
 function readInitialViewFromHash(): ViewId {
   const raw = window.location.hash.replace(/^#/, "").trim();
-  if (raw === "worlds" || raw === "profile" || raw === "system" || raw === "play") {
+  if (raw === "library" || raw === "worlds" || raw === "profile" || raw === "system" || raw === "play") {
     return raw;
   }
   return "play";
@@ -530,18 +553,27 @@ function appendLogLine(line: string, isErr: boolean): void {
 function syncVersionUi(): void {
   if (!state) return;
   const ver = state.config.mc_version || "1.21.4";
+  const loader = state.config.mod_loader || "Vanilla";
 
   const railSub = document.getElementById("rail-brand-sub");
-  if (railSub) railSub.textContent = ver;
+  if (railSub) railSub.textContent = `${loader.toUpperCase()} · ${ver}`;
 
   const railBuildVer = document.getElementById("rail-build-ver");
-  if (railBuildVer) railBuildVer.textContent = `Minecraft ${ver}`;
+  if (railBuildVer) railBuildVer.textContent = `Minecraft ${ver} (${loader})`;
 
   const railPlayerVer = document.getElementById("rail-player-ver");
-  if (railPlayerVer) railPlayerVer.textContent = ver;
+  if (railPlayerVer) railPlayerVer.textContent = `${ver} · ${loader}`;
 
   const launchHeroVer = document.getElementById("launch-version-hero");
-  if (launchHeroVer) launchHeroVer.textContent = ver;
+  if (launchHeroVer) launchHeroVer.textContent = `${ver} · ${loader}`;
+
+  const loaderPills = document.querySelectorAll<HTMLButtonElement>(".loader-pill[data-loader]");
+  for (const btn of Array.from(loaderPills)) {
+    const isActive = btn.dataset.loader === loader;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+    btn.disabled = state.running_session !== null;
+  }
 
   const playVerSelect = document.getElementById("play-version-select");
   if (playVerSelect instanceof HTMLSelectElement) {
@@ -787,7 +819,15 @@ function renderPlayView(): void {
   if (targetSub) {
     targetSub.textContent = selectedSave
       ? `${formatBytes(selectedSave.size_bytes)} · ${formatEpoch(selectedSave.modified_epoch_secs)}`
-      : tr(lang, "play.titleScreenMeta", { ver: config.mc_version || "1.21.4" });
+      : tr(lang, "play.titleScreenMeta", { ver: `${config.mc_version || "1.21.4"} (${config.mod_loader})` });
+  }
+
+  const loaderSummaryEl = document.getElementById("play-loader-summary");
+  if (loaderSummaryEl && state.library_counts) {
+    loaderSummaryEl.textContent = tr(lang, "loader.summary", {
+      mods: state.library_counts.modsEnabled,
+      shaders: state.library_counts.shadersEnabled,
+    });
   }
 
   const playSkinCanvas = document.getElementById("play-skin-canvas");
@@ -1067,6 +1107,22 @@ function buildDeckCards(): DeckCard[] {
       primaryLabel: tr(lang, "deck.cardNavWorldsPrimary"),
       secondaryLabel: tr(lang, "nav.profile"),
       targetView: "worlds",
+    },
+    {
+      id: "nav:library",
+      kind: "nav",
+      kicker: tr(lang, "library.kicker"),
+      title: tr(lang, "nav.library"),
+      meta: tr(lang, "loader.summary", {
+        mods: state.library_counts?.modsEnabled ?? 0,
+        shaders: state.library_counts?.shadersEnabled ?? 0,
+      }),
+      sub: tr(lang, "library.subtitle"),
+      tag: tr(lang, "nav.library").toUpperCase(),
+      seedKey: "nav-library",
+      primaryLabel: tr(lang, "nav.library"),
+      secondaryLabel: tr(lang, "play.manageSaves"),
+      targetView: "library",
     },
     {
       id: "nav:profile",
@@ -1877,11 +1933,476 @@ function renderSystemView(): void {
   renderServersList();
 }
 
+function formatDownloadsCompact(count: number): string {
+  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
+  if (count >= 1_000) return `${(count / 1_000).toFixed(1)}K`;
+  return String(count);
+}
+
+function getEffectiveCatalogLoader(): LoaderKind {
+  if (libTargetLoader === "Vanilla") return "Fabric";
+  return libTargetLoader;
+}
+
+function syncLibraryControls(): void {
+  if (!state) return;
+  const lang = getEffectiveLanguage();
+  const counts = state.library_counts;
+  const totalInstalled =
+    (counts?.modsTotal ?? 0) + (counts?.shadersTotal ?? 0) + (counts?.resourcepacksTotal ?? 0);
+
+  const badgeEl = document.getElementById("lib-installed-badge");
+  if (badgeEl) badgeEl.textContent = String(totalInstalled);
+
+  for (const btn of Array.from(document.querySelectorAll<HTMLButtonElement>(".lib-tab[data-lib-tab]"))) {
+    const active = btn.dataset.libTab === libActiveTab;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-selected", active ? "true" : "false");
+  }
+
+  for (const btn of Array.from(document.querySelectorAll<HTMLButtonElement>("[data-lib-loader]"))) {
+    const active = btn.dataset.libLoader === libTargetLoader;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-pressed", active ? "true" : "false");
+  }
+
+  for (const btn of Array.from(document.querySelectorAll<HTMLButtonElement>("[data-installed-kind]"))) {
+    const active = btn.dataset.installedKind === libInstalledKind;
+    btn.classList.toggle("active", active);
+  }
+
+  const prepareBtn = document.getElementById("btn-lib-prepare-loader");
+  const prepareLabel = document.getElementById("lib-prepare-label");
+  if (prepareBtn instanceof HTMLButtonElement && prepareLabel) {
+    const loader = getEffectiveCatalogLoader();
+    const ready = loader === "Fabric" ? state.loader_status?.fabricReady : state.loader_status?.forgeReady;
+    prepareBtn.disabled = state.running_session !== null;
+    prepareLabel.textContent = ready
+      ? tr(lang, "loader.ready", { loader })
+      : tr(lang, "loader.prepareBtn", { loader });
+  }
+
+  const searchInput = document.getElementById("library-search-input");
+  if (searchInput instanceof HTMLInputElement) {
+    const kindLabel =
+      libActiveTab === "shader"
+        ? tr(lang, "library.tabShaders")
+        : libActiveTab === "resourcePack"
+        ? tr(lang, "library.tabPacks")
+        : tr(lang, "library.tabMods");
+    searchInput.placeholder = tr(lang, "library.searchPlaceholder", { kind: kindLabel });
+  }
+
+  const isInstalledTab = libActiveTab === "installed";
+  const kitGrid = document.getElementById("library-kit-grid");
+  const searchBar = document.getElementById("library-search-bar");
+  const catalogGrid = document.getElementById("library-catalog-grid");
+  const installedPanel = document.getElementById("library-installed-panel");
+  if (kitGrid) kitGrid.hidden = isInstalledTab;
+  if (searchBar) searchBar.hidden = isInstalledTab;
+  if (catalogGrid) catalogGrid.hidden = isInstalledTab;
+  if (installedPanel) installedPanel.hidden = !isInstalledTab;
+}
+
+function renderLibraryCatalog(): void {
+  const grid = document.getElementById("library-catalog-grid");
+  const countEl = document.getElementById("library-results-count");
+  if (!grid || !state) return;
+  const lang = getEffectiveLanguage();
+  grid.innerHTML = "";
+
+  if (countEl) {
+    countEl.textContent = libCatalogLoading
+      ? ""
+      : tr(lang, "library.totalHits", { count: formatLocaleNumber(libTotalHits, lang) });
+  }
+
+  if (libCatalogLoading) {
+    const loading = document.createElement("div");
+    loading.className = "library-empty-state";
+    loading.textContent = tr(lang, "library.loading");
+    grid.appendChild(loading);
+    return;
+  }
+
+  if (libCatalogHits.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "library-empty-state";
+    empty.textContent = tr(lang, "library.emptyCatalog", { version: state.config.mc_version });
+    grid.appendChild(empty);
+    return;
+  }
+
+  const activeKind: LibraryKind = libActiveTab === "installed" ? "mod" : libActiveTab;
+  for (const hit of libCatalogHits) {
+    const card = document.createElement("article");
+    card.className = "lib-card";
+
+    const top = document.createElement("div");
+    top.className = "lib-card-head";
+
+    const thumbWrap = document.createElement("div");
+    thumbWrap.className = "lib-card-icon";
+    if (hit.iconUrl) {
+      const img = document.createElement("img");
+      img.src = hit.iconUrl;
+      img.alt = "";
+      img.loading = "lazy";
+      img.onerror = () => {
+        img.remove();
+        thumbWrap.textContent = hit.title.slice(0, 2).toUpperCase();
+      };
+      thumbWrap.appendChild(img);
+    } else {
+      thumbWrap.textContent = hit.title.slice(0, 2).toUpperCase();
+    }
+
+    const metaWrap = document.createElement("div");
+    metaWrap.className = "lib-card-title-wrap";
+    const title = document.createElement("h3");
+    title.className = "lib-card-title";
+    title.textContent = hit.title;
+    const author = document.createElement("span");
+    author.className = "lib-card-author";
+    author.textContent = `${hit.author || "Modrinth"} · ${tr(lang, "library.downloadsLabel", {
+      count: formatDownloadsCompact(hit.downloads),
+    })}`;
+    metaWrap.append(title, author);
+
+    top.append(thumbWrap, metaWrap);
+
+    const desc = document.createElement("p");
+    desc.className = "lib-card-desc";
+    desc.textContent = hit.description || "";
+
+    const foot = document.createElement("div");
+    foot.className = "lib-card-foot";
+
+    const tags = document.createElement("div");
+    tags.className = "lib-card-tags";
+    for (const cat of hit.categories.slice(0, 2)) {
+      const tag = document.createElement("span");
+      tag.className = "lib-cat-pill";
+      tag.textContent = cat;
+      tags.appendChild(tag);
+    }
+
+    const installBtn = document.createElement("button");
+    installBtn.type = "button";
+    const isBusy = installingProjects.has(hit.projectId);
+    installBtn.className = hit.installed ? "btn-secondary btn-sm is-installed" : "btn-primary btn-sm";
+    installBtn.disabled = isBusy || hit.installed;
+    installBtn.textContent = isBusy
+      ? tr(lang, "library.installingBtn")
+      : hit.installed
+      ? tr(lang, "library.installedBadge")
+      : tr(lang, "library.installBtn");
+    installBtn.addEventListener("click", () => {
+      void handleInstallCatalogItem(hit, activeKind);
+    });
+
+    foot.append(tags, installBtn);
+    card.append(top, desc, foot);
+    grid.appendChild(card);
+  }
+}
+
+function renderLibraryInstalled(): void {
+  const listEl = document.getElementById("library-installed-list");
+  if (!listEl || !state) return;
+  const lang = getEffectiveLanguage();
+  listEl.innerHTML = "";
+
+  if (libInstalledItems.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "library-empty-state";
+    empty.textContent = tr(lang, "library.emptyInstalled");
+    listEl.appendChild(empty);
+    return;
+  }
+
+  for (const item of libInstalledItems) {
+    const row = document.createElement("div");
+    row.className = "lib-installed-row" + (item.enabled ? "" : " is-disabled");
+
+    const info = document.createElement("div");
+    info.className = "lib-installed-info";
+    const name = document.createElement("strong");
+    name.textContent = item.displayName;
+    const sub = document.createElement("span");
+    sub.className = "tabular";
+    sub.textContent = `${item.fileName} · ${formatBytes(item.sizeBytes)}`;
+    info.append(name, sub);
+
+    const actions = document.createElement("div");
+    actions.className = "lib-installed-actions";
+
+    const statusLabel = document.createElement("span");
+    statusLabel.className = "lib-state-label";
+    statusLabel.textContent = tr(lang, item.enabled ? "library.enableAction" : "library.disableAction");
+
+    const toggle = document.createElement("input");
+    toggle.type = "checkbox";
+    toggle.className = "switch";
+    toggle.checked = item.enabled;
+    toggle.setAttribute("aria-label", item.fileName);
+    toggle.addEventListener("change", () => {
+      void handleToggleInstalledItem(item);
+    });
+
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "btn-danger btn-sm";
+    delBtn.textContent = tr(lang, "library.deleteAction");
+    delBtn.addEventListener("click", () => {
+      void handleDeleteInstalledItem(item);
+    });
+
+    actions.append(statusLabel, toggle, delBtn);
+    row.append(info, actions);
+    listEl.appendChild(row);
+  }
+}
+
+function renderLibraryView(): void {
+  if (!state) return;
+  syncLibraryControls();
+  if (libActiveTab === "installed") {
+    renderLibraryInstalled();
+  } else {
+    renderLibraryCatalog();
+  }
+}
+
+async function loadLibraryCatalog(force = false): Promise<void> {
+  if (!state || libActiveTab === "installed") return;
+  const queryEl = document.getElementById("library-search-input");
+  const sortEl = document.getElementById("library-sort-select");
+  const query = queryEl instanceof HTMLInputElement ? queryEl.value.trim() : "";
+  const sort = sortEl instanceof HTMLSelectElement ? sortEl.value : "downloads";
+  const loader = getEffectiveCatalogLoader();
+  const key = `${libActiveTab}:${loader}:${state.config.mc_version}:${query}:${sort}`;
+  if (!force && libLastCatalogKey === key && libCatalogHits.length > 0) return;
+
+  libCatalogLoading = true;
+  renderLibraryCatalog();
+  try {
+    const res = await ipc.searchModrinthCatalog({
+      query,
+      kind: libActiveTab,
+      loader,
+      sort,
+      limit: 24,
+      category: null,
+    });
+    libCatalogHits = res.hits;
+    libTotalHits = res.totalHits;
+    libLastCatalogKey = key;
+  } catch (err) {
+    showToast(errorMessage(err), "error");
+    libCatalogHits = [];
+    libTotalHits = 0;
+  } finally {
+    libCatalogLoading = false;
+    renderLibraryCatalog();
+  }
+}
+
+async function loadLibraryInstalled(): Promise<void> {
+  if (!state) return;
+  try {
+    libInstalledItems = await ipc.listLibraryItems(libInstalledKind, getEffectiveCatalogLoader());
+  } catch (err) {
+    showToast(errorMessage(err), "error");
+    libInstalledItems = [];
+  }
+  renderLibraryInstalled();
+}
+
+async function handleLoaderChange(loader: LoaderKind): Promise<void> {
+  if (!state) return;
+  unlockAudioContext();
+  playMcSound("click");
+  try {
+    const res = await ipc.setModLoader(loader);
+    state.config = res.config;
+    state.vanilla = res.vanilla;
+    state.loader_status = res.loader_status;
+    state.library_counts = res.library_counts;
+    if (res.discord_rpc_status) state.discord_rpc_status = res.discord_rpc_status;
+    if (loader === "Fabric" || loader === "Forge") {
+      libTargetLoader = loader;
+      libLastCatalogKey = "";
+    }
+    renderTopbarAndSession();
+    renderPlayView();
+    renderLibraryView();
+    showToast(tr(getEffectiveLanguage(), "loader.switchedToast", { loader }), "success");
+  } catch (err) {
+    playMcSound("error");
+    showToast(errorMessage(err), "error");
+  }
+}
+
+async function handleInstallCatalogItem(hit: ModrinthSearchHit, kind: LibraryKind): Promise<void> {
+  if (!state) return;
+  unlockAudioContext();
+  playMcSound("click");
+  installingProjects.add(hit.projectId);
+  renderLibraryCatalog();
+  try {
+    const res = await ipc.installModrinthItem({
+      projectId: hit.projectId,
+      kind,
+      loader: getEffectiveCatalogLoader(),
+    });
+    state.config = res.config;
+    state.loader_status = res.loaderStatus;
+    state.library_counts = res.libraryCounts;
+    hit.installed = true;
+    const msg =
+      res.outcome.installedFiles.length > 0
+        ? tr(getEffectiveLanguage(), "library.installToast", {
+            count: res.outcome.installedFiles.length,
+          })
+        : tr(getEffectiveLanguage(), "library.alreadyToast");
+    playMcSound("launch");
+    showToast(msg, "success");
+    renderPlayView();
+    syncLibraryControls();
+  } catch (err) {
+    playMcSound("error");
+    showToast(errorMessage(err), "error");
+  } finally {
+    installingProjects.delete(hit.projectId);
+    renderLibraryCatalog();
+  }
+}
+
+async function handleInstallShaderBundle(presetId: "fabric_shaders" | "forge_shaders"): Promise<void> {
+  if (!state) return;
+  unlockAudioContext();
+  playMcSound("click");
+  const fabBtn = byId<HTMLButtonElement>("btn-kit-fabric-shaders");
+  const forgeBtn = byId<HTMLButtonElement>("btn-kit-forge-shaders");
+  fabBtn.disabled = true;
+  forgeBtn.disabled = true;
+  try {
+    const res = await ipc.installShaderBundle(presetId);
+    state.config = res.config;
+    state.loader_status = res.loaderStatus;
+    state.library_counts = res.libraryCounts;
+    libTargetLoader = res.config.mod_loader === "Forge" ? "Forge" : "Fabric";
+    libLastCatalogKey = "";
+    playMcSound("launch");
+    showToast(
+      tr(getEffectiveLanguage(), "library.bundleToast", {
+        loader: res.config.mod_loader,
+        count: res.outcome.installedFiles.length,
+      }),
+      "success"
+    );
+    renderTopbarAndSession();
+    renderPlayView();
+    renderLibraryView();
+    void loadLibraryCatalog(true);
+  } catch (err) {
+    playMcSound("error");
+    showToast(errorMessage(err), "error");
+  } finally {
+    fabBtn.disabled = false;
+    forgeBtn.disabled = false;
+  }
+}
+
+async function handleImportLibraryFile(kind: LibraryKind): Promise<void> {
+  if (!state) return;
+  unlockAudioContext();
+  playMcSound("click");
+  try {
+    const res = await ipc.pickAndImportLibraryFile(kind, getEffectiveCatalogLoader());
+    if (!res) return;
+    state.library_counts = res.libraryCounts;
+    playMcSound("launch");
+    showToast(tr(getEffectiveLanguage(), "library.importToast", { file: res.fileName }), "success");
+    renderPlayView();
+    renderLibraryView();
+    if (libActiveTab === "installed") void loadLibraryInstalled();
+  } catch (err) {
+    playMcSound("error");
+    showToast(errorMessage(err), "error");
+  }
+}
+
+async function handleToggleInstalledItem(item: InstalledLibraryItem): Promise<void> {
+  if (!state) return;
+  try {
+    const counts = await ipc.toggleLibraryItem(
+      item.kind,
+      getEffectiveCatalogLoader(),
+      item.fileName
+    );
+    state.library_counts = counts;
+    playMcSound("click");
+    showToast(tr(getEffectiveLanguage(), "library.toggleToast", { file: item.fileName }), "success");
+    await loadLibraryInstalled();
+    renderPlayView();
+    syncLibraryControls();
+  } catch (err) {
+    showToast(errorMessage(err), "error");
+    await loadLibraryInstalled();
+  }
+}
+
+async function handleDeleteInstalledItem(item: InstalledLibraryItem): Promise<void> {
+  if (!state) return;
+  try {
+    const counts = await ipc.deleteLibraryItem(
+      item.kind,
+      getEffectiveCatalogLoader(),
+      item.fileName
+    );
+    state.library_counts = counts;
+    playMcSound("click");
+    showToast(tr(getEffectiveLanguage(), "library.deleteToast", { file: item.fileName }), "success");
+    await loadLibraryInstalled();
+    renderPlayView();
+    syncLibraryControls();
+  } catch (err) {
+    showToast(errorMessage(err), "error");
+  }
+}
+
+async function handlePrepareLoader(): Promise<void> {
+  if (!state) return;
+  unlockAudioContext();
+  playMcSound("click");
+  const loader = getEffectiveCatalogLoader();
+  try {
+    const session = await ipc.prepareLoaderEnvironment(loader);
+    if (session.pid > 0) {
+      state.running_session = session;
+      renderTopbarAndSession();
+      renderPlayView();
+      syncLibraryControls();
+    } else {
+      showToast(session.label, "success");
+    }
+  } catch (err) {
+    playMcSound("error");
+    showToast(errorMessage(err), "error");
+  }
+}
+
 function renderAll(): void {
   if (!state) return;
+  if (state.config.mod_loader === "Fabric" || state.config.mod_loader === "Forge") {
+    libTargetLoader = state.config.mod_loader;
+  }
   applyPreferences();
   renderTopbarAndSession();
   renderPlayView();
+  renderLibraryView();
   renderWorldsView();
   renderProfileView();
   renderSystemView();
@@ -1908,11 +2429,15 @@ async function handleVersionChange(version: string): Promise<void> {
     const res = await ipc.setMcVersion(version);
     state.config = res.config;
     state.vanilla = res.vanilla;
+    state.loader_status = res.loader_status;
+    state.library_counts = res.library_counts;
+    libLastCatalogKey = "";
     if (res.discord_rpc_status) {
       state.discord_rpc_status = res.discord_rpc_status;
     }
     renderTopbarAndSession();
     renderPlayView();
+    renderLibraryView();
     renderProfileView();
     renderSystemView();
     showToast(
@@ -3050,6 +3575,93 @@ function wireEvents(): void {
   document.getElementById("btn-play-goto-profile")?.addEventListener("click", () => {
     setActiveView("profile", true, true);
   });
+  document.getElementById("btn-play-open-library")?.addEventListener("click", () => {
+    setActiveView("library", true, true);
+  });
+
+  for (const btn of Array.from(document.querySelectorAll<HTMLButtonElement>(".loader-pill[data-loader]"))) {
+    btn.addEventListener("click", () => {
+      const loader = btn.dataset.loader as LoaderKind | undefined;
+      if (loader && state?.config.mod_loader !== loader) {
+        void handleLoaderChange(loader);
+      }
+    });
+  }
+
+  for (const btn of Array.from(document.querySelectorAll<HTMLButtonElement>(".lib-tab[data-lib-tab]"))) {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.libTab as LibraryKind | "installed" | undefined;
+      if (!tab || tab === libActiveTab) return;
+      playMcSound("tab");
+      libActiveTab = tab;
+      renderLibraryView();
+      if (tab === "installed") {
+        void loadLibraryInstalled();
+      } else {
+        void loadLibraryCatalog(true);
+      }
+    });
+  }
+
+  for (const btn of Array.from(document.querySelectorAll<HTMLButtonElement>("[data-lib-loader]"))) {
+    btn.addEventListener("click", () => {
+      const loader = btn.dataset.libLoader as LoaderKind | undefined;
+      if (!loader || loader === libTargetLoader) return;
+      playMcSound("click");
+      libTargetLoader = loader;
+      renderLibraryView();
+      if (libActiveTab === "installed") {
+        void loadLibraryInstalled();
+      } else {
+        void loadLibraryCatalog(true);
+      }
+    });
+  }
+
+  for (const btn of Array.from(document.querySelectorAll<HTMLButtonElement>("[data-installed-kind]"))) {
+    btn.addEventListener("click", () => {
+      const kind = btn.dataset.installedKind as LibraryKind | undefined;
+      if (!kind || kind === libInstalledKind) return;
+      playMcSound("tab");
+      libInstalledKind = kind;
+      syncLibraryControls();
+      void loadLibraryInstalled();
+    });
+  }
+
+  document.getElementById("btn-library-search")?.addEventListener("click", () => {
+    playMcSound("click");
+    void loadLibraryCatalog(true);
+  });
+  document.getElementById("library-search-input")?.addEventListener("keydown", (e) => {
+    if ((e as KeyboardEvent).key === "Enter") {
+      playMcSound("click");
+      void loadLibraryCatalog(true);
+    }
+  });
+  document.getElementById("library-sort-select")?.addEventListener("change", () => {
+    void loadLibraryCatalog(true);
+  });
+  document.getElementById("btn-kit-fabric-shaders")?.addEventListener("click", () => {
+    void handleInstallShaderBundle("fabric_shaders");
+  });
+  document.getElementById("btn-kit-forge-shaders")?.addEventListener("click", () => {
+    void handleInstallShaderBundle("forge_shaders");
+  });
+  document.getElementById("btn-import-jar")?.addEventListener("click", () => {
+    void handleImportLibraryFile("mod");
+  });
+  document.getElementById("btn-import-zip")?.addEventListener("click", () => {
+    void handleImportLibraryFile(libActiveTab === "resourcePack" ? "resourcePack" : "shader");
+  });
+  document.getElementById("btn-lib-open-folder")?.addEventListener("click", () => {
+    const kind: LibraryKind =
+      libActiveTab === "installed" ? libInstalledKind : libActiveTab;
+    void ipc.openLibraryFolder(kind, getEffectiveCatalogLoader());
+  });
+  document.getElementById("btn-lib-prepare-loader")?.addEventListener("click", () => {
+    void handlePrepareLoader();
+  });
 
   const openSettingsTab = (tab: string): void => {
     setActiveView("system", true, true);
@@ -3451,8 +4063,11 @@ async function init(): Promise<void> {
     state.running_session = null;
     state.saves = payload.saves;
     state.vanilla = payload.vanilla;
+    if (payload.loader_status) state.loader_status = payload.loader_status;
+    if (payload.library_counts) state.library_counts = payload.library_counts;
     renderTopbarAndSession();
     renderPlayView();
+    renderLibraryView();
     renderWorldsView();
     renderSystemView();
 

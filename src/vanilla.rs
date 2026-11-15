@@ -230,7 +230,7 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
-fn java_executable_name() -> &'static str {
+pub fn java_executable_name() -> &'static str {
     if cfg!(windows) { "java.exe" } else { "java" }
 }
 
@@ -238,7 +238,7 @@ fn compiler_executable_name() -> &'static str {
     if cfg!(windows) { "javac.exe" } else { "javac" }
 }
 
-fn parse_java_major(home: &Path) -> Option<(u32, String)> {
+pub fn parse_java_major(home: &Path) -> Option<(u32, String)> {
     let release_path = home.join("release");
     if let Ok(content) = fs::read_to_string(release_path) {
         for line in content.lines() {
@@ -561,15 +561,15 @@ struct MojangAssetIndexFile {
 }
 
 #[derive(Debug, Clone)]
-struct DownloadTask {
-    url: String,
-    dest: PathBuf,
-    sha1: String,
-    size: u64,
-    label: String,
+pub struct DownloadTask {
+    pub url: String,
+    pub dest: PathBuf,
+    pub sha1: String,
+    pub size: u64,
+    pub label: String,
 }
 
-fn current_mojang_os_name() -> &'static str {
+pub fn current_mojang_os_name() -> &'static str {
     if cfg!(target_os = "windows") {
         "windows"
     } else if cfg!(target_os = "macos") {
@@ -579,7 +579,7 @@ fn current_mojang_os_name() -> &'static str {
     }
 }
 
-fn current_mojang_arch() -> &'static str {
+pub fn current_mojang_arch() -> &'static str {
     if cfg!(target_arch = "x86_64") {
         "x64"
     } else if cfg!(target_arch = "x86") {
@@ -650,7 +650,7 @@ pub fn is_library_allowed_for_target(
     true
 }
 
-fn native_classifier_for_library<'a>(
+pub fn native_classifier_for_library<'a>(
     lib: &'a MojangLibrary,
     os_name: &str,
 ) -> Option<&'a MojangArtifactInfo> {
@@ -670,14 +670,14 @@ fn native_classifier_for_library<'a>(
     None
 }
 
-fn version_json_path_for(vanilla_dir: &Path, version: &str) -> PathBuf {
+pub fn version_json_path_for(vanilla_dir: &Path, version: &str) -> PathBuf {
     vanilla_dir
         .join("versions")
         .join(version)
         .join(format!("{version}.json"))
 }
 
-fn client_jar_path_for(vanilla_dir: &Path, version: &str) -> PathBuf {
+pub fn client_jar_path_for(vanilla_dir: &Path, version: &str) -> PathBuf {
     vanilla_dir
         .join("versions")
         .join(version)
@@ -703,9 +703,21 @@ fn check_file_size(path: &Path, expected_size: u64) -> bool {
     fs::metadata(path).is_ok_and(|m| m.is_file() && m.len() == expected_size)
 }
 
-fn check_file_size_and_sha1(path: &Path, expected_size: u64, expected_sha1: &str) -> bool {
-    if !check_file_size(path, expected_size) {
+pub fn check_file_size_and_sha1(path: &Path, expected_size: u64, expected_sha1: &str) -> bool {
+    let Ok(meta) = fs::metadata(path) else {
         return false;
+    };
+    if !meta.is_file() {
+        return false;
+    }
+    if expected_size > 0 && meta.len() != expected_size {
+        return false;
+    }
+    if meta.len() == 0 {
+        return false;
+    }
+    if expected_sha1.trim().is_empty() {
+        return true;
     }
     compute_file_sha1_hex(path)
         .is_ok_and(|actual| actual.eq_ignore_ascii_case(expected_sha1))
@@ -797,17 +809,17 @@ pub fn check_vanilla_assets_ready_for(vanilla_dir: &Path, version: &str) -> bool
 }
 
 #[cfg(windows)]
-fn hide_window(cmd: &mut Command) {
+pub fn hide_window(cmd: &mut Command) {
     use std::os::windows::process::CommandExt;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
     cmd.creation_flags(CREATE_NO_WINDOW);
 }
 
 #[cfg(not(windows))]
-fn hide_window(_cmd: &mut Command) {}
+pub fn hide_window(_cmd: &mut Command) {}
 
 #[cfg(windows)]
-fn hide_window_with_priority(cmd: &mut Command, high_priority: bool) {
+pub fn hide_window_with_priority(cmd: &mut Command, high_priority: bool) {
     use std::os::windows::process::CommandExt;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
     const ABOVE_NORMAL_PRIORITY_CLASS: u32 = 0x0000_8000;
@@ -820,21 +832,23 @@ fn hide_window_with_priority(cmd: &mut Command, high_priority: bool) {
 }
 
 #[cfg(not(windows))]
-fn hide_window_with_priority(_cmd: &mut Command, _high_priority: bool) {}
+pub fn hide_window_with_priority(_cmd: &mut Command, _high_priority: bool) {}
 
-fn curl_fetch_bytes(url: &str) -> Result<Vec<u8>, String> {
+pub fn curl_fetch_bytes(url: &str) -> Result<Vec<u8>, String> {
+    curl_fetch_bytes_with_ua(url, None)
+}
+
+pub fn curl_fetch_bytes_with_ua(url: &str, user_agent: Option<&str>) -> Result<Vec<u8>, String> {
+    let caps = CurlCapabilities::detect();
     let mut cmd = Command::new("curl.exe");
-    cmd.args([
-        "-fsSL",
-        "--retry",
-        "2",
-        "--connect-timeout",
-        "20",
-        "--max-time",
-        "60",
-        url,
-    ])
-    .stdin(Stdio::null());
+    cmd.args(["-fsSL", "--retry", "2", "--connect-timeout", "20", "--max-time", "60"]);
+    if caps.supports_ssl_revoke_best_effort {
+        cmd.arg("--ssl-revoke-best-effort");
+    }
+    if let Some(ua) = user_agent {
+        cmd.arg("-A").arg(ua);
+    }
+    cmd.arg(url).stdin(Stdio::null());
     hide_window(&mut cmd);
     let out = cmd
         .output()
@@ -876,12 +890,14 @@ fn commit_verified_part(part_path: &Path, dest: &Path) -> Result<(), String> {
 pub struct CurlCapabilities {
     pub supports_http2: bool,
     pub supports_parallel: bool,
+    pub supports_ssl_revoke_best_effort: bool,
 }
 
 impl CurlCapabilities {
     pub fn parse_version_output(output: &str) -> Self {
         let mut supports_http2 = false;
         let mut supports_parallel = false;
+        let mut supports_ssl_revoke_best_effort = false;
 
         for line in output.lines() {
             let trimmed = line.trim();
@@ -890,6 +906,9 @@ impl CurlCapabilities {
                 let mut parts = ver_str.split('.').filter_map(|p| p.parse::<u32>().ok());
                 if let (Some(maj), Some(min)) = (parts.next(), parts.next()) {
                     supports_parallel = (maj, min) >= (7, 66);
+                }
+                if trimmed.contains("Schannel") {
+                    supports_ssl_revoke_best_effort = true;
                 }
             } else if let Some(rest) = trimmed.strip_prefix("Features:") {
                 supports_http2 = rest
@@ -901,10 +920,11 @@ impl CurlCapabilities {
         Self {
             supports_http2,
             supports_parallel,
+            supports_ssl_revoke_best_effort,
         }
     }
 
-    fn detect() -> Self {
+    pub fn detect() -> Self {
         static CACHE: std::sync::OnceLock<CurlCapabilities> = std::sync::OnceLock::new();
         *CACHE.get_or_init(|| {
             let mut cmd = Command::new("curl.exe");
@@ -919,6 +939,7 @@ impl CurlCapabilities {
             Self {
                 supports_http2: false,
                 supports_parallel: false,
+                supports_ssl_revoke_best_effort: false,
             }
         })
     }
@@ -935,6 +956,9 @@ fn build_curl_transfer_args(
         "-fL".to_string(),
         "--tcp-nodelay".to_string(),
     ];
+    if caps.supports_ssl_revoke_best_effort {
+        args.push("--ssl-revoke-best-effort".to_string());
+    }
     if caps.supports_http2 {
         args.push("--http2".to_string());
     }
@@ -1064,7 +1088,7 @@ fn download_segmented_with_curl(
     }
 }
 
-fn download_batch_with_curl(
+pub fn download_batch_with_curl(
     tasks: &[&DownloadTask],
     temp_dir: &Path,
     parallel_streams: u8,
@@ -1131,6 +1155,7 @@ fn download_batch_with_curl(
                 caps = CurlCapabilities {
                     supports_http2: false,
                     supports_parallel: false,
+                    supports_ssl_revoke_best_effort: false,
                 };
             }
             let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
@@ -1865,9 +1890,9 @@ pub fn run_client_and_network_optimization(
 
 /// Builds direct JVM and Minecraft `net.minecraft.client.main.Main` command-line arguments
 /// from the parsed Mojang version manifest and Basalt's hardware settings.
-pub fn build_vanilla_launch_args(
+/// Builds shared JVM heap, GC, performance, logging, natives, and launcher identity arguments.
+pub fn build_jvm_base_args(
     vanilla_dir: &Path,
-    run_dir: &Path,
     manifest: &MojangVersionManifest,
     cfg: &VanillaLaunchConfig,
 ) -> Vec<String> {
@@ -1947,6 +1972,75 @@ pub fn build_vanilla_launch_args(
         "-Dminecraft.launcher.version={}",
         env!("CARGO_PKG_VERSION")
     ));
+    args
+}
+
+/// Appends standard Minecraft client arguments (identity, directories, quick-play/server).
+pub fn append_minecraft_game_args(
+    args: &mut Vec<String>,
+    vanilla_dir: &Path,
+    run_dir: &Path,
+    manifest: &MojangVersionManifest,
+    cfg: &VanillaLaunchConfig,
+    version_label: &str,
+) {
+    let uuid = if cfg.player_uuid.trim().is_empty() {
+        local_player_uuid_dashed(&cfg.username)
+    } else {
+        cfg.player_uuid.clone()
+    };
+
+    args.extend([
+        "--username".to_string(),
+        cfg.username.clone(),
+        "--version".to_string(),
+        version_label.to_string(),
+        "--gameDir".to_string(),
+        run_dir.to_string_lossy().into_owned(),
+        "--assetsDir".to_string(),
+        vanilla_dir.join("assets").to_string_lossy().into_owned(),
+        "--assetIndex".to_string(),
+        manifest.asset_index.id.clone(),
+        "--uuid".to_string(),
+        uuid,
+        "--accessToken".to_string(),
+        "0".to_string(),
+        "--clientId".to_string(),
+        "0".to_string(),
+        "--xuid".to_string(),
+        "0".to_string(),
+        "--userType".to_string(),
+        "legacy".to_string(),
+        "--versionType".to_string(),
+        "release".to_string(),
+    ]);
+
+    if version_supports_quick_play(&manifest.id) {
+        if let Some(ref sp) = cfg.quick_play_singleplayer {
+            args.push("--quickPlaySingleplayer".to_string());
+            args.push(sp.clone());
+        } else if let Some(ref mp) = cfg.quick_play_multiplayer {
+            args.push("--quickPlayMultiplayer".to_string());
+            args.push(mp.clone());
+        }
+    } else if let Some(ref mp) = cfg.quick_play_multiplayer {
+        let (host, port) = mp.rsplit_once(':').unwrap_or((mp.as_str(), "25565"));
+        if !host.trim().is_empty() {
+            args.push("--server".to_string());
+            args.push(host.trim().to_string());
+            args.push("--port".to_string());
+            args.push(port.trim().to_string());
+        }
+    }
+}
+
+pub fn build_vanilla_launch_args(
+    vanilla_dir: &Path,
+    run_dir: &Path,
+    manifest: &MojangVersionManifest,
+    cfg: &VanillaLaunchConfig,
+) -> Vec<String> {
+    let mut args = build_jvm_base_args(vanilla_dir, manifest, cfg);
 
     let os_name = current_mojang_os_name();
     let arch = current_mojang_arch();
@@ -1989,69 +2083,22 @@ pub fn build_vanilla_launch_args(
     args.push(cp_entries.join(cp_sep));
 
     args.push(manifest.main_class.clone());
-
-    let uuid = if cfg.player_uuid.trim().is_empty() {
-        local_player_uuid_dashed(&cfg.username)
-    } else {
-        cfg.player_uuid.clone()
-    };
-
-    args.extend([
-        "--username".to_string(),
-        cfg.username.clone(),
-        "--version".to_string(),
-        manifest.id.clone(),
-        "--gameDir".to_string(),
-        run_dir.to_string_lossy().into_owned(),
-        "--assetsDir".to_string(),
-        vanilla_dir.join("assets").to_string_lossy().into_owned(),
-        "--assetIndex".to_string(),
-        manifest.asset_index.id.clone(),
-        "--uuid".to_string(),
-        uuid,
-        "--accessToken".to_string(),
-        "0".to_string(),
-        "--clientId".to_string(),
-        "0".to_string(),
-        "--xuid".to_string(),
-        "0".to_string(),
-        "--userType".to_string(),
-        "legacy".to_string(),
-        "--versionType".to_string(),
-        "release".to_string(),
-    ]);
-
-    if version_supports_quick_play(&manifest.id) {
-        if let Some(ref sp) = cfg.quick_play_singleplayer {
-            args.push("--quickPlaySingleplayer".to_string());
-            args.push(sp.clone());
-        } else if let Some(ref mp) = cfg.quick_play_multiplayer {
-            args.push("--quickPlayMultiplayer".to_string());
-            args.push(mp.clone());
-        }
-    } else if let Some(ref mp) = cfg.quick_play_multiplayer {
-        let (host, port) = mp.rsplit_once(':').unwrap_or((mp.as_str(), "25565"));
-        if !host.trim().is_empty() {
-            args.push("--server".to_string());
-            args.push(host.trim().to_string());
-            args.push("--port".to_string());
-            args.push(port.trim().to_string());
-        }
-    }
+    append_minecraft_game_args(&mut args, vanilla_dir, run_dir, manifest, cfg, &manifest.id);
 
     args
 }
 
-/// Spawns Vanilla Minecraft directly with `java.exe` (no Gradle/Fabric intermediary).
-pub fn spawn_vanilla_client(
-    vanilla_dir: &Path,
+/// Spawns any prepared Minecraft Java command line directly via `java.exe` (shared by Vanilla, Fabric, and Forge).
+pub fn spawn_java_client(
     run_dir: &Path,
-    manifest: &MojangVersionManifest,
-    cfg: &VanillaLaunchConfig,
+    java_home: &Path,
+    args: &[String],
+    process_boost: bool,
+    label: &str,
 ) -> Result<Child, String> {
     fs::create_dir_all(run_dir)
         .map_err(|e| format!("Failed to create Minecraft game directory: {e}"))?;
-    let java_bin = cfg.java_home.join("bin").join(java_executable_name());
+    let java_bin = java_home.join("bin").join(java_executable_name());
     if !java_bin.is_file() {
         return Err(format!(
             "Java executable was not found at {}",
@@ -2059,9 +2106,8 @@ pub fn spawn_vanilla_client(
         ));
     }
 
-    let args = build_vanilla_launch_args(vanilla_dir, run_dir, manifest, cfg);
     let mut cmd = Command::new(&java_bin);
-    cmd.args(&args)
+    cmd.args(args)
         .current_dir(run_dir)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -2076,10 +2122,27 @@ pub fn spawn_vanilla_client(
         cmd.env_remove(key);
     }
 
-    hide_window_with_priority(&mut cmd, cfg.process_boost);
+    hide_window_with_priority(&mut cmd, process_boost);
 
     cmd.spawn()
-        .map_err(|e| format!("Failed to start Vanilla Minecraft {} process: {e}", manifest.id))
+        .map_err(|e| format!("Failed to start Minecraft {label} process: {e}"))
+}
+
+/// Spawns Vanilla Minecraft directly with `java.exe` (no Gradle/Fabric intermediary).
+pub fn spawn_vanilla_client(
+    vanilla_dir: &Path,
+    run_dir: &Path,
+    manifest: &MojangVersionManifest,
+    cfg: &VanillaLaunchConfig,
+) -> Result<Child, String> {
+    let args = build_vanilla_launch_args(vanilla_dir, run_dir, manifest, cfg);
+    spawn_java_client(
+        run_dir,
+        &cfg.java_home,
+        &args,
+        cfg.process_boost,
+        &manifest.id,
+    )
 }
 
 /// Pure-Rust FIPS 180-4 SHA-1 digest helper for verifying official Mojang downloads.
@@ -2766,6 +2829,7 @@ mod tests {
             CurlCapabilities {
                 supports_http2: false,
                 supports_parallel: true,
+                supports_ssl_revoke_best_effort: true,
             }
         );
         let legacy_win10 = "curl 7.55.1 (Windows) libcurl/7.55.1 WinSSL\nFeatures: AsynchDNS IPv6 Largefile SSPI";
@@ -2774,6 +2838,7 @@ mod tests {
             CurlCapabilities {
                 supports_http2: false,
                 supports_parallel: false,
+                supports_ssl_revoke_best_effort: false,
             }
         );
         let with_nghttp2 = "curl 8.5.0 (x86_64) libcurl/8.5.0 nghttp2/1.59.0\nFeatures: AsynchDNS HTTP2 HTTPS-proxy";
@@ -2782,6 +2847,7 @@ mod tests {
             CurlCapabilities {
                 supports_http2: true,
                 supports_parallel: true,
+                supports_ssl_revoke_best_effort: false,
             }
         );
 

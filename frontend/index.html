@@ -158,20 +158,25 @@
           <span class="nav-text" data-i18n="nav.play">Play</span>
           <span class="nav-index">01</span>
         </button>
+        <button class="nav-btn" type="button" data-nav="library" data-i18n-title="nav.library">
+          <svg class="ico" aria-hidden="true"><use href="#ico-cube" /></svg>
+          <span class="nav-text" data-i18n="nav.library">Library</span>
+          <span class="nav-index">02</span>
+        </button>
         <button class="nav-btn" type="button" data-nav="worlds" data-i18n-title="nav.worlds">
           <svg class="ico" aria-hidden="true"><use href="#ico-layers" /></svg>
           <span class="nav-text" data-i18n="nav.worlds">Saves</span>
-          <span class="nav-index">02</span>
+          <span class="nav-index">03</span>
         </button>
         <button class="nav-btn" type="button" data-nav="profile" data-i18n-title="nav.profile">
           <svg class="ico" aria-hidden="true"><use href="#ico-user" /></svg>
           <span class="nav-text" data-i18n="nav.profile">Profile &amp; Skin</span>
-          <span class="nav-index">03</span>
+          <span class="nav-index">04</span>
         </button>
         <button class="nav-btn" type="button" data-nav="system" data-i18n-title="nav.system">
           <svg class="ico" aria-hidden="true"><use href="#ico-sliders" /></svg>
           <span class="nav-text" data-i18n="nav.system">Settings</span>
-          <span class="nav-index">04</span>
+          <span class="nav-index">05</span>
         </button>
         <span class="deck-shoulder" aria-hidden="true">R1</span>
       </nav>
@@ -418,6 +423,24 @@
                   </div>
                 </div>
 
+                <div class="loader-switcher-bar" role="group" aria-label="Mod Loader" data-i18n-aria="loader.label">
+                  <div class="loader-switcher-left">
+                    <span class="loader-bar-label" data-i18n="loader.label">Mod Loader</span>
+                    <div class="loader-seg">
+                      <button class="loader-pill active" type="button" data-loader="Vanilla" data-i18n="loader.Vanilla">Vanilla</button>
+                      <button class="loader-pill" type="button" data-loader="Fabric" data-i18n="loader.Fabric">Fabric</button>
+                      <button class="loader-pill" type="button" data-loader="Forge" data-i18n="loader.Forge">Forge</button>
+                    </div>
+                  </div>
+                  <div class="loader-switcher-right">
+                    <span class="loader-summary-pill tabular" id="play-loader-summary">0 mods · 0 shaders</span>
+                    <button class="btn-subtle btn-sm" type="button" id="btn-play-open-library">
+                      <svg class="ico small" aria-hidden="true"><use href="#ico-cube" /></svg>
+                      <span data-i18n="nav.library">Library</span>
+                    </button>
+                  </div>
+                </div>
+
                 <div class="java-setup-card" id="java-setup-panel" role="region" aria-labelledby="java-setup-title" hidden>
                   <div class="java-setup-head">
                     <span class="java-setup-title" id="java-setup-title" data-i18n="play.javaSetupTitle">Java 21 JDK Required</span>
@@ -552,7 +575,117 @@
           </div>
         </section>
 
-        <!-- 02 / SAVES (MINECRAFT SAVES) -->
+        <!-- 02 / LIBRARY (MODS, SHADERS, RESOURCE PACKS) -->
+        <section class="view" id="view-library" data-view="library" aria-labelledby="library-heading" hidden>
+          <div class="view-head">
+            <div>
+              <p class="eyebrow" data-i18n="library.kicker">MODRINTH LIBRARY &amp; LOADERS</p>
+              <h1 id="library-heading" data-i18n="library.title">Mods, Shaders &amp; Packs</h1>
+            </div>
+            <p class="view-lead" data-i18n="library.subtitle">
+              Isolated Fabric and Forge mod folders with shared saves, shaderpacks, and resource packs.
+            </p>
+          </div>
+
+          <div class="library-toolbar-top">
+            <div class="library-tabs" role="tablist" aria-label="Library categories">
+              <button class="lib-tab active" type="button" role="tab" aria-selected="true" data-lib-tab="mod" data-i18n="library.tabMods">Mods</button>
+              <button class="lib-tab" type="button" role="tab" aria-selected="false" data-lib-tab="shader" data-i18n="library.tabShaders">Shaders</button>
+              <button class="lib-tab" type="button" role="tab" aria-selected="false" data-lib-tab="resourcePack" data-i18n="library.tabPacks">Resource Packs</button>
+              <button class="lib-tab" type="button" role="tab" aria-selected="false" data-lib-tab="installed">
+                <span data-i18n="library.tabInstalled">Installed</span>
+                <span class="lib-tab-count tabular" id="lib-installed-badge">0</span>
+              </button>
+            </div>
+
+            <div class="library-scope-wrap">
+              <span class="library-scope-label" data-i18n="library.scopeLabel">Target Profile</span>
+              <div class="loader-seg" id="library-loader-seg">
+                <button class="loader-pill active" type="button" data-lib-loader="Fabric" data-i18n="loader.Fabric">Fabric</button>
+                <button class="loader-pill" type="button" data-lib-loader="Forge" data-i18n="loader.Forge">Forge</button>
+              </div>
+              <button class="btn-secondary btn-sm" type="button" id="btn-lib-prepare-loader">
+                <svg class="ico small" aria-hidden="true"><use href="#ico-refresh" /></svg>
+                <span id="lib-prepare-label">Prepare Fabric</span>
+              </button>
+              <button class="btn-secondary btn-sm" type="button" id="btn-lib-open-folder">
+                <svg class="ico small" aria-hidden="true"><use href="#ico-folder" /></svg>
+                <span data-i18n="library.openFolderBtn">Open Folder</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="library-kit-grid" id="library-kit-grid">
+            <article class="library-kit-card">
+              <div class="library-kit-copy">
+                <h2 data-i18n="library.kitTitle">1-Click Shaders &amp; FPS Boost</h2>
+                <p data-i18n="library.kitDesc">
+                  Installs a complete shader-ready optimization stack and a starter shader pack directly into the isolated profile.
+                </p>
+              </div>
+              <div class="library-kit-actions">
+                <button class="btn-primary btn-sm" type="button" id="btn-kit-fabric-shaders" data-i18n="library.fabricKitBtn">
+                  Fabric: Sodium + Iris + Lithium
+                </button>
+                <button class="btn-secondary btn-sm" type="button" id="btn-kit-forge-shaders" data-i18n="library.forgeKitBtn">
+                  Forge: Embeddium + Oculus
+                </button>
+              </div>
+            </article>
+
+            <article class="library-kit-card library-kit-import">
+              <div class="library-kit-copy">
+                <h2 data-i18n="library.optifineTitle">OptiFine / Custom JAR &amp; ZIP</h2>
+                <p data-i18n="library.optifineDesc">
+                  Import a downloaded OptiFine .jar into Forge mods or any custom .zip shader / resource pack.
+                </p>
+              </div>
+              <div class="library-kit-actions">
+                <button class="btn-secondary btn-sm" type="button" id="btn-import-jar">
+                  <svg class="ico small" aria-hidden="true"><use href="#ico-upload" /></svg>
+                  <span data-i18n="library.importModBtn">Import JAR</span>
+                </button>
+                <button class="btn-secondary btn-sm" type="button" id="btn-import-zip">
+                  <svg class="ico small" aria-hidden="true"><use href="#ico-upload" /></svg>
+                  <span data-i18n="library.importZipBtn">Import ZIP</span>
+                </button>
+              </div>
+            </article>
+          </div>
+
+          <div class="library-search-bar" id="library-search-bar">
+            <div class="library-search-input-wrap">
+              <input
+                id="library-search-input"
+                type="search"
+                autocomplete="off"
+                placeholder="Search Modrinth..."
+                aria-label="Search Modrinth"
+              />
+            </div>
+            <select id="library-sort-select" aria-label="Sort results">
+              <option value="downloads" data-i18n="library.sortDownloads">Most Downloaded</option>
+              <option value="relevance" data-i18n="library.sortRelevance">Best Match</option>
+              <option value="follows" data-i18n="library.sortFollows">Most Followed</option>
+              <option value="updated" data-i18n="library.sortUpdated">Recently Updated</option>
+            </select>
+            <button class="btn-primary btn-sm" type="button" id="btn-library-search" data-i18n="library.searchBtn">Search</button>
+            <span class="count-label tabular" id="library-results-count"></span>
+          </div>
+
+          <div class="library-catalog-grid" id="library-catalog-grid"></div>
+
+          <div class="library-installed-panel" id="library-installed-panel" hidden>
+            <div class="library-installed-filters">
+              <button class="installed-sub-tab active" type="button" data-installed-kind="mod" data-i18n="library.tabMods">Mods</button>
+              <button class="installed-sub-tab" type="button" data-installed-kind="shader" data-i18n="library.tabShaders">Shaders</button>
+              <button class="installed-sub-tab" type="button" data-installed-kind="resourcePack" data-i18n="library.tabPacks">Resource Packs</button>
+            </div>
+            <div class="library-installed-list" id="library-installed-list"></div>
+          </div>
+        </section>
+
+        <!-- 03 / SAVES (MINECRAFT SAVES) -->
         <section class="view" id="view-worlds" data-view="worlds" aria-labelledby="worlds-heading" hidden>
           <div class="view-head">
             <div>

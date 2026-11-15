@@ -85,6 +85,24 @@ pub enum UiLanguage {
     De,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum LoaderKind {
+    #[default]
+    Vanilla,
+    Fabric,
+    Forge,
+}
+
+impl LoaderKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Vanilla => "vanilla",
+            Self::Fabric => "fabric",
+            Self::Forge => "forge",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum JvmGcMode {
     G1GC,
@@ -186,6 +204,8 @@ pub struct AppConfig {
     pub config_version: u8,
     #[serde(default = "default_mc_version")]
     pub mc_version: String,
+    #[serde(default)]
+    pub mod_loader: LoaderKind,
     pub username: String,
     pub skin_file: Option<PathBuf>,
     pub skin_model: SkinModel,
@@ -216,6 +236,7 @@ impl Default for AppConfig {
         Self {
             config_version: 1,
             mc_version: DEFAULT_MC_VERSION.to_string(),
+            mod_loader: LoaderKind::Vanilla,
             username: "Player".to_string(),
             skin_file: None,
             skin_model: SkinModel::Auto,

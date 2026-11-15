@@ -2,6 +2,8 @@ pub mod assets;
 pub mod config;
 pub mod discord_rpc;
 pub mod hardware;
+pub mod loaders;
+pub mod modrinth;
 pub mod options_txt;
 pub mod protocol;
 pub mod saves;

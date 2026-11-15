@@ -32,6 +32,8 @@ export type SkinModel = "Auto" | "Slim" | "Classic";
 export type GpuTier = "Discrete" | "Integrated" | "VirtualOrSoftware";
 export type LaunchMode = "title" | "singleplayer" | "multiplayer";
 export type UiLanguage = "En" | "Tr" | "De";
+export type LoaderKind = "Vanilla" | "Fabric" | "Forge";
+export type LibraryKind = "mod" | "shader" | "resourcePack";
 
 export interface GraphicsSettings {
   preset: GraphicsPreset;
@@ -108,6 +110,7 @@ export interface AppConfig {
   download_threads: number;
   network_boost: boolean;
   process_boost: boolean;
+  mod_loader: LoaderKind;
   last_save_id: string | null;
   saved_servers: SavedServer[];
   graphics: GraphicsSettings;
@@ -168,9 +171,79 @@ export interface VanillaEnvStatus {
   java_hint: string;
 }
 
+export interface LoaderEnvStatus {
+  mcVersion: string;
+  activeLoader: LoaderKind;
+  fabricReady: boolean;
+  forgeReady: boolean;
+  fabricLoaderVersion: string | null;
+  forgeVersion: string | null;
+  activeModsDir: string;
+  shaderpacksDir: string;
+  resourcepacksDir: string;
+}
+
+export interface LibraryCounts {
+  modsEnabled: number;
+  modsTotal: number;
+  shadersEnabled: number;
+  shadersTotal: number;
+  resourcepacksEnabled: number;
+  resourcepacksTotal: number;
+}
+
+export interface ModrinthSearchHit {
+  projectId: string;
+  slug: string;
+  title: string;
+  description: string;
+  author: string;
+  iconUrl: string | null;
+  downloads: number;
+  follows: number;
+  categories: string[];
+  projectType: string;
+  installed: boolean;
+}
+
+export interface ModrinthSearchResponse {
+  hits: ModrinthSearchHit[];
+  totalHits: number;
+}
+
+export interface InstalledLibraryItem {
+  fileName: string;
+  displayName: string;
+  kind: LibraryKind;
+  enabled: boolean;
+  sizeBytes: number;
+  path: string;
+  projectId: string | null;
+}
+
+export interface InstallOutcome {
+  installedFiles: string[];
+  skippedCount: number;
+  warnings: string[];
+}
+
+export interface InstallActionDto {
+  config: AppConfig;
+  outcome: InstallOutcome;
+  loaderStatus: LoaderEnvStatus;
+  libraryCounts: LibraryCounts;
+}
+
+export interface ImportLibraryDto {
+  fileName: string;
+  libraryCounts: LibraryCounts;
+}
+
 export interface VersionChangeDto {
   config: AppConfig;
   vanilla: VanillaEnvStatus;
+  loader_status: LoaderEnvStatus;
+  library_counts: LibraryCounts;
   discord_rpc_status: DiscordRpcStatus;
 }
 
@@ -192,6 +265,8 @@ export interface BootstrapDto {
   saves: MinecraftSaveSummary[];
   hardware: HardwareProfile;
   vanilla: VanillaEnvStatus;
+  loader_status: LoaderEnvStatus;
+  library_counts: LibraryCounts;
   discord_rpc_status: DiscordRpcStatus;
   skin_rgba: number[];
   skin_is_slim: boolean;
@@ -246,4 +321,6 @@ export interface SessionEndedPayload {
   error: string | null;
   saves: MinecraftSaveSummary[];
   vanilla: VanillaEnvStatus;
+  loader_status: LoaderEnvStatus;
+  library_counts: LibraryCounts;
 }

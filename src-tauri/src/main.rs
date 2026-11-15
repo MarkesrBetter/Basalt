@@ -16,11 +16,21 @@ use basalt::assets::{
     default_skin_png_bytes, generate_default_skin, load_skin_from_file, resolve_skin_is_slim,
 };
 use basalt::config::{
-    AccentTone, AppConfig, AppPaths, CornerStyle, GraphicsSettings, LayoutMode, SavedServer,
-    SkinModel, ThemeMode, UiLanguage, normalize_hex_color, normalize_mc_version,
+    AccentTone, AppConfig, AppPaths, CornerStyle, GraphicsSettings, LayoutMode, LoaderKind,
+    SavedServer, SkinModel, ThemeMode, UiLanguage, normalize_hex_color, normalize_mc_version,
 };
 use basalt::discord_rpc::{BASALT_GITHUB_URL, DiscordRpcStatus, publish_discord_activity};
 use basalt::hardware::HardwareProfile;
+use basalt::loaders::{
+    LoaderEnvStatus, ensure_fabric_version_ready, ensure_forge_version_ready,
+    inspect_loader_environment, loader_mods_dir, shared_resourcepacks_dir, shared_shaderpacks_dir,
+    spawn_modded_client, sync_profile_shared_files,
+};
+use basalt::modrinth::{
+    InstallOutcome, InstalledLibraryItem, LibraryCounts, LibraryKind, ModrinthSearchResponse,
+    count_library_items, delete_library_item, import_library_file, install_modrinth_project,
+    install_shader_preset_bundle, list_library_items, search_modrinth, toggle_library_item,
+};
 use basalt::options_txt::{sync_minecraft_options, sync_minecraft_options_with_pack};
 use basalt::protocol::{
     LocalHandshakeResult, ServerPingInfo, ping_server_1_21_4, probe_local_dev_login_1_21_4,
@@ -51,6 +61,8 @@ struct BootstrapDto {
     saves: Vec<MinecraftSaveSummary>,
     hardware: HardwareProfile,
     vanilla: VanillaEnvStatus,
+    loader_status: LoaderEnvStatus,
+    library_counts: LibraryCounts,
     discord_rpc_status: DiscordRpcStatus,
     skin_rgba: Vec<u8>,
     skin_is_slim: bool,
@@ -92,13 +104,33 @@ struct SessionEndedPayload {
     error: Option<String>,
     saves: Vec<MinecraftSaveSummary>,
     vanilla: VanillaEnvStatus,
+    loader_status: LoaderEnvStatus,
+    library_counts: LibraryCounts,
 }
 
 #[derive(Debug, Clone, Serialize)]
 struct VersionChangeDto {
     config: AppConfig,
     vanilla: VanillaEnvStatus,
+    loader_status: LoaderEnvStatus,
+    library_counts: LibraryCounts,
     discord_rpc_status: DiscordRpcStatus,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InstallActionDto {
+    config: AppConfig,
+    outcome: InstallOutcome,
+    loader_status: LoaderEnvStatus,
+    library_counts: LibraryCounts,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ImportLibraryDto {
+    file_name: String,
+    library_counts: LibraryCounts,
 }
 
 #[derive(Debug, Deserialize)]
@@ -341,6 +373,45 @@ struct SessionDirs<'a> {
     saves: &'a Path,
     runtime: &'a Path,
     version: &'a str,
+    loader: LoaderKind,
+}
+
+fn loader_display_name(loader: LoaderKind) -> &'static str {
+    match loader {
+        LoaderKind::Vanilla => "Vanilla",
+        LoaderKind::Fabric => "Fabric",
+        LoaderKind::Forge => "Forge",
+    }
+}
+
+fn compute_loader_status_and_counts(
+    vanilla_dir: &Path,
+    run_dir: &Path,
+    mc_version: &str,
+    loader: LoaderKind,
+) -> (LoaderEnvStatus, LibraryCounts) {
+    let status = inspect_loader_environment(vanilla_dir, run_dir, mc_version, loader);
+    let mods_dir = loader_mods_dir(vanilla_dir, run_dir, loader, mc_version);
+    let counts = count_library_items(
+        &mods_dir,
+        &shared_shaderpacks_dir(run_dir),
+        &shared_resourcepacks_dir(run_dir),
+    );
+    (status, counts)
+}
+
+fn resolve_library_dir_for(
+    vanilla_dir: &Path,
+    run_dir: &Path,
+    kind: LibraryKind,
+    loader: LoaderKind,
+    mc_version: &str,
+) -> PathBuf {
+    match kind {
+        LibraryKind::Mod => loader_mods_dir(vanilla_dir, run_dir, loader, mc_version),
+        LibraryKind::Shader => shared_shaderpacks_dir(run_dir),
+        LibraryKind::ResourcePack => shared_resourcepacks_dir(run_dir),
+    }
 }
 
 fn emit_session_ended(
@@ -357,6 +428,8 @@ fn emit_session_ended(
         Some(dirs.runtime),
         dirs.version,
     );
+    let (loader_status, library_counts) =
+        compute_loader_status_and_counts(dirs.vanilla, dirs.run, dirs.version, dirs.loader);
     let _ = app.emit(
         "basalt://session-ended",
         SessionEndedPayload {
@@ -365,6 +438,8 @@ fn emit_session_ended(
             error,
             saves,
             vanilla,
+            loader_status,
+            library_counts,
         },
     );
 }
@@ -503,6 +578,12 @@ fn get_bootstrap_state(state: tauri::State<AppState>) -> Result<BootstrapDto, St
         Some(&state.paths.runtime_dir),
         &config.mc_version,
     );
+    let (loader_status, library_counts) = compute_loader_status_and_counts(
+        &state.vanilla_dir,
+        &state.run_dir,
+        &config.mc_version,
+        config.mod_loader,
+    );
     let discord_rpc_status = state
         .discord
         .lock()
@@ -516,6 +597,8 @@ fn get_bootstrap_state(state: tauri::State<AppState>) -> Result<BootstrapDto, St
         saves,
         hardware,
         vanilla,
+        loader_status,
+        library_counts,
         discord_rpc_status,
         skin_rgba: skin_img.into_raw(),
         skin_is_slim,
@@ -616,28 +699,22 @@ fn save_profile_settings(
     Ok(config.clone())
 }
 
-#[tauri::command]
-fn set_mc_version(
-    state: tauri::State<AppState>,
-    version: String,
-) -> Result<VersionChangeDto, String> {
-    let clean_ver = normalize_mc_version(&version);
-    let config_snapshot = {
-        let mut config = state
-            .config
-            .lock()
-            .map_err(|_| "Failed to unlock configuration".to_string())?;
-        config.mc_version = clean_ver.clone();
-        config.save(&state.paths.config_file)?;
-        config.clone()
-    };
+fn build_version_change_dto(state: &AppState, config_snapshot: AppConfig) -> VersionChangeDto {
+    let clean_ver = config_snapshot.mc_version.clone();
+    let loader = config_snapshot.mod_loader;
     let vanilla = inspect_vanilla_environment_for_version(
         &state.vanilla_dir,
         &state.run_dir,
         Some(&state.paths.runtime_dir),
         &clean_ver,
     );
-    let details = format!("Minecraft {clean_ver} (Vanilla)");
+    let (loader_status, library_counts) = compute_loader_status_and_counts(
+        &state.vanilla_dir,
+        &state.run_dir,
+        &clean_ver,
+        loader,
+    );
+    let details = format!("Minecraft {clean_ver} ({})", loader_display_name(loader));
     let state_label = format!("Basalt Launcher · {}", config_snapshot.username);
     spawn_discord_sync(
         Arc::clone(&state.discord),
@@ -652,11 +729,340 @@ fn set_mc_version(
         .lock()
         .map(|d| d.clone())
         .unwrap_or_default();
-    Ok(VersionChangeDto {
+    VersionChangeDto {
         config: config_snapshot,
         vanilla,
+        loader_status,
+        library_counts,
         discord_rpc_status,
+    }
+}
+
+#[tauri::command]
+fn set_mc_version(
+    state: tauri::State<AppState>,
+    version: String,
+) -> Result<VersionChangeDto, String> {
+    let clean_ver = normalize_mc_version(&version);
+    let config_snapshot = {
+        let mut config = state
+            .config
+            .lock()
+            .map_err(|_| "Failed to unlock configuration".to_string())?;
+        config.mc_version = clean_ver;
+        config.save(&state.paths.config_file)?;
+        config.clone()
+    };
+    Ok(build_version_change_dto(&state, config_snapshot))
+}
+
+#[tauri::command]
+fn set_mod_loader(
+    state: tauri::State<AppState>,
+    loader: LoaderKind,
+) -> Result<VersionChangeDto, String> {
+    let config_snapshot = {
+        let mut config = state
+            .config
+            .lock()
+            .map_err(|_| "Failed to unlock configuration".to_string())?;
+        config.mod_loader = loader;
+        config.save(&state.paths.config_file)?;
+        config.clone()
+    };
+    Ok(build_version_change_dto(&state, config_snapshot))
+}
+
+#[tauri::command]
+async fn search_modrinth_catalog(
+    state: tauri::State<'_, AppState>,
+    query: String,
+    kind: LibraryKind,
+    loader: LoaderKind,
+    sort: String,
+    limit: u32,
+    category: Option<String>,
+) -> Result<ModrinthSearchResponse, String> {
+    let mc_version = state
+        .config
+        .lock()
+        .map(|c| c.mc_version.clone())
+        .unwrap_or_else(|_| "1.21.4".to_string());
+    let target_dir = resolve_library_dir_for(&state.vanilla_dir, &state.run_dir, kind, loader, &mc_version);
+
+    tauri::async_runtime::spawn_blocking(move || {
+        search_modrinth(
+            &query,
+            kind,
+            loader,
+            &mc_version,
+            &sort,
+            limit,
+            category.as_deref(),
+            &target_dir,
+        )
     })
+    .await
+    .map_err(|e| format!("Modrinth catalog search task failed: {e}"))?
+}
+
+#[tauri::command]
+async fn install_modrinth_item(
+    state: tauri::State<'_, AppState>,
+    project_id: String,
+    kind: LibraryKind,
+    loader: LoaderKind,
+) -> Result<InstallActionDto, String> {
+    let config_snapshot = state
+        .config
+        .lock()
+        .map_err(|_| "Failed to unlock configuration".to_string())?
+        .clone();
+    let mc_version = config_snapshot.mc_version.clone();
+    let dl_threads = config_snapshot.download_threads;
+    let target_dir = resolve_library_dir_for(&state.vanilla_dir, &state.run_dir, kind, loader, &mc_version);
+    let temp_dir = state.vanilla_dir.join("cache").join("tmp");
+
+    let outcome = tauri::async_runtime::spawn_blocking(move || {
+        install_modrinth_project(
+            &project_id,
+            kind,
+            loader,
+            &mc_version,
+            &target_dir,
+            &temp_dir,
+            dl_threads,
+        )
+    })
+    .await
+    .map_err(|e| format!("Modrinth install task failed: {e}"))??;
+
+    let (loader_status, library_counts) = compute_loader_status_and_counts(
+        &state.vanilla_dir,
+        &state.run_dir,
+        &config_snapshot.mc_version,
+        config_snapshot.mod_loader,
+    );
+    Ok(InstallActionDto {
+        config: config_snapshot,
+        outcome,
+        loader_status,
+        library_counts,
+    })
+}
+
+#[tauri::command]
+async fn install_shader_bundle(
+    state: tauri::State<'_, AppState>,
+    preset_id: String,
+) -> Result<InstallActionDto, String> {
+    let target_loader = match preset_id.as_str() {
+        "fabric_shaders" => LoaderKind::Fabric,
+        "forge_shaders" => LoaderKind::Forge,
+        _ => return Err(format!("Unsupported shader bundle '{preset_id}'")),
+    };
+
+    let config_snapshot = {
+        let mut config = state
+            .config
+            .lock()
+            .map_err(|_| "Failed to unlock configuration".to_string())?;
+        config.mod_loader = target_loader;
+        config.save(&state.paths.config_file)?;
+        config.clone()
+    };
+
+    let mc_version = config_snapshot.mc_version.clone();
+    let dl_threads = config_snapshot.download_threads;
+    let mods_dir = loader_mods_dir(&state.vanilla_dir, &state.run_dir, target_loader, &mc_version);
+    let shaderpacks_dir = shared_shaderpacks_dir(&state.run_dir);
+    let temp_dir = state.vanilla_dir.join("cache").join("tmp");
+
+    let outcome = tauri::async_runtime::spawn_blocking(move || {
+        install_shader_preset_bundle(
+            &preset_id,
+            &mc_version,
+            &mods_dir,
+            &shaderpacks_dir,
+            &temp_dir,
+            dl_threads,
+        )
+    })
+    .await
+    .map_err(|e| format!("Shader bundle installation failed: {e}"))??;
+
+    let (loader_status, library_counts) = compute_loader_status_and_counts(
+        &state.vanilla_dir,
+        &state.run_dir,
+        &config_snapshot.mc_version,
+        config_snapshot.mod_loader,
+    );
+    Ok(InstallActionDto {
+        config: config_snapshot,
+        outcome,
+        loader_status,
+        library_counts,
+    })
+}
+
+#[tauri::command]
+fn list_library_items_cmd(
+    state: tauri::State<AppState>,
+    kind: LibraryKind,
+    loader: LoaderKind,
+) -> Result<Vec<InstalledLibraryItem>, String> {
+    let mc_version = state
+        .config
+        .lock()
+        .map(|c| c.mc_version.clone())
+        .unwrap_or_else(|_| "1.21.4".to_string());
+    let dir = resolve_library_dir_for(&state.vanilla_dir, &state.run_dir, kind, loader, &mc_version);
+    let _ = fs::create_dir_all(&dir);
+    Ok(list_library_items(&dir, kind))
+}
+
+#[tauri::command]
+fn toggle_library_item_cmd(
+    state: tauri::State<AppState>,
+    kind: LibraryKind,
+    loader: LoaderKind,
+    file_name: String,
+) -> Result<LibraryCounts, String> {
+    let config = state
+        .config
+        .lock()
+        .map_err(|_| "Failed to unlock configuration".to_string())?
+        .clone();
+    let dir = resolve_library_dir_for(
+        &state.vanilla_dir,
+        &state.run_dir,
+        kind,
+        loader,
+        &config.mc_version,
+    );
+    toggle_library_item(&dir, &file_name)?;
+    let (_, counts) = compute_loader_status_and_counts(
+        &state.vanilla_dir,
+        &state.run_dir,
+        &config.mc_version,
+        config.mod_loader,
+    );
+    Ok(counts)
+}
+
+#[tauri::command]
+fn delete_library_item_cmd(
+    state: tauri::State<AppState>,
+    kind: LibraryKind,
+    loader: LoaderKind,
+    file_name: String,
+) -> Result<LibraryCounts, String> {
+    let config = state
+        .config
+        .lock()
+        .map_err(|_| "Failed to unlock configuration".to_string())?
+        .clone();
+    let dir = resolve_library_dir_for(
+        &state.vanilla_dir,
+        &state.run_dir,
+        kind,
+        loader,
+        &config.mc_version,
+    );
+    delete_library_item(&dir, &file_name)?;
+    let (_, counts) = compute_loader_status_and_counts(
+        &state.vanilla_dir,
+        &state.run_dir,
+        &config.mc_version,
+        config.mod_loader,
+    );
+    Ok(counts)
+}
+
+#[tauri::command]
+async fn pick_and_import_library_file(
+    state: tauri::State<'_, AppState>,
+    kind: LibraryKind,
+    loader: LoaderKind,
+) -> Result<Option<ImportLibraryDto>, String> {
+    let (title, filter_label, exts): (&str, &str, Vec<&str>) = match kind {
+        LibraryKind::Mod => ("Select Mod or OptiFine JAR", "Minecraft Mod / OptiFine", vec!["jar"]),
+        LibraryKind::Shader => ("Select Shader Pack ZIP", "Shader Pack ZIP", vec!["zip"]),
+        LibraryKind::ResourcePack => ("Select Resource Pack ZIP", "Resource Pack ZIP", vec!["zip"]),
+    };
+    let title_owned = title.to_string();
+    let filter_owned = filter_label.to_string();
+    let exts_owned: Vec<String> = exts.into_iter().map(ToString::to_string).collect();
+
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        let refs: Vec<&str> = exts_owned.iter().map(String::as_str).collect();
+        rfd::FileDialog::new()
+            .set_title(&title_owned)
+            .add_filter(&filter_owned, &refs)
+            .pick_file()
+    })
+    .await
+    .map_err(|e| format!("File dialog failed: {e}"))?;
+
+    let Some(src_path) = picked else {
+        return Ok(None);
+    };
+
+    let config = state
+        .config
+        .lock()
+        .map_err(|_| "Failed to unlock configuration".to_string())?
+        .clone();
+    let target_dir = resolve_library_dir_for(
+        &state.vanilla_dir,
+        &state.run_dir,
+        kind,
+        loader,
+        &config.mc_version,
+    );
+    let file_name = tauri::async_runtime::spawn_blocking(move || {
+        import_library_file(&src_path, &target_dir, kind)
+    })
+    .await
+    .map_err(|e| format!("Import task failed: {e}"))??;
+
+    let (_, library_counts) = compute_loader_status_and_counts(
+        &state.vanilla_dir,
+        &state.run_dir,
+        &config.mc_version,
+        config.mod_loader,
+    );
+    Ok(Some(ImportLibraryDto {
+        file_name,
+        library_counts,
+    }))
+}
+
+#[tauri::command]
+fn open_library_folder(
+    state: tauri::State<AppState>,
+    kind: LibraryKind,
+    loader: LoaderKind,
+) -> Result<(), String> {
+    let mc_version = state
+        .config
+        .lock()
+        .map(|c| c.mc_version.clone())
+        .unwrap_or_else(|_| "1.21.4".to_string());
+    let dir = resolve_library_dir_for(&state.vanilla_dir, &state.run_dir, kind, loader, &mc_version);
+    let _ = fs::create_dir_all(&dir);
+    #[cfg(windows)]
+    {
+        Command::new("explorer.exe")
+            .arg(&dir)
+            .spawn()
+            .map_err(|e| format!("Failed to open library folder: {e}"))?;
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        Err(format!("Library directory: {}", dir.display()))
+    }
 }
 
 #[tauri::command]
@@ -1342,11 +1748,11 @@ fn install_java_21(
         let run_dir = state.run_dir.clone();
         let saves_dir = state.saves_dir();
         let runtime_dir = state.paths.runtime_dir.clone();
-        let active_ver = state
+        let (active_ver, active_loader) = state
             .config
             .lock()
-            .map(|c| c.mc_version.clone())
-            .unwrap_or_else(|_| "1.21.4".to_string());
+            .map(|c| (c.mc_version.clone(), c.mod_loader))
+            .unwrap_or_else(|_| ("1.21.4".to_string(), LoaderKind::Vanilla));
 
         thread::spawn(move || {
             let result = install_java21_blocking(&app, &runtime_dir);
@@ -1366,6 +1772,7 @@ fn install_java_21(
                     saves: &saves_dir,
                     runtime: &runtime_dir,
                     version: &active_ver,
+                    loader: active_loader,
                 },
             );
         });
@@ -1379,17 +1786,45 @@ fn prepare_vanilla_client(
     app: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<RunningSessionDto, String> {
+    let active_loader = state
+        .config
+        .lock()
+        .map(|c| c.mod_loader)
+        .unwrap_or(LoaderKind::Vanilla);
+    prepare_loader_environment(app, state, active_loader)
+}
+
+#[tauri::command]
+fn prepare_loader_environment(
+    app: tauri::AppHandle,
+    state: tauri::State<AppState>,
+    loader: LoaderKind,
+) -> Result<RunningSessionDto, String> {
     let (active_ver, dl_threads) = state
         .config
         .lock()
         .map(|c| (c.mc_version.clone(), c.download_threads))
         .unwrap_or_else(|_| ("1.21.4".to_string(), 24));
+    let loader_name = loader_display_name(loader);
     let session = RunningSessionDto {
         pid: std::process::id(),
         kind: "prepare".to_string(),
-        label: format!("Vanilla {active_ver} Verification & Assets"),
+        label: format!("{loader_name} {active_ver} Verification & Assets"),
     };
     begin_running_session(&state.running, session.clone())?;
+
+    let java_home_opt = if loader == LoaderKind::Forge {
+        Some(
+            discover_java21_home_with_runtime(&state.paths.runtime_dir)
+                .map(|(h, _)| h)
+                .ok_or_else(|| {
+                    finish_running_session(&state.running);
+                    "Java 21 runtime is required to set up Forge.".to_string()
+                })?,
+        )
+    } else {
+        None
+    };
 
     let running_arc = Arc::clone(&state.running);
     let vanilla_dir = state.vanilla_dir.clone();
@@ -1398,23 +1833,42 @@ fn prepare_vanilla_client(
     let runtime_dir = state.paths.runtime_dir.clone();
 
     thread::spawn(move || {
-        let res = ensure_vanilla_version_ready_with_threads(
-            &vanilla_dir,
-            &active_ver,
-            dl_threads,
-            |line, is_err| {
-                let _ = app.emit(
-                    "basalt://launch-log",
-                    LaunchLogPayload {
-                        line: line.to_string(),
-                        is_err,
-                    },
-                );
-            },
-        );
+        let log_emit = |line: &str, is_err: bool| {
+            let _ = app.emit(
+                "basalt://launch-log",
+                LaunchLogPayload {
+                    line: line.to_string(),
+                    is_err,
+                },
+            );
+        };
+        let res = match loader {
+            LoaderKind::Vanilla => ensure_vanilla_version_ready_with_threads(
+                &vanilla_dir,
+                &active_ver,
+                dl_threads,
+                log_emit,
+            )
+            .map(|_| ()),
+            LoaderKind::Fabric => {
+                ensure_fabric_version_ready(&vanilla_dir, &active_ver, dl_threads, log_emit)
+                    .map(|_| ())
+            }
+            LoaderKind::Forge => {
+                let java_home = java_home_opt.expect("checked above for Forge");
+                ensure_forge_version_ready(
+                    &vanilla_dir,
+                    &java_home,
+                    &active_ver,
+                    dl_threads,
+                    log_emit,
+                )
+                .map(|_| ())
+            }
+        };
         finish_running_session(&running_arc);
         let (exit_code, error) = match res {
-            Ok(_) => (Some(0), None),
+            Ok(()) => (Some(0), None),
             Err(msg) => (Some(1), Some(msg)),
         };
         emit_session_ended(
@@ -1428,6 +1882,7 @@ fn prepare_vanilla_client(
                 saves: &saves_dir,
                 runtime: &runtime_dir,
                 version: &active_ver,
+                loader,
             },
         );
     });
@@ -1547,6 +2002,8 @@ fn launch_client(
     reservation.running = None;
 
     let active_ver = config_snapshot.mc_version.clone();
+    let active_loader = config_snapshot.mod_loader;
+    let loader_name = loader_display_name(active_loader);
     let dl_threads = config_snapshot.download_threads;
     let discord_enabled = config_snapshot.discord_rpc;
     let username_for_discord = config_snapshot.username.clone();
@@ -1563,7 +2020,7 @@ fn launch_client(
         Arc::clone(&discord_arc),
         discord_enabled,
         active_ver.clone(),
-        format!("Playing Minecraft {active_ver}"),
+        format!("Playing Minecraft {active_ver} ({loader_name})"),
         active_state_label,
         started_epoch_secs,
     );
@@ -1597,15 +2054,15 @@ fn launch_client(
             );
         };
 
-        let (exit_code, error) = match ensure_vanilla_version_ready_with_threads(
-            &vanilla_dir,
-            &active_ver,
-            dl_threads,
-            log_emit,
-        ) {
-            Err(err) => (Some(1), Some(err)),
-            Ok(manifest) => {
-                match spawn_vanilla_client(&vanilla_dir, &run_dir, &manifest, &launch_cfg) {
+        let (exit_code, error) = match active_loader {
+            LoaderKind::Vanilla => match ensure_vanilla_version_ready_with_threads(
+                &vanilla_dir,
+                &active_ver,
+                dl_threads,
+                log_emit,
+            ) {
+                Err(err) => (Some(1), Some(err)),
+                Ok(manifest) => match spawn_vanilla_client(&vanilla_dir, &run_dir, &manifest, &launch_cfg) {
                     Err(err) => (Some(1), Some(err)),
                     Ok(child) => {
                         if let Ok(mut guard) = running_arc.lock()
@@ -1615,8 +2072,60 @@ fn launch_client(
                         }
                         monitor_vanilla_child_blocking(&app, child, &log_file)
                     }
+                },
+            },
+            LoaderKind::Fabric => {
+                match ensure_fabric_version_ready(&vanilla_dir, &active_ver, dl_threads, log_emit) {
+                    Err(err) => (Some(1), Some(err)),
+                    Ok((vanilla_manifest, overlay)) => match spawn_modded_client(
+                        &vanilla_dir,
+                        &run_dir,
+                        LoaderKind::Fabric,
+                        &vanilla_manifest,
+                        &overlay,
+                        &launch_cfg,
+                    ) {
+                        Err(err) => (Some(1), Some(err)),
+                        Ok((child, _)) => {
+                            if let Ok(mut guard) = running_arc.lock()
+                                && let Some(ref mut active) = *guard
+                            {
+                                active.pid = child.id();
+                            }
+                            monitor_vanilla_child_blocking(&app, child, &log_file)
+                        }
+                    },
                 }
             }
+            LoaderKind::Forge => match ensure_forge_version_ready(
+                &vanilla_dir,
+                &launch_cfg.java_home,
+                &active_ver,
+                dl_threads,
+                log_emit,
+            ) {
+                Err(err) => (Some(1), Some(err)),
+                Ok((vanilla_manifest, overlay)) => match spawn_modded_client(
+                    &vanilla_dir,
+                    &run_dir,
+                    LoaderKind::Forge,
+                    &vanilla_manifest,
+                    &overlay,
+                    &launch_cfg,
+                ) {
+                    Err(err) => (Some(1), Some(err)),
+                    Ok((child, effective_game_dir)) => {
+                        if let Ok(mut guard) = running_arc.lock()
+                            && let Some(ref mut active) = *guard
+                        {
+                            active.pid = child.id();
+                        }
+                        let res = monitor_vanilla_child_blocking(&app, child, &log_file);
+                        sync_profile_shared_files(&effective_game_dir, &run_dir);
+                        res
+                    }
+                },
+            },
         };
 
         finish_running_session(&running_arc);
@@ -1624,7 +2133,7 @@ fn launch_client(
             discord_arc,
             discord_enabled,
             active_ver.clone(),
-            format!("Minecraft {active_ver} (Vanilla)"),
+            format!("Minecraft {active_ver} ({loader_name})"),
             format!("Basalt Launcher · {username_for_discord}"),
             started_epoch_secs,
         );
@@ -1639,6 +2148,7 @@ fn launch_client(
                 saves: &saves_dir,
                 runtime: &runtime_dir,
                 version: &active_ver,
+                loader: active_loader,
             },
         );
     });
@@ -1718,6 +2228,15 @@ fn main() {
             delete_save,
             save_profile_settings,
             set_mc_version,
+            set_mod_loader,
+            search_modrinth_catalog,
+            install_modrinth_item,
+            install_shader_bundle,
+            list_library_items_cmd,
+            toggle_library_item_cmd,
+            delete_library_item_cmd,
+            pick_and_import_library_file,
+            open_library_folder,
             save_turbo_settings,
             optimize_client_now,
             open_github_page,
@@ -1739,6 +2258,7 @@ fn main() {
             ping_server_cmd,
             probe_local_server_cmd,
             prepare_vanilla_client,
+            prepare_loader_environment,
             launch_client,
             install_java_21,
             recheck_java_21,

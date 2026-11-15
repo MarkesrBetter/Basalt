@@ -4,16 +4,24 @@ import type {
   AccentTone,
   AppConfig,
   BootstrapDto,
+  ClientOptimizationReport,
   CornerStyle,
   GraphicsSettings,
+  ImportLibraryDto,
+  InstallActionDto,
+  InstalledLibraryItem,
   LaunchLogPayload,
   LaunchMode,
+  LayoutMode,
+  LibraryCounts,
+  LibraryKind,
+  LoaderKind,
   LocalHandshakeResult,
   MinecraftSaveSummary,
   MinecraftSoundsDto,
+  ModrinthSearchHit,
+  ModrinthSearchResponse,
   OptimizeResultDto,
-  VanillaEnvStatus,
-  LayoutMode,
   RunningSessionDto,
   SavedServer,
   ServerPingInfo,
@@ -24,8 +32,8 @@ import type {
   ThemeMode,
   TurboSettingsDto,
   UiLanguage,
+  VanillaEnvStatus,
   VersionChangeDto,
-  ClientOptimizationReport,
 } from "./types";
 
 export function isTauriRuntime(): boolean {
@@ -90,6 +98,7 @@ const previewState: BootstrapDto = {
     download_threads: 24,
     network_boost: true,
     process_boost: true,
+    mod_loader: "Fabric",
     last_save_id: "Survival (Sample)",
     saved_servers: [
       {
@@ -142,6 +151,25 @@ const previewState: BootstrapDto = {
     java_home: "C:\\Program Files\\Eclipse Adoptium\\jdk-21",
     java_version_label: "Java 21.0.11",
     java_hint: "Compatible system Java 21+ runtime detected.",
+  },
+  loader_status: {
+    mcVersion: "1.21.4",
+    activeLoader: "Fabric",
+    fabricReady: true,
+    forgeReady: false,
+    fabricLoaderVersion: "0.16.10",
+    forgeVersion: null,
+    activeModsDir: "C:\\basalt\\vanilla\\loader_mods\\fabric\\1.21.4",
+    shaderpacksDir: "C:\\basalt\\run\\shaderpacks",
+    resourcepacksDir: "C:\\basalt\\run\\resourcepacks",
+  },
+  library_counts: {
+    modsEnabled: 3,
+    modsTotal: 3,
+    shadersEnabled: 1,
+    shadersTotal: 1,
+    resourcepacksEnabled: 1,
+    resourcepacksTotal: 1,
   },
   discord_rpc_status: {
     enabled: true,
@@ -266,6 +294,227 @@ export async function saveProfileSettings(input: {
   return structuredClone(previewState.config);
 }
 
+const previewLibraryStore: Record<string, InstalledLibraryItem[]> = {
+  "mod:Fabric": [
+    {
+      fileName: "fabric-api-0.115.0+1.21.4.jar",
+      displayName: "fabric-api-0.115.0+1.21.4",
+      kind: "mod",
+      enabled: true,
+      sizeBytes: 2_310_400,
+      path: "C:\\basalt\\vanilla\\loader_mods\\fabric\\1.21.4\\fabric-api-0.115.0+1.21.4.jar",
+      projectId: "P7dR8mSH",
+    },
+    {
+      fileName: "sodium-fabric-0.6.5+mc1.21.4.jar",
+      displayName: "sodium-fabric-0.6.5+mc1.21.4",
+      kind: "mod",
+      enabled: true,
+      sizeBytes: 1_180_920,
+      path: "C:\\basalt\\vanilla\\loader_mods\\fabric\\1.21.4\\sodium-fabric-0.6.5+mc1.21.4.jar",
+      projectId: "AANobbMI",
+    },
+    {
+      fileName: "iris-fabric-1.8.8+mc1.21.4.jar",
+      displayName: "iris-fabric-1.8.8+mc1.21.4",
+      kind: "mod",
+      enabled: true,
+      sizeBytes: 2_695_100,
+      path: "C:\\basalt\\vanilla\\loader_mods\\fabric\\1.21.4\\iris-fabric-1.8.8+mc1.21.4.jar",
+      projectId: "YL57xq9U",
+    },
+  ],
+  "mod:Forge": [],
+  "mod:Vanilla": [],
+  shader: [
+    {
+      fileName: "ComplementaryUnbound_r5.4.zip",
+      displayName: "ComplementaryUnbound_r5.4",
+      kind: "shader",
+      enabled: true,
+      sizeBytes: 518_400,
+      path: "C:\\basalt\\run\\shaderpacks\\ComplementaryUnbound_r5.4.zip",
+      projectId: "R6NEzAwj",
+    },
+  ],
+  resourcePack: [
+    {
+      fileName: "FreshAnimations_v1.9.2.zip",
+      displayName: "FreshAnimations_v1.9.2",
+      kind: "resourcePack",
+      enabled: true,
+      sizeBytes: 1_940_220,
+      path: "C:\\basalt\\run\\resourcepacks\\FreshAnimations_v1.9.2.zip",
+      projectId: "50dA9Sha",
+    },
+  ],
+};
+
+const PREVIEW_CATALOG: ModrinthSearchHit[] = [
+  {
+    projectId: "AANobbMI",
+    slug: "sodium",
+    title: "Sodium",
+    description: "Modern rendering engine and client-side optimization mod for Minecraft.",
+    author: "jellysquid3",
+    iconUrl: "https://cdn.modrinth.com/data/AANobbMI/295862f4724dc3f78df3447ad6072b2dcd3ef0c9_96.webp",
+    downloads: 112_400_000,
+    follows: 94_200,
+    categories: ["optimization", "fabric"],
+    projectType: "mod",
+    installed: false,
+  },
+  {
+    projectId: "YL57xq9U",
+    slug: "iris",
+    title: "Iris Shaders",
+    description: "A modern shaderpack mod for Minecraft compatible with existing OptiFine shader packs.",
+    author: "coderbot",
+    iconUrl: "https://cdn.modrinth.com/data/YL57xq9U/18d0e7f076d3d6ed5bedd472b853909aac5da202_96.webp",
+    downloads: 68_300_000,
+    follows: 52_100,
+    categories: ["optimization", "fabric"],
+    projectType: "mod",
+    installed: false,
+  },
+  {
+    projectId: "gvQqBUqZ",
+    slug: "lithium",
+    title: "Lithium",
+    description: "No-compromises game logic optimization mod for tick rate and memory usage.",
+    author: "jellysquid3",
+    iconUrl: "https://cdn.modrinth.com/data/gvQqBUqZ/bcc8686c13af0143adf4285d741256af824f70b7_96.webp",
+    downloads: 74_500_000,
+    follows: 49_800,
+    categories: ["optimization", "fabric"],
+    projectType: "mod",
+    installed: false,
+  },
+  {
+    projectId: "P7dR8mSH",
+    slug: "fabric-api",
+    title: "Fabric API",
+    description: "Essential hooks and shared APIs required by most Fabric mods.",
+    author: "modmuss50",
+    iconUrl: "https://cdn.modrinth.com/data/P7dR8mSH/icon.png",
+    downloads: 190_000_000,
+    follows: 82_000,
+    categories: ["library", "fabric"],
+    projectType: "mod",
+    installed: false,
+  },
+  {
+    projectId: "sk9rgfiA",
+    slug: "embeddium",
+    title: "Embeddium",
+    description: "High-performance rendering engine fork bringing Sodium speed cleanly to Forge.",
+    author: "embeddedt",
+    iconUrl: "https://cdn.modrinth.com/data/sk9rgfiA/55f9c50284f8abbbe2a485abfd6a16209201e451_96.webp",
+    downloads: 34_200_000,
+    follows: 21_400,
+    categories: ["optimization", "forge"],
+    projectType: "mod",
+    installed: false,
+  },
+  {
+    projectId: "GchcoXML",
+    slug: "oculus",
+    title: "Oculus",
+    description: "Unofficial Iris Shaders port for Forge, enabling full shader packs with Embeddium.",
+    author: "NanoLive",
+    iconUrl: "https://cdn.modrinth.com/data/GchcoXML/09ef853cdfd3d67dead4faef37102535a2185d5_96.webp",
+    downloads: 29_100_000,
+    follows: 17_800,
+    categories: ["optimization", "forge"],
+    projectType: "mod",
+    installed: false,
+  },
+  {
+    projectId: "Q1vvjJYV",
+    slug: "bsl-shaders",
+    title: "BSL Shaders",
+    description: "Vibrant lighting, volumetric clouds, customizable water and soft shadows.",
+    author: "CaptTatsu",
+    iconUrl: "https://cdn.modrinth.com/data/Q1vvjJYV/2a611a3cb434fb52fb81fa5dace13c5d8b67e55d_96.webp",
+    downloads: 22_800_000,
+    follows: 46_200,
+    categories: ["iris", "optifine", "atmosphere"],
+    projectType: "shader",
+    installed: false,
+  },
+  {
+    projectId: "R6NEzAwj",
+    slug: "complementary-unbound",
+    title: "Complementary Shaders - Unbound",
+    description: "High-detail lighting and water reflections built to preserve Minecraft's identity.",
+    author: "EminGT",
+    iconUrl: "https://cdn.modrinth.com/data/R6NEzAwj/c85ce4049aac76360d2cd24fd9a7003de01ef312_96.webp",
+    downloads: 44_900_000,
+    follows: 71_000,
+    categories: ["iris", "optifine", "pbr"],
+    projectType: "shader",
+    installed: false,
+  },
+  {
+    projectId: "izsIPI7a",
+    slug: "makeup-ultra-fast-shaders",
+    title: "MakeUp - Ultra Fast",
+    description: "Lightweight shaderpack delivering crisp shadows and glow on integrated GPUs.",
+    author: "XavierFST",
+    iconUrl: "https://cdn.modrinth.com/data/izsIPI7a/a08432baa86b8ffd58c08f4b3a001ef976ff764d_96.webp",
+    downloads: 16_400_000,
+    follows: 28_600,
+    categories: ["iris", "optifine", "potato"],
+    projectType: "shader",
+    installed: false,
+  },
+  {
+    projectId: "50dA9Sha",
+    slug: "fresh-animations",
+    title: "Fresh Animations",
+    description: "Smooth overhaul of vanilla mob animations for Java Edition.",
+    author: "FreshLX",
+    iconUrl: "https://cdn.modrinth.com/data/50dA9Sha/3132c10e9e3c73fde9799720fd3da5561071708c_96.webp",
+    downloads: 29_700_000,
+    follows: 59_100,
+    categories: ["mobs", "curated"],
+    projectType: "resourcepack",
+    installed: false,
+  },
+  {
+    projectId: "yBW8D80W",
+    slug: "stay-true",
+    title: "Stay True",
+    description: "Refined foliage, bricks and connected textures faithful to default Minecraft.",
+    author: "Haite",
+    iconUrl: null,
+    downloads: 14_200_000,
+    follows: 32_400,
+    categories: ["16x", "Curated"],
+    projectType: "resourcepack",
+    installed: false,
+  },
+];
+
+function computePreviewCounts(): LibraryCounts {
+  const modsKey = `mod:${previewState.config.mod_loader}`;
+  const mods = previewLibraryStore[modsKey] ?? [];
+  const shaders = previewLibraryStore.shader ?? [];
+  const packs = previewLibraryStore.resourcePack ?? [];
+  return {
+    modsEnabled: mods.filter((m) => m.enabled).length,
+    modsTotal: mods.length,
+    shadersEnabled: shaders.filter((s) => s.enabled).length,
+    shadersTotal: shaders.length,
+    resourcepacksEnabled: packs.filter((p) => p.enabled).length,
+    resourcepacksTotal: packs.length,
+  };
+}
+
+function getPreviewStoreKey(kind: LibraryKind, loader: LoaderKind): string {
+  return kind === "mod" ? `mod:${loader}` : kind;
+}
+
 export async function setMcVersion(version: string): Promise<VersionChangeDto> {
   if (isTauriRuntime()) {
     return invoke<VersionChangeDto>("set_mc_version", { version });
@@ -274,12 +523,220 @@ export async function setMcVersion(version: string): Promise<VersionChangeDto> {
   previewState.vanilla.active_version = version;
   previewState.vanilla.client_ready =
     previewState.vanilla.installed_versions.includes(version);
-  previewState.discord_rpc_status.details = `Minecraft ${version} (Vanilla)`;
+  previewState.loader_status.mcVersion = version;
+  previewState.discord_rpc_status.details = `Minecraft ${version} (${previewState.config.mod_loader})`;
   return {
     config: structuredClone(previewState.config),
     vanilla: structuredClone(previewState.vanilla),
+    loader_status: structuredClone(previewState.loader_status),
+    library_counts: computePreviewCounts(),
     discord_rpc_status: structuredClone(previewState.discord_rpc_status),
   };
+}
+
+export async function setModLoader(loader: LoaderKind): Promise<VersionChangeDto> {
+  if (isTauriRuntime()) {
+    return invoke<VersionChangeDto>("set_mod_loader", { loader });
+  }
+  previewState.config.mod_loader = loader;
+  previewState.loader_status.activeLoader = loader;
+  previewState.discord_rpc_status.details = `Minecraft ${previewState.config.mc_version} (${loader})`;
+  previewState.library_counts = computePreviewCounts();
+  return {
+    config: structuredClone(previewState.config),
+    vanilla: structuredClone(previewState.vanilla),
+    loader_status: structuredClone(previewState.loader_status),
+    library_counts: structuredClone(previewState.library_counts),
+    discord_rpc_status: structuredClone(previewState.discord_rpc_status),
+  };
+}
+
+export async function prepareLoaderEnvironment(loader: LoaderKind): Promise<RunningSessionDto> {
+  if (isTauriRuntime()) {
+    return invoke<RunningSessionDto>("prepare_loader_environment", { loader });
+  }
+  if (loader === "Fabric") {
+    previewState.loader_status.fabricReady = true;
+    previewState.loader_status.fabricLoaderVersion = "0.16.10";
+  } else if (loader === "Forge") {
+    previewState.loader_status.forgeReady = true;
+    previewState.loader_status.forgeVersion = "54.1.22";
+  }
+  return {
+    pid: 0,
+    kind: "prepare",
+    label: `${loader} ${previewState.config.mc_version} Ready`,
+  };
+}
+
+export async function searchModrinthCatalog(params: {
+  query: string;
+  kind: LibraryKind;
+  loader: LoaderKind;
+  sort: string;
+  limit: number;
+  category?: string | null;
+}): Promise<ModrinthSearchResponse> {
+  if (isTauriRuntime()) {
+    return invoke<ModrinthSearchResponse>("search_modrinth_catalog", {
+      query: params.query,
+      kind: params.kind,
+      loader: params.loader,
+      sort: params.sort,
+      limit: params.limit,
+      category: params.category ?? null,
+    });
+  }
+  const typeTarget =
+    params.kind === "mod" ? "mod" : params.kind === "shader" ? "shader" : "resourcepack";
+  const q = params.query.trim().toLowerCase();
+  const listKey = getPreviewStoreKey(params.kind, params.loader);
+  const installedIds = new Set(
+    (previewLibraryStore[listKey] ?? []).map((item) => item.projectId).filter(Boolean)
+  );
+  const hits = PREVIEW_CATALOG.filter((item) => {
+    if (item.projectType !== typeTarget) return false;
+    if (params.kind === "mod" && params.loader !== "Vanilla") {
+      if (!item.categories.includes(params.loader.toLowerCase())) return false;
+    }
+    if (q && !item.title.toLowerCase().includes(q) && !item.description.toLowerCase().includes(q)) {
+      return false;
+    }
+    return true;
+  })
+    .slice(0, params.limit)
+    .map((item) => ({ ...item, installed: installedIds.has(item.projectId) }));
+  return { hits, totalHits: hits.length };
+}
+
+export async function installModrinthItem(params: {
+  projectId: string;
+  kind: LibraryKind;
+  loader: LoaderKind;
+}): Promise<InstallActionDto> {
+  if (isTauriRuntime()) {
+    return invoke<InstallActionDto>("install_modrinth_item", {
+      projectId: params.projectId,
+      kind: params.kind,
+      loader: params.loader,
+    });
+  }
+  const key = getPreviewStoreKey(params.kind, params.loader);
+  const list = (previewLibraryStore[key] ??= []);
+  const hit = PREVIEW_CATALOG.find((c) => c.projectId === params.projectId || c.slug === params.projectId);
+  const ext = params.kind === "mod" ? ".jar" : ".zip";
+  const fileName = `${hit?.slug ?? params.projectId}-1.21.4${ext}`;
+  if (!list.some((item) => item.projectId === params.projectId || item.fileName === fileName)) {
+    list.push({
+      fileName,
+      displayName: fileName.replace(/\.(jar|zip)$/, ""),
+      kind: params.kind,
+      enabled: true,
+      sizeBytes: 1_048_576,
+      path: fileName,
+      projectId: hit?.projectId ?? params.projectId,
+    });
+  }
+  previewState.library_counts = computePreviewCounts();
+  return {
+    config: structuredClone(previewState.config),
+    outcome: { installedFiles: [fileName], skippedCount: 0, warnings: [] },
+    loaderStatus: structuredClone(previewState.loader_status),
+    libraryCounts: structuredClone(previewState.library_counts),
+  };
+}
+
+export async function installShaderBundle(presetId: "fabric_shaders" | "forge_shaders"): Promise<InstallActionDto> {
+  if (isTauriRuntime()) {
+    return invoke<InstallActionDto>("install_shader_bundle", { presetId });
+  }
+  const targetLoader: LoaderKind = presetId === "fabric_shaders" ? "Fabric" : "Forge";
+  previewState.config.mod_loader = targetLoader;
+  previewState.loader_status.activeLoader = targetLoader;
+  const modSlugs =
+    presetId === "fabric_shaders"
+      ? ["fabric-api", "sodium", "iris", "lithium"]
+      : ["embeddium", "oculus"];
+  const installedFiles: string[] = [];
+  for (const slug of modSlugs) {
+    const res = await installModrinthItem({ projectId: slug, kind: "mod", loader: targetLoader });
+    installedFiles.push(...res.outcome.installedFiles);
+  }
+  const shaderRes = await installModrinthItem({
+    projectId: "complementary-unbound",
+    kind: "shader",
+    loader: targetLoader,
+  });
+  installedFiles.push(...shaderRes.outcome.installedFiles);
+  previewState.library_counts = computePreviewCounts();
+  return {
+    config: structuredClone(previewState.config),
+    outcome: { installedFiles, skippedCount: 0, warnings: [] },
+    loaderStatus: structuredClone(previewState.loader_status),
+    libraryCounts: structuredClone(previewState.library_counts),
+  };
+}
+
+export async function listLibraryItems(
+  kind: LibraryKind,
+  loader: LoaderKind
+): Promise<InstalledLibraryItem[]> {
+  if (isTauriRuntime()) {
+    return invoke<InstalledLibraryItem[]>("list_library_items_cmd", { kind, loader });
+  }
+  return structuredClone(previewLibraryStore[getPreviewStoreKey(kind, loader)] ?? []);
+}
+
+export async function toggleLibraryItem(
+  kind: LibraryKind,
+  loader: LoaderKind,
+  fileName: string
+): Promise<LibraryCounts> {
+  if (isTauriRuntime()) {
+    return invoke<LibraryCounts>("toggle_library_item_cmd", { kind, loader, fileName });
+  }
+  const list = previewLibraryStore[getPreviewStoreKey(kind, loader)] ?? [];
+  const item = list.find((it) => it.fileName === fileName);
+  if (item) {
+    item.enabled = !item.enabled;
+    item.fileName = item.enabled
+      ? item.fileName.replace(/\.disabled$/, "")
+      : `${item.fileName}.disabled`;
+  }
+  previewState.library_counts = computePreviewCounts();
+  return structuredClone(previewState.library_counts);
+}
+
+export async function deleteLibraryItem(
+  kind: LibraryKind,
+  loader: LoaderKind,
+  fileName: string
+): Promise<LibraryCounts> {
+  if (isTauriRuntime()) {
+    return invoke<LibraryCounts>("delete_library_item_cmd", { kind, loader, fileName });
+  }
+  const key = getPreviewStoreKey(kind, loader);
+  previewLibraryStore[key] = (previewLibraryStore[key] ?? []).filter(
+    (it) => it.fileName !== fileName
+  );
+  previewState.library_counts = computePreviewCounts();
+  return structuredClone(previewState.library_counts);
+}
+
+export async function pickAndImportLibraryFile(
+  kind: LibraryKind,
+  loader: LoaderKind
+): Promise<ImportLibraryDto | null> {
+  if (isTauriRuntime()) {
+    return invoke<ImportLibraryDto | null>("pick_and_import_library_file", { kind, loader });
+  }
+  throw new Error("Local file import picker is available in the desktop app (basalt.exe).");
+}
+
+export async function openLibraryFolder(kind: LibraryKind, loader: LoaderKind): Promise<void> {
+  if (isTauriRuntime()) {
+    await invoke<void>("open_library_folder", { kind, loader });
+  }
 }
 
 export async function saveTurboSettings(input: {
