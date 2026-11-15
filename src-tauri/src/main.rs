@@ -19,6 +19,7 @@ use basalt::config::{
     AccentTone, AppConfig, AppPaths, CornerStyle, GraphicsSettings, LayoutMode, SavedServer,
     SkinModel, ThemeMode, UiLanguage, normalize_hex_color, normalize_mc_version,
 };
+use basalt::discord_rpc::{BASALT_GITHUB_URL, DiscordRpcStatus, publish_discord_activity};
 use basalt::hardware::HardwareProfile;
 use basalt::options_txt::{sync_minecraft_options, sync_minecraft_options_with_pack};
 use basalt::protocol::{
@@ -30,11 +31,11 @@ use basalt::sounds::{
     load_local_minecraft_sounds,
 };
 use basalt::vanilla::{
-    BASALT_SKIN_PACK_NAME, VanillaEnvStatus, VanillaLaunchConfig, compute_file_sha256_hex,
-    discover_java21_home_with_runtime, ensure_vanilla_version_ready,
-    inspect_vanilla_environment_for_version, migrate_legacy_client_gradle_saves,
-    resolve_vanilla_dir, spawn_vanilla_client, summarize_process_failure,
-    write_basalt_skin_resource_pack,
+    BASALT_SKIN_PACK_NAME, ClientOptimizationReport, VanillaEnvStatus, VanillaLaunchConfig,
+    compute_file_sha256_hex, discover_java21_home_with_runtime,
+    ensure_vanilla_version_ready_with_threads, inspect_vanilla_environment_for_version,
+    migrate_legacy_client_gradle_saves, resolve_vanilla_dir, run_client_and_network_optimization,
+    spawn_vanilla_client, summarize_process_failure, write_basalt_skin_resource_pack,
 };
 
 #[derive(Debug, Clone, Serialize)]
@@ -50,6 +51,7 @@ struct BootstrapDto {
     saves: Vec<MinecraftSaveSummary>,
     hardware: HardwareProfile,
     vanilla: VanillaEnvStatus,
+    discord_rpc_status: DiscordRpcStatus,
     skin_rgba: Vec<u8>,
     skin_is_slim: bool,
     running_session: Option<RunningSessionDto>,
@@ -96,6 +98,21 @@ struct SessionEndedPayload {
 struct VersionChangeDto {
     config: AppConfig,
     vanilla: VanillaEnvStatus,
+    discord_rpc_status: DiscordRpcStatus,
+}
+
+#[derive(Debug, Deserialize)]
+struct TurboSettingsInput {
+    discord_rpc: bool,
+    download_threads: u8,
+    network_boost: bool,
+    process_boost: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct TurboSettingsDto {
+    config: AppConfig,
+    discord_rpc_status: DiscordRpcStatus,
 }
 
 #[derive(Debug, Deserialize)]
@@ -137,7 +154,37 @@ struct AppState {
     hardware: Mutex<HardwareProfile>,
     hardware_notice: Mutex<Option<String>>,
     running: Arc<Mutex<Option<RunningSessionDto>>>,
+    discord: Arc<Mutex<DiscordRpcStatus>>,
+    started_epoch_secs: u64,
     sounds_fetching: Arc<AtomicBool>,
+}
+
+fn spawn_discord_sync(
+    discord_arc: Arc<Mutex<DiscordRpcStatus>>,
+    enabled: bool,
+    mc_version: String,
+    details: String,
+    state_label: String,
+    started_epoch_secs: u64,
+) {
+    if let Ok(mut guard) = discord_arc.lock() {
+        guard.enabled = enabled;
+        guard.details = details.clone();
+        guard.state_label = state_label.clone();
+        guard.started_epoch_secs = started_epoch_secs;
+    }
+    thread::spawn(move || {
+        let updated = publish_discord_activity(
+            enabled,
+            &mc_version,
+            &details,
+            &state_label,
+            started_epoch_secs,
+        );
+        if let Ok(mut guard) = discord_arc.lock() {
+            *guard = updated;
+        }
+    });
 }
 
 impl AppState {
@@ -177,6 +224,30 @@ impl AppState {
             let _ = config.save(&paths.config_file);
         }
 
+        let started_epoch_secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let initial_details = format!("Minecraft {} (Vanilla)", config.mc_version);
+        let initial_state = format!("Basalt Launcher · {}", config.username);
+        let discord = Arc::new(Mutex::new(DiscordRpcStatus {
+            enabled: config.discord_rpc,
+            connected: false,
+            pipe_name: "Standby (WebRTC/IPC)".to_string(),
+            details: initial_details.clone(),
+            state_label: initial_state.clone(),
+            started_epoch_secs,
+            github_url: BASALT_GITHUB_URL.to_string(),
+        }));
+        spawn_discord_sync(
+            Arc::clone(&discord),
+            config.discord_rpc,
+            config.mc_version.clone(),
+            initial_details,
+            initial_state,
+            started_epoch_secs,
+        );
+
         Ok(Self {
             paths,
             vanilla_dir,
@@ -185,6 +256,8 @@ impl AppState {
             hardware: Mutex::new(hardware),
             hardware_notice: Mutex::new(hardware_notice),
             running: Arc::new(Mutex::new(None)),
+            discord,
+            started_epoch_secs,
             sounds_fetching: Arc::new(AtomicBool::new(false)),
         })
     }
@@ -430,6 +503,11 @@ fn get_bootstrap_state(state: tauri::State<AppState>) -> Result<BootstrapDto, St
         Some(&state.paths.runtime_dir),
         &config.mc_version,
     );
+    let discord_rpc_status = state
+        .discord
+        .lock()
+        .map(|d| d.clone())
+        .unwrap_or_default();
     let skin_img = load_active_skin_image(config.skin_file.as_deref());
     let skin_is_slim = resolve_skin_is_slim(config.skin_model, &skin_img);
 
@@ -438,6 +516,7 @@ fn get_bootstrap_state(state: tauri::State<AppState>) -> Result<BootstrapDto, St
         saves,
         hardware,
         vanilla,
+        discord_rpc_status,
         skin_rgba: skin_img.into_raw(),
         skin_is_slim,
         running_session,
@@ -558,10 +637,121 @@ fn set_mc_version(
         Some(&state.paths.runtime_dir),
         &clean_ver,
     );
+    let details = format!("Minecraft {clean_ver} (Vanilla)");
+    let state_label = format!("Basalt Launcher · {}", config_snapshot.username);
+    spawn_discord_sync(
+        Arc::clone(&state.discord),
+        config_snapshot.discord_rpc,
+        clean_ver,
+        details,
+        state_label,
+        state.started_epoch_secs,
+    );
+    let discord_rpc_status = state
+        .discord
+        .lock()
+        .map(|d| d.clone())
+        .unwrap_or_default();
     Ok(VersionChangeDto {
         config: config_snapshot,
         vanilla,
+        discord_rpc_status,
     })
+}
+
+#[tauri::command]
+fn save_turbo_settings(
+    state: tauri::State<AppState>,
+    input: TurboSettingsInput,
+) -> Result<TurboSettingsDto, String> {
+    let config_snapshot = {
+        let mut config = state
+            .config
+            .lock()
+            .map_err(|_| "Failed to unlock configuration".to_string())?;
+        config.discord_rpc = input.discord_rpc;
+        config.download_threads = input.download_threads;
+        config.network_boost = input.network_boost;
+        config.process_boost = input.process_boost;
+        config.sanitize();
+        config.save(&state.paths.config_file)?;
+        config.clone()
+    };
+    let details = format!("Minecraft {} (Vanilla)", config_snapshot.mc_version);
+    let state_label = format!("Basalt Launcher · {}", config_snapshot.username);
+    spawn_discord_sync(
+        Arc::clone(&state.discord),
+        config_snapshot.discord_rpc,
+        config_snapshot.mc_version.clone(),
+        details,
+        state_label,
+        state.started_epoch_secs,
+    );
+    let discord_rpc_status = state
+        .discord
+        .lock()
+        .map(|d| d.clone())
+        .unwrap_or_default();
+    Ok(TurboSettingsDto {
+        config: config_snapshot,
+        discord_rpc_status,
+    })
+}
+
+#[tauri::command]
+async fn optimize_client_now(
+    state: tauri::State<'_, AppState>,
+) -> Result<ClientOptimizationReport, String> {
+    let vanilla_dir = state.vanilla_dir.clone();
+    let (network_boost, process_boost) = {
+        let mut config = state
+            .config
+            .lock()
+            .map_err(|_| "Failed to unlock configuration".to_string())?;
+        config.network_boost = true;
+        config.process_boost = true;
+        let _ = config.save(&state.paths.config_file);
+        (config.network_boost, config.process_boost)
+    };
+    tauri::async_runtime::spawn_blocking(move || {
+        run_client_and_network_optimization(&vanilla_dir, network_boost, process_boost)
+    })
+    .await
+    .map_err(|e| format!("Optimization worker error: {e}"))
+}
+
+#[tauri::command]
+fn open_github_page() -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        Command::new("rundll32.exe")
+            .args(["url.dll,FileProtocolHandler", BASALT_GITHUB_URL])
+            .spawn()
+            .map_err(|e| format!("Failed to open GitHub page: {e}"))?;
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        Err(format!("GitHub repository: {BASALT_GITHUB_URL}"))
+    }
+}
+
+#[tauri::command]
+fn open_game_folder(state: tauri::State<AppState>) -> Result<(), String> {
+    let run_dir = state.run_dir();
+    let _ = fs::create_dir_all(&run_dir);
+    #[cfg(windows)]
+    {
+        Command::new("explorer.exe")
+            .arg(&run_dir)
+            .spawn()
+            .map_err(|e| format!("Failed to open game directory: {e}"))?;
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        Err(format!("Game directory: {}", run_dir.display()))
+    }
 }
 
 #[tauri::command]
@@ -1154,11 +1344,11 @@ fn prepare_vanilla_client(
     app: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<RunningSessionDto, String> {
-    let active_ver = state
+    let (active_ver, dl_threads) = state
         .config
         .lock()
-        .map(|c| c.mc_version.clone())
-        .unwrap_or_else(|_| "1.21.4".to_string());
+        .map(|c| (c.mc_version.clone(), c.download_threads))
+        .unwrap_or_else(|_| ("1.21.4".to_string(), 24));
     let session = RunningSessionDto {
         pid: std::process::id(),
         kind: "prepare".to_string(),
@@ -1173,15 +1363,20 @@ fn prepare_vanilla_client(
     let runtime_dir = state.paths.runtime_dir.clone();
 
     thread::spawn(move || {
-        let res = ensure_vanilla_version_ready(&vanilla_dir, &active_ver, |line, is_err| {
-            let _ = app.emit(
-                "basalt://launch-log",
-                LaunchLogPayload {
-                    line: line.to_string(),
-                    is_err,
-                },
-            );
-        });
+        let res = ensure_vanilla_version_ready_with_threads(
+            &vanilla_dir,
+            &active_ver,
+            dl_threads,
+            |line, is_err| {
+                let _ = app.emit(
+                    "basalt://launch-log",
+                    LaunchLogPayload {
+                        line: line.to_string(),
+                        is_err,
+                    },
+                );
+            },
+        );
         finish_running_session(&running_arc);
         let (exit_code, error) = match res {
             Ok(_) => (Some(0), None),
@@ -1317,6 +1512,27 @@ fn launch_client(
     reservation.running = None;
 
     let active_ver = config_snapshot.mc_version.clone();
+    let dl_threads = config_snapshot.download_threads;
+    let discord_enabled = config_snapshot.discord_rpc;
+    let username_for_discord = config_snapshot.username.clone();
+    let discord_arc = Arc::clone(&state.discord);
+    let started_epoch_secs = state.started_epoch_secs;
+    let active_state_label = if let Some(ref sp) = quick_sp {
+        format!("Singleplayer · {sp}")
+    } else if let Some(ref mp) = quick_mp {
+        format!("Multiplayer · {mp}")
+    } else {
+        format!("In-Game · {}", config_snapshot.username)
+    };
+    spawn_discord_sync(
+        Arc::clone(&discord_arc),
+        discord_enabled,
+        active_ver.clone(),
+        format!("Playing Minecraft {active_ver}"),
+        active_state_label,
+        started_epoch_secs,
+    );
+
     let launch_cfg = VanillaLaunchConfig {
         username: config_snapshot.username,
         player_uuid,
@@ -1324,6 +1540,8 @@ fn launch_client(
         quick_play_singleplayer: quick_sp,
         quick_play_multiplayer: quick_mp,
         java_home,
+        network_boost: config_snapshot.network_boost,
+        process_boost: config_snapshot.process_boost,
     };
 
     let running_arc = Arc::clone(&state.running);
@@ -1344,7 +1562,12 @@ fn launch_client(
             );
         };
 
-        let (exit_code, error) = match ensure_vanilla_version_ready(&vanilla_dir, &active_ver, log_emit) {
+        let (exit_code, error) = match ensure_vanilla_version_ready_with_threads(
+            &vanilla_dir,
+            &active_ver,
+            dl_threads,
+            log_emit,
+        ) {
             Err(err) => (Some(1), Some(err)),
             Ok(manifest) => {
                 match spawn_vanilla_client(&vanilla_dir, &run_dir, &manifest, &launch_cfg) {
@@ -1362,6 +1585,14 @@ fn launch_client(
         };
 
         finish_running_session(&running_arc);
+        spawn_discord_sync(
+            discord_arc,
+            discord_enabled,
+            active_ver.clone(),
+            format!("Minecraft {active_ver} (Vanilla)"),
+            format!("Basalt Launcher · {username_for_discord}"),
+            started_epoch_secs,
+        );
         emit_session_ended(
             &app,
             "launch".to_string(),
@@ -1452,6 +1683,10 @@ fn main() {
             delete_save,
             save_profile_settings,
             set_mc_version,
+            save_turbo_settings,
+            optimize_client_now,
+            open_github_page,
+            open_game_folder,
             set_fullscreen,
             window_minimize,
             window_toggle_maximize,

@@ -171,6 +171,14 @@ fn default_legacy_config_version() -> u8 {
     0
 }
 
+fn default_true() -> bool {
+    true
+}
+
+fn default_download_threads() -> u8 {
+    24
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct AppConfig {
@@ -190,6 +198,14 @@ pub struct AppConfig {
     pub ui_reduced_motion: bool,
     pub ui_sounds: bool,
     pub ui_language: UiLanguage,
+    #[serde(default = "default_true")]
+    pub discord_rpc: bool,
+    #[serde(default = "default_download_threads")]
+    pub download_threads: u8,
+    #[serde(default = "default_true")]
+    pub network_boost: bool,
+    #[serde(default = "default_true")]
+    pub process_boost: bool,
     pub last_save_id: Option<String>,
     pub saved_servers: Vec<SavedServer>,
     pub graphics: GraphicsSettings,
@@ -212,6 +228,10 @@ impl Default for AppConfig {
             ui_reduced_motion: false,
             ui_sounds: false,
             ui_language: UiLanguage::En,
+            discord_rpc: true,
+            download_threads: 24,
+            network_boost: true,
+            process_boost: true,
             last_save_id: None,
             saved_servers: vec![SavedServer {
                 name: "Local Dev Server".to_string(),
@@ -262,6 +282,12 @@ impl AppPaths {
 impl AppConfig {
     pub fn sanitize(&mut self) {
         self.mc_version = normalize_mc_version(&self.mc_version);
+        self.download_threads = match self.download_threads {
+            0..=11 => 8,
+            12..=19 => 16,
+            20..=28 => 24,
+            _ => 32,
+        };
         if !self.graphics.fov_degrees.is_finite() {
             self.graphics.fov_degrees = 75.0;
         }

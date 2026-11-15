@@ -22,8 +22,10 @@ import type {
   SkinModelResultDto,
   SkinResultDto,
   ThemeMode,
+  TurboSettingsDto,
   UiLanguage,
   VersionChangeDto,
+  ClientOptimizationReport,
 } from "./types";
 
 export function isTauriRuntime(): boolean {
@@ -84,6 +86,10 @@ const previewState: BootstrapDto = {
     ui_reduced_motion: false,
     ui_sounds: false,
     ui_language: "En",
+    discord_rpc: true,
+    download_threads: 24,
+    network_boost: true,
+    process_boost: true,
     last_save_id: "Survival (Sample)",
     saved_servers: [
       {
@@ -136,6 +142,15 @@ const previewState: BootstrapDto = {
     java_home: "C:\\Program Files\\Eclipse Adoptium\\jdk-21",
     java_version_label: "Java 21.0.11",
     java_hint: "Compatible system Java 21+ runtime detected.",
+  },
+  discord_rpc_status: {
+    enabled: true,
+    connected: false,
+    pipe_name: "Standby (WebRTC/IPC)",
+    details: "Minecraft 1.21.4 (Vanilla)",
+    state_label: "Basalt Launcher · Player",
+    started_epoch_secs: 1_763_120_000,
+    github_url: "https://github.com/Markesrrr/Basalt",
   },
   skin_rgba: makeSampleSkinRgba(),
   skin_is_slim: true,
@@ -259,10 +274,73 @@ export async function setMcVersion(version: string): Promise<VersionChangeDto> {
   previewState.vanilla.active_version = version;
   previewState.vanilla.client_ready =
     previewState.vanilla.installed_versions.includes(version);
+  previewState.discord_rpc_status.details = `Minecraft ${version} (Vanilla)`;
   return {
     config: structuredClone(previewState.config),
     vanilla: structuredClone(previewState.vanilla),
+    discord_rpc_status: structuredClone(previewState.discord_rpc_status),
   };
+}
+
+export async function saveTurboSettings(input: {
+  discord_rpc: boolean;
+  download_threads: number;
+  network_boost: boolean;
+  process_boost: boolean;
+}): Promise<TurboSettingsDto> {
+  if (isTauriRuntime()) {
+    return invoke<TurboSettingsDto>("save_turbo_settings", { input });
+  }
+  previewState.config.discord_rpc = input.discord_rpc;
+  previewState.config.download_threads = input.download_threads;
+  previewState.config.network_boost = input.network_boost;
+  previewState.config.process_boost = input.process_boost;
+  previewState.discord_rpc_status.enabled = input.discord_rpc;
+  return {
+    config: structuredClone(previewState.config),
+    discord_rpc_status: structuredClone(previewState.discord_rpc_status),
+  };
+}
+
+export async function optimizeClientNow(): Promise<ClientOptimizationReport> {
+  if (isTauriRuntime()) {
+    return invoke<ClientOptimizationReport>("optimize_client_now");
+  }
+  previewState.config.network_boost = true;
+  previewState.config.process_boost = true;
+  return {
+    cdn_ping_ms: 28,
+    local_ping_ms: null,
+    freed_bytes: 0,
+    dns_flushed: true,
+    applied_flags_count: 9,
+    active_flags: [
+      "-Djava.net.preferIPv4Stack=true",
+      "-Dio.netty.allocator.type=pooled",
+      "-Dio.netty.recycler.maxCapacityPerThread=4096",
+      "-Dsun.net.inetaddr.ttl=30",
+      "-XX:+AlwaysPreTouch",
+      "-XX:+DisableExplicitGC",
+      "-XX:+ParallelRefProcEnabled",
+      "-XX:MaxInlineLevel=15",
+      "Win32:ABOVE_NORMAL_PRIORITY",
+    ],
+  };
+}
+
+export async function openGithubPage(): Promise<void> {
+  if (isTauriRuntime()) {
+    await invoke<void>("open_github_page");
+    return;
+  }
+  window.open("https://github.com/Markesrrr/Basalt", "_blank", "noopener");
+}
+
+export async function openGameFolder(): Promise<void> {
+  if (isTauriRuntime()) {
+    await invoke<void>("open_game_folder");
+    return;
+  }
 }
 
 export async function saveGraphicsSettings(

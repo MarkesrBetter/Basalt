@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs::{self, File};
-use std::io::Read;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 
@@ -798,6 +798,22 @@ fn hide_window(cmd: &mut Command) {
 #[cfg(not(windows))]
 fn hide_window(_cmd: &mut Command) {}
 
+#[cfg(windows)]
+fn hide_window_with_priority(cmd: &mut Command, high_priority: bool) {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    const ABOVE_NORMAL_PRIORITY_CLASS: u32 = 0x0000_8000;
+    let flags = if high_priority {
+        CREATE_NO_WINDOW | ABOVE_NORMAL_PRIORITY_CLASS
+    } else {
+        CREATE_NO_WINDOW
+    };
+    cmd.creation_flags(flags);
+}
+
+#[cfg(not(windows))]
+fn hide_window_with_priority(_cmd: &mut Command, _high_priority: bool) {}
+
 fn curl_fetch_bytes(url: &str) -> Result<Vec<u8>, String> {
     let mut cmd = Command::new("curl.exe");
     cmd.args([
@@ -848,15 +864,148 @@ fn commit_verified_part(part_path: &Path, dest: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn download_batch_with_curl(tasks: &[&DownloadTask], temp_dir: &Path) -> Result<(), String> {
+/// Splits a large file (`>= 4 MB`) into `segments` concurrent HTTP `Range` requests (IDM-style multi-segment download),
+/// stitches the segments in order, and verifies the resulting SHA-1 digest.
+fn download_segmented_with_curl(
+    task: &DownloadTask,
+    temp_dir: &Path,
+    segments: usize,
+) -> Result<bool, String> {
+    let seg_count = segments.clamp(2, 16) as u64;
+    if task.size < 4 * 1024 * 1024 {
+        return Ok(false);
+    }
+    fs::create_dir_all(temp_dir)
+        .map_err(|e| format!("Failed to create segmented temp dir: {e}"))?;
+
+    let chunk_size = task.size.div_ceil(seg_count);
+    let cfg_path = temp_dir.join(format!("curl-idm-{}.cfg", std::process::id()));
+    let mut cfg = String::with_capacity((seg_count as usize) * 220);
+    let mut seg_paths = Vec::with_capacity(seg_count as usize);
+
+    for i in 0..seg_count {
+        let start = i * chunk_size;
+        if start >= task.size {
+            break;
+        }
+        let end = ((i + 1) * chunk_size - 1).min(task.size - 1);
+        let seg_path = temp_dir.join(format!("seg-{}-{i:02}.part", std::process::id()));
+        let _ = fs::remove_file(&seg_path);
+        cfg.push_str(&format!(
+            "url = \"{}\"\noutput = \"{}\"\nrange = \"{start}-{end}\"\n",
+            escape_curl_config_value(&task.url),
+            escape_curl_config_value(&seg_path.to_string_lossy())
+        ));
+        seg_paths.push((seg_path, end - start + 1));
+    }
+
+    fs::write(&cfg_path, cfg.as_bytes())
+        .map_err(|e| format!("Failed to write segmented curl config: {e}"))?;
+
+    let seg_max_str = seg_paths.len().to_string();
+    let mut cmd = Command::new("curl.exe");
+    cmd.args([
+        "-sS",
+        "-fL",
+        "--http2",
+        "--tcp-nodelay",
+        "--parallel",
+        "--parallel-max",
+        &seg_max_str,
+        "--retry",
+        "2",
+        "--connect-timeout",
+        "15",
+        "-K",
+    ])
+    .arg(&cfg_path)
+    .stdin(Stdio::null());
+    hide_window(&mut cmd);
+    let out = cmd.output();
+    let _ = fs::remove_file(&cfg_path);
+
+    let Ok(out) = out else {
+        for (p, _) in &seg_paths {
+            let _ = fs::remove_file(p);
+        }
+        return Ok(false);
+    };
+    if !out.status.success() {
+        for (p, _) in &seg_paths {
+            let _ = fs::remove_file(p);
+        }
+        return Ok(false);
+    }
+
+    // Verify each segment's exact byte length before stitching
+    for (p, expected_len) in &seg_paths {
+        if !check_file_size(p, *expected_len) {
+            for (sp, _) in &seg_paths {
+                let _ = fs::remove_file(sp);
+            }
+            return Ok(false);
+        }
+    }
+
+    let joined_path = temp_dir.join(format!("joined-{}.part", std::process::id()));
+    let _ = fs::remove_file(&joined_path);
+    {
+        let mut out_file = File::create(&joined_path)
+            .map_err(|e| format!("Failed to create joined file: {e}"))?;
+        let mut buf = vec![0u8; 131_072];
+        for (p, _) in &seg_paths {
+            let mut seg_file =
+                File::open(p).map_err(|e| format!("Failed to open segment file: {e}"))?;
+            loop {
+                let n = seg_file
+                    .read(&mut buf)
+                    .map_err(|e| format!("Failed to read segment file: {e}"))?;
+                if n == 0 {
+                    break;
+                }
+                out_file
+                    .write_all(&buf[..n])
+                    .map_err(|e| format!("Failed to write joined file: {e}"))?;
+            }
+            let _ = fs::remove_file(p);
+        }
+    }
+
+    if check_file_size_and_sha1(&joined_path, task.size, &task.sha1) {
+        commit_verified_part(&joined_path, &task.dest)?;
+        Ok(true)
+    } else {
+        let _ = fs::remove_file(&joined_path);
+        Ok(false)
+    }
+}
+
+fn download_batch_with_curl(
+    tasks: &[&DownloadTask],
+    temp_dir: &Path,
+    parallel_streams: u8,
+) -> Result<(), String> {
     if tasks.is_empty() {
         return Ok(());
     }
     fs::create_dir_all(temp_dir)
         .map_err(|e| format!("Failed to create temp download dir: {e}"))?;
 
-    let mut pending: Vec<usize> = (0..tasks.len()).collect();
+    let mut pending: Vec<usize> = Vec::with_capacity(tasks.len());
+    for (idx, &t) in tasks.iter().enumerate() {
+        if t.size >= 4 * 1024 * 1024
+            && download_segmented_with_curl(t, temp_dir, 8).unwrap_or(false)
+        {
+            continue;
+        }
+        pending.push(idx);
+    }
+    if pending.is_empty() {
+        return Ok(());
+    }
+
     let mut last_err = String::new();
+    let max_streams = parallel_streams.clamp(4, 32).to_string();
 
     for attempt in 0..3 {
         let cfg_path = temp_dir.join(format!("curl-batch-{}-{attempt}.cfg", std::process::id()));
@@ -874,11 +1023,17 @@ fn download_batch_with_curl(tasks: &[&DownloadTask], temp_dir: &Path) -> Result<
         fs::write(&cfg_path, cfg.as_bytes())
             .map_err(|e| format!("Failed to write curl batch config: {e}"))?;
 
-        let parallel_max = if attempt == 0 { "16" } else { "4" };
+        let parallel_max = if attempt == 0 {
+            max_streams.as_str()
+        } else {
+            "6"
+        };
         let mut cmd = Command::new("curl.exe");
         cmd.args([
             "-sS",
             "-fL",
+            "--http2",
+            "--tcp-nodelay",
             "--parallel",
             "--parallel-max",
             parallel_max,
@@ -1018,6 +1173,19 @@ where
 pub fn ensure_vanilla_version_ready<F>(
     vanilla_dir: &Path,
     version: &str,
+    log: F,
+) -> Result<MojangVersionManifest, String>
+where
+    F: FnMut(&str, bool),
+{
+    ensure_vanilla_version_ready_with_threads(vanilla_dir, version, 24, log)
+}
+
+/// Ensures official Vanilla Minecraft `version` is ready using `parallel_streams` IDM-style worker connections.
+pub fn ensure_vanilla_version_ready_with_threads<F>(
+    vanilla_dir: &Path,
+    version: &str,
+    parallel_streams: u8,
     mut log: F,
 ) -> Result<MojangVersionManifest, String>
 where
@@ -1262,19 +1430,28 @@ where
     if !missing_tasks.is_empty() {
         let _ = fs::remove_file(&stamp);
         let total = missing_tasks.len();
+        let streams = parallel_streams.clamp(4, 32);
         log(
-            &format!("Downloading {total} verified Vanilla {ver} file(s) from Mojang CDN..."),
+            &format!(
+                "[IDM Turbo {streams}x + 8-Part Range] Downloading {total} verified Vanilla {ver} file(s) from Mojang CDN..."
+            ),
             false,
         );
         let temp_dir = vanilla_dir.join("tmp");
         const CHUNK_SIZE: usize = 160;
         let mut completed = 0usize;
         for chunk in missing_tasks.chunks(CHUNK_SIZE) {
+            let chunk_start = std::time::Instant::now();
+            let chunk_bytes: u64 = chunk.iter().map(|t| t.size).sum();
             let refs: Vec<&DownloadTask> = chunk.iter().collect();
-            download_batch_with_curl(&refs, &temp_dir)?;
+            download_batch_with_curl(&refs, &temp_dir, streams)?;
             completed += chunk.len();
+            let secs = chunk_start.elapsed().as_secs_f64().max(0.05);
+            let mbps = (chunk_bytes as f64 / (1024.0 * 1024.0)) / secs;
             log(
-                &format!("Vanilla {ver} download progress: {completed} / {total} verified."),
+                &format!(
+                    "[IDM Turbo {streams}x · {mbps:.1} MB/s] Vanilla {ver} progress: {completed} / {total} verified."
+                ),
                 false,
             );
         }
@@ -1506,6 +1683,104 @@ pub struct VanillaLaunchConfig {
     pub quick_play_singleplayer: Option<String>,
     pub quick_play_multiplayer: Option<String>,
     pub java_home: PathBuf,
+    pub network_boost: bool,
+    pub process_boost: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClientOptimizationReport {
+    pub cdn_ping_ms: Option<u32>,
+    pub local_ping_ms: Option<u32>,
+    pub freed_bytes: u64,
+    pub dns_flushed: bool,
+    pub applied_flags_count: usize,
+    pub active_flags: Vec<String>,
+}
+
+fn measure_tcp_ping_ms(host_port: &str, timeout_ms: u64) -> Option<u32> {
+    use std::net::{TcpStream, ToSocketAddrs};
+    use std::time::{Duration, Instant};
+
+    let addr = host_port.to_socket_addrs().ok()?.next()?;
+    let start = Instant::now();
+    if TcpStream::connect_timeout(&addr, Duration::from_millis(timeout_ms)).is_ok() {
+        Some(start.elapsed().as_millis().max(1) as u32)
+    } else {
+        None
+    }
+}
+
+fn clean_temp_dir_bytes(dir: &Path) -> u64 {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return 0;
+    };
+    let mut freed = 0u64;
+    for entry in entries.flatten() {
+        let p = entry.path();
+        if p.is_file() {
+            let sz = p.metadata().map(|m| m.len()).unwrap_or(0);
+            if fs::remove_file(&p).is_ok() {
+                freed += sz;
+            }
+        }
+    }
+    freed
+}
+
+/// Runs a live network latency measurement, flushes Windows DNS cache, cleans temporary `.part` caches,
+/// and returns the active low-ping + JVM optimization flags.
+pub fn run_client_and_network_optimization(
+    vanilla_dir: &Path,
+    network_boost: bool,
+    process_boost: bool,
+) -> ClientOptimizationReport {
+    let mut freed_bytes = 0u64;
+    freed_bytes += clean_temp_dir_bytes(&vanilla_dir.join("tmp"));
+    let _ = fs::remove_dir_all(vanilla_dir.join("tmp"));
+
+    let mut dns_flushed = false;
+    if cfg!(windows) {
+        let mut cmd = Command::new("ipconfig.exe");
+        cmd.arg("/flushdns")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        hide_window(&mut cmd);
+        if let Ok(st) = cmd.status() {
+            dns_flushed = st.success();
+        }
+    }
+
+    let cdn_ping_ms = measure_tcp_ping_ms("piston-meta.mojang.com:443", 1200);
+    let local_ping_ms = measure_tcp_ping_ms("127.0.0.1:25565", 250);
+
+    let mut active_flags = Vec::new();
+    if network_boost {
+        active_flags.extend([
+            "-Djava.net.preferIPv4Stack=true".to_string(),
+            "-Dio.netty.allocator.type=pooled".to_string(),
+            "-Dio.netty.recycler.maxCapacityPerThread=4096".to_string(),
+            "-Dsun.net.inetaddr.ttl=30".to_string(),
+        ]);
+    }
+    if process_boost {
+        active_flags.extend([
+            "-XX:+AlwaysPreTouch".to_string(),
+            "-XX:+DisableExplicitGC".to_string(),
+            "-XX:+ParallelRefProcEnabled".to_string(),
+            "-XX:MaxInlineLevel=15".to_string(),
+            "Win32:ABOVE_NORMAL_PRIORITY".to_string(),
+        ]);
+    }
+
+    ClientOptimizationReport {
+        cdn_ping_ms,
+        local_ping_ms,
+        freed_bytes,
+        dns_flushed,
+        applied_flags_count: active_flags.len(),
+        active_flags,
+    }
 }
 
 /// Builds direct JVM and Minecraft `net.minecraft.client.main.Main` command-line arguments
@@ -1550,6 +1825,24 @@ pub fn build_vanilla_launch_args(
             "-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump"
                 .to_string(),
         );
+    }
+
+    if cfg.process_boost {
+        args.extend([
+            "-XX:+AlwaysPreTouch".to_string(),
+            "-XX:+DisableExplicitGC".to_string(),
+            "-XX:+ParallelRefProcEnabled".to_string(),
+            "-XX:MaxInlineLevel=15".to_string(),
+        ]);
+    }
+
+    if cfg.network_boost {
+        args.extend([
+            "-Djava.net.preferIPv4Stack=true".to_string(),
+            "-Dio.netty.allocator.type=pooled".to_string(),
+            "-Dio.netty.recycler.maxCapacityPerThread=4096".to_string(),
+            "-Dsun.net.inetaddr.ttl=30".to_string(),
+        ]);
     }
 
     if let Some(ref logging) = manifest.logging
@@ -1703,7 +1996,7 @@ pub fn spawn_vanilla_client(
         cmd.env_remove(key);
     }
 
-    hide_window(&mut cmd);
+    hide_window_with_priority(&mut cmd, cfg.process_boost);
 
     cmd.spawn()
         .map_err(|e| format!("Failed to start Vanilla Minecraft {} process: {e}", manifest.id))
@@ -2205,11 +2498,15 @@ mod tests {
                 quick_play_singleplayer: Some("MyWorld".to_string()),
                 quick_play_multiplayer: None,
                 java_home: tmp.join("jdk-21"),
+                network_boost: true,
+                process_boost: true,
             },
         );
 
         assert!(args.contains(&"-Xmx4096M".to_string()));
         assert!(args.contains(&"-XX:+UseZGC".to_string()));
+        assert!(args.contains(&"-Djava.net.preferIPv4Stack=true".to_string()));
+        assert!(args.contains(&"-XX:+AlwaysPreTouch".to_string()));
         assert!(args.contains(&"net.minecraft.client.main.Main".to_string()));
         assert!(args.contains(&"--quickPlaySingleplayer".to_string()));
         assert!(args.contains(&"MyWorld".to_string()));
@@ -2321,6 +2618,8 @@ mod tests {
                 quick_play_singleplayer: None,
                 quick_play_multiplayer: None,
                 java_home: j21,
+                network_boost: true,
+                process_boost: true,
             },
         );
         assert!(args_21.contains(&"-XX:+UseZGC".to_string()));
@@ -2337,6 +2636,8 @@ mod tests {
                 quick_play_singleplayer: None,
                 quick_play_multiplayer: None,
                 java_home: j24,
+                network_boost: false,
+                process_boost: false,
             },
         );
         assert!(args_24.contains(&"-XX:+UseZGC".to_string()));

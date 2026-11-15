@@ -6,13 +6,16 @@ Native Windows 10/11 desktop launcher powered by **Tauri 2 + TypeScript WebUI** 
 
 ## Download & Website
 
-- Single-file Windows executable (`basalt.exe`, `13.68 MB` / `14,348,288 bytes`): [GitHub Releases](https://github.com/Markesrrr/Basalt/releases/latest)
+- Single-file Windows executable (`basalt.exe`, `13.83 MB` / `14,505,984 bytes`): [GitHub Releases](https://github.com/Markesrrr/Basalt/releases/latest)
 - Live product page (GitHub Pages): [markesrrr.github.io/Basalt](https://markesrrr.github.io/Basalt/) ([site/index.html](./site/index.html))
-- Verification (`v0.1.0` SHA-256): `8c748d53f2235a0b3b7aa445172c2805a7906a81de9dbb0e987389f74eb9303f`
+- Verification (`v0.1.0` SHA-256): `3c79eef8c569a52f729b25b993691e49e1b1c4651bba7754d2508e728369adbc`
 
 ## Features
 
 - **Single-Binary Portable Windows App (`basalt.exe`):** Runs without an installer wizard; supports 15 official Mojang Vanilla versions (`1.21.4`, `1.21.3`, `1.21.2`, `1.21.1`, `1.21`, `1.20.6`, `1.20.4`, `1.20.2`, `1.20.1`, `1.20`, `1.19.4`, `1.19.2`, `1.18.2`, `1.17.1`, `1.16.5`) and SHA-1-verifies client JARs, native libraries, and asset indexes directly into an ASCII-safe local cache (reusing verified local `.minecraft` files when present) while keeping `run/` saves and `options.txt` in app data.
+- **IDM-Style 8-Segment + Parallel Turbo Downloader:** Splits large JARs (`>= 4 MB`) into 8 concurrent HTTP `Range` byte segments and downloads up to 32 parallel HTTP/2 streams (`--http2 --tcp-nodelay --parallel`) with live `MB/s` throughput logging.
+- **Low-Ping Network & JVM Process Optimizer:** Injects low-latency Netty/TCP flags (`-Djava.net.preferIPv4Stack=true`, `-Dio.netty.allocator.type=pooled`), JVM memory pre-touch (`-XX:+AlwaysPreTouch`, `-XX:+DisableExplicitGC`), and Windows `ABOVE_NORMAL_PRIORITY_CLASS` (`0x00008000`) process priority, plus 1-click DNS flush & CDN/LAN ping telemetry.
+- **Discord Rich Presence (IPC / WebRTC Activity) & GitHub Integration:** Broadcasts live playing activity (`Minecraft 1.21.4 (Vanilla)`, world/server status, elapsed time, and `Basalt GitHub` / `Download Release` buttons) over Windows Discord IPC named pipes (`\\.\pipe\discord-ipc-0..9`).
 - **Global English Default + 3 Live Languages:** Defaults to English across the desktop launcher, product website, and documentation, with live switching between **English**, **Türkçe**, and **Deutsch**.
 - **Hardware-Calibrated Speed & FPS:** Reads CPU cores, RAM, and GPU tier via `sysinfo` and headless `wgpu` DX12 detection, calibrating `-Xmx`, `G1GC`/`ZGC`, and `options.txt` automatically.
 - **Automatic Java 21 Setup:** If no Java `>= 21` runtime is found, downloads Eclipse Temurin 21 via signed Windows `curl.exe`, verifies its SHA-256 digest in pure Rust, and installs locally without admin privileges.

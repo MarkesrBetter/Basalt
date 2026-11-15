@@ -235,6 +235,31 @@ function validateUsername(raw: string): string | null {
   return null;
 }
 
+function computeOfflineUuidPreview(username: string): string {
+  const input = `OfflinePlayer:${username.trim() || "Player"}`;
+  let h1 = 0x811c9dc5;
+  let h2 = 0x01000193;
+  let h3 = 0x9e3779b9;
+  let h4 = 0x85ebca6b;
+  for (let i = 0; i < input.length; i++) {
+    const c = input.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
+    h2 = Math.imul(h2 ^ ((c << 3) | (c >>> 5)), 0x85ebca6b) >>> 0;
+    h3 = Math.imul(h3 ^ (c + i * 17), 0xc2b2ae35) >>> 0;
+    h4 = Math.imul(h4 ^ (c * 31 + i), 0x27d4eb2f) >>> 0;
+  }
+  // Set version 3 (0x3000) and IETF variant (0x8000)
+  const p1 = h1.toString(16).padStart(8, "0");
+  const p2 = ((h2 >>> 16) & 0xffff).toString(16).padStart(4, "0");
+  const p3 = (((h2 & 0x0fff) | 0x3000) >>> 0).toString(16).padStart(4, "0");
+  const p4 = ((((h3 >>> 16) & 0x3fff) | 0x8000) >>> 0).toString(16).padStart(4, "0");
+  const p5 = (
+    ((h3 & 0xffff).toString(16).padStart(4, "0")) +
+    h4.toString(16).padStart(8, "0")
+  ).slice(0, 12);
+  return `${p1}-${p2}-${p3}-${p4}-${p5}`;
+}
+
 function setSelectNumericValue(select: HTMLSelectElement, targetValue: number): void {
   const lang = getEffectiveLanguage();
   const strVal = String(targetValue);
@@ -647,6 +672,53 @@ function renderPlayView(): void {
     lang,
     cacheReady ? "play.prepareHintReady" : "play.prepareHintWait"
   );
+
+  // Turbo Downloader, Low-Ping & Discord Rich Presence Command Deck
+  const dlThreads = config.download_threads || 24;
+  byId<HTMLSpanElement>("play-idm-badge").textContent = `8× RANGE · ${dlThreads}× STREAM`;
+  byId<HTMLSelectElement>("play-dl-threads").value = String(dlThreads);
+  byId<HTMLButtonElement>("btn-turbo-verify").disabled =
+    state.running_session !== null || !vanilla.java_ready;
+
+  const segBar = document.getElementById("idm-segments-bar");
+  if (segBar) {
+    const segs = Array.from(segBar.querySelectorAll<HTMLElement>(".idm-seg"));
+    const isRunningPrepare = state.running_session?.kind === "prepare";
+    segs.forEach((seg, idx) => {
+      seg.classList.toggle("is-ready", cacheReady && !isRunningPrepare);
+      seg.classList.toggle("is-active", isRunningPrepare || (!cacheReady && idx < 4));
+    });
+  }
+
+  byId<HTMLInputElement>("play-net-boost").checked = config.network_boost;
+  byId<HTMLInputElement>("play-proc-boost").checked = config.process_boost;
+  byId<HTMLElement>("chip-ipv4").classList.toggle("is-on", config.network_boost);
+  byId<HTMLElement>("chip-netty").classList.toggle("is-on", config.network_boost);
+  byId<HTMLElement>("chip-pretouch").classList.toggle("is-on", config.process_boost);
+  byId<HTMLElement>("chip-prio").classList.toggle("is-on", config.process_boost);
+
+  const rpc = state.discord_rpc_status;
+  byId<HTMLInputElement>("play-discord-rpc").checked = config.discord_rpc;
+  const rpcBadge = byId<HTMLSpanElement>("discord-status-badge");
+  const rpcDot = byId<HTMLSpanElement>("discord-live-dot");
+  if (!config.discord_rpc) {
+    rpcBadge.textContent = tr(lang, "discord.statusDisabled");
+    rpcDot.dataset.state = "off";
+  } else if (rpc?.connected) {
+    rpcBadge.textContent = tr(lang, "discord.statusConnected", { pipe: rpc.pipe_name });
+    rpcDot.dataset.state = "live";
+  } else {
+    rpcBadge.textContent = tr(lang, "discord.statusStandby");
+    rpcDot.dataset.state = "standby";
+  }
+  byId<HTMLElement>("discord-preview-details").textContent =
+    rpc?.details || `Minecraft ${config.mc_version} (Vanilla)`;
+  byId<HTMLElement>("discord-preview-state").textContent = state.running_session
+    ? `Playing · ${state.running_session.label} (${config.username})`
+    : rpc?.state_label || `In Launcher · Ready (${config.username})`;
+  byId<HTMLElement>("discord-pipe-label").textContent = rpc?.connected
+    ? `IPC · ${rpc.pipe_name}`
+    : "IPC / WebRTC";
 
   if (getEffectiveLayout() === "DeckMode") {
     renderConsoleHome();
@@ -1186,6 +1258,17 @@ function renderProfileView(): void {
   byId<HTMLInputElement>("pref-compact").checked = config.ui_compact;
   byId<HTMLInputElement>("pref-reduced-motion").checked = config.ui_reduced_motion;
   byId<HTMLInputElement>("pref-sounds").checked = getEffectiveSounds();
+  byId<HTMLInputElement>("pref-discord-rpc").checked = config.discord_rpc;
+  byId<HTMLInputElement>("pref-net-boost").checked = config.network_boost;
+  byId<HTMLInputElement>("pref-proc-boost").checked = config.process_boost;
+  byId<HTMLSelectElement>("pref-dl-threads").value = String(config.download_threads || 24);
+
+  byId<HTMLElement>("profile-uuid-preview").textContent = computeOfflineUuidPreview(config.username);
+  byId<HTMLElement>("profile-discord-summary").textContent = config.discord_rpc
+    ? `${state.discord_rpc_status?.connected ? "Live" : "IPC Standby"} · github.com/Markesrrr/Basalt`
+    : `${tr(lang, "discord.statusDisabled")} · github.com/Markesrrr/Basalt`;
+  byId<HTMLElement>("profile-turbo-summary").textContent =
+    `8× Range · ${config.download_threads || 24} Streams · ${config.network_boost ? "Low-Ping ON" : "Standard"}`;
 
   byId<HTMLSpanElement>("skin-resolved-badge").textContent = tr(
     lang,
@@ -1417,8 +1500,12 @@ async function handleVersionChange(version: string): Promise<void> {
     const res = await ipc.setMcVersion(version);
     state.config = res.config;
     state.vanilla = res.vanilla;
+    if (res.discord_rpc_status) {
+      state.discord_rpc_status = res.discord_rpc_status;
+    }
     renderTopbarAndSession();
     renderPlayView();
+    renderProfileView();
     renderSystemView();
     showToast(
       tr(getEffectiveLanguage(), "system.versionChangedToast", {
@@ -1430,6 +1517,86 @@ async function handleVersionChange(version: string): Promise<void> {
     playMcSound("error");
     showToast(errorMessage(err), "error");
     syncVersionUi();
+  }
+}
+
+async function handleSaveTurboSettings(patch: {
+  discord_rpc?: boolean;
+  download_threads?: number;
+  network_boost?: boolean;
+  process_boost?: boolean;
+}): Promise<void> {
+  if (!state) return;
+  unlockAudioContext();
+  playMcSound("click");
+  try {
+    const res = await ipc.saveTurboSettings({
+      discord_rpc: patch.discord_rpc ?? state.config.discord_rpc,
+      download_threads: patch.download_threads ?? state.config.download_threads,
+      network_boost: patch.network_boost ?? state.config.network_boost,
+      process_boost: patch.process_boost ?? state.config.process_boost,
+    });
+    state.config = res.config;
+    state.discord_rpc_status = res.discord_rpc_status;
+    renderPlayView();
+    renderProfileView();
+    renderSystemView();
+    showToast(tr(getEffectiveLanguage(), "turbo.savedToast"), "success");
+  } catch (err) {
+    playMcSound("error");
+    showToast(errorMessage(err), "error");
+  }
+}
+
+async function handleOptimizeClientNow(): Promise<void> {
+  if (!state) return;
+  unlockAudioContext();
+  playMcSound("launch");
+  const btn = byId<HTMLButtonElement>("btn-optimize-now");
+  const summaryEl = byId<HTMLParagraphElement>("play-opt-summary");
+  const pingBadge = byId<HTMLSpanElement>("play-ping-badge");
+  const lang = getEffectiveLanguage();
+  btn.disabled = true;
+  summaryEl.textContent = tr(lang, "turbo.optimizingBtn");
+  try {
+    const report = await ipc.optimizeClientNow();
+    if (report.cdn_ping_ms !== null) {
+      pingBadge.textContent = `${report.cdn_ping_ms} ms CDN`;
+    } else if (report.local_ping_ms !== null) {
+      pingBadge.textContent = `${report.local_ping_ms} ms LAN`;
+    } else {
+      pingBadge.textContent = "OPTIMIZED";
+    }
+    const cdnStr = report.cdn_ping_ms !== null ? `${report.cdn_ping_ms} ms` : "N/A";
+    const dnsStr = report.dns_flushed ? "DNS flushed" : "TCP tuned";
+    const summaryText = `CDN Ping: ${cdnStr} · ${dnsStr} · ${report.applied_flags_count} active JVM/Netty flags`;
+    summaryEl.textContent = summaryText;
+    showToast(summaryText, "success");
+  } catch (err) {
+    playMcSound("error");
+    showToast(errorMessage(err), "error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function handleOpenGithubPage(): Promise<void> {
+  unlockAudioContext();
+  playMcSound("click");
+  try {
+    await ipc.openGithubPage();
+  } catch (err) {
+    showToast(errorMessage(err), "error");
+  }
+}
+
+async function handleOpenGameFolder(): Promise<void> {
+  unlockAudioContext();
+  playMcSound("click");
+  try {
+    await ipc.openGameFolder();
+  } catch (err) {
+    showToast(errorMessage(err), "error");
   }
 }
 
@@ -2408,6 +2575,82 @@ function wireEvents(): void {
   byId<HTMLButtonElement>("btn-prepare-gradle").addEventListener("click", () => {
     void handlePrepareVanilla();
   });
+
+  byId<HTMLButtonElement>("btn-turbo-verify").addEventListener("click", () => {
+    void handlePrepareVanilla();
+  });
+
+  byId<HTMLButtonElement>("btn-optimize-now").addEventListener("click", () => {
+    void handleOptimizeClientNow();
+  });
+
+  byId<HTMLSelectElement>("play-dl-threads").addEventListener("change", (e) => {
+    const val = Number((e.currentTarget as HTMLSelectElement).value) || 24;
+    void handleSaveTurboSettings({ download_threads: val });
+  });
+
+  byId<HTMLSelectElement>("pref-dl-threads").addEventListener("change", (e) => {
+    const val = Number((e.currentTarget as HTMLSelectElement).value) || 24;
+    void handleSaveTurboSettings({ download_threads: val });
+  });
+
+  byId<HTMLInputElement>("play-net-boost").addEventListener("change", (e) => {
+    void handleSaveTurboSettings({
+      network_boost: (e.currentTarget as HTMLInputElement).checked,
+    });
+  });
+
+  byId<HTMLInputElement>("pref-net-boost").addEventListener("change", (e) => {
+    void handleSaveTurboSettings({
+      network_boost: (e.currentTarget as HTMLInputElement).checked,
+    });
+  });
+
+  byId<HTMLInputElement>("play-proc-boost").addEventListener("change", (e) => {
+    void handleSaveTurboSettings({
+      process_boost: (e.currentTarget as HTMLInputElement).checked,
+    });
+  });
+
+  byId<HTMLInputElement>("pref-proc-boost").addEventListener("change", (e) => {
+    void handleSaveTurboSettings({
+      process_boost: (e.currentTarget as HTMLInputElement).checked,
+    });
+  });
+
+  byId<HTMLInputElement>("play-discord-rpc").addEventListener("change", (e) => {
+    void handleSaveTurboSettings({
+      discord_rpc: (e.currentTarget as HTMLInputElement).checked,
+    });
+  });
+
+  byId<HTMLInputElement>("pref-discord-rpc").addEventListener("change", (e) => {
+    void handleSaveTurboSettings({
+      discord_rpc: (e.currentTarget as HTMLInputElement).checked,
+    });
+  });
+
+  for (const id of [
+    "btn-open-github",
+    "btn-rail-github",
+    "btn-profile-github",
+    "btn-settings-github",
+  ]) {
+    byId<HTMLButtonElement>(id).addEventListener("click", () => {
+      void handleOpenGithubPage();
+    });
+  }
+
+  for (const id of [
+    "btn-open-gamedir",
+    "btn-rail-gamedir",
+    "btn-profile-gamedir",
+    "btn-settings-gamedir",
+  ]) {
+    byId<HTMLButtonElement>(id).addEventListener("click", () => {
+      void handleOpenGameFolder();
+    });
+  }
 
   byId<HTMLButtonElement>("btn-install-java").addEventListener("click", () => {
     void handleInstallJava21();

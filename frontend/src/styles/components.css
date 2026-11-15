@@ -1920,3 +1920,370 @@ dialog p {
 .launch-prepare-row {
   justify-content: center;
 }
+
+/* ---------- 3-Card Turbo, Low-Ping & Discord Rich Presence Command Deck ---------- */
+
+.play-turbo-grid {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.95rem;
+}
+
+@media (max-width: 1120px) {
+  .play-turbo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.turbo-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.95rem 1.05rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  min-width: 0;
+}
+
+.turbo-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  padding-bottom: 0.52rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.turbo-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.turbo-title-wrap h2 {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.turbo-ico {
+  color: var(--accent-fg);
+  flex: 0 0 auto;
+}
+
+.turbo-badge {
+  flex: 0 0 auto;
+  padding: 0.18rem 0.48rem;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-alt);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-fg);
+}
+
+.turbo-desc {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.42;
+}
+
+.idm-segments-bar {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 0.28rem;
+}
+
+.idm-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.45rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-alt);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-subtle);
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+.idm-seg.is-ready {
+  border-color: color-mix(in srgb, var(--success) 55%, var(--border-subtle));
+  background: color-mix(in srgb, var(--success) 14%, var(--bg-surface-alt));
+  color: var(--success);
+}
+
+.idm-seg.is-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-surface-alt));
+  color: var(--accent-fg);
+}
+
+.turbo-kv-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-alt);
+  border: 1px solid var(--border-subtle);
+}
+
+.turbo-kv-inline .kv-val {
+  flex: 0 1 auto;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.turbo-controls-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.55rem;
+  margin-top: auto;
+}
+
+.turbo-select-inline {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.turbo-select-inline label {
+  font-size: 0.76rem;
+  color: var(--text-subtle);
+}
+
+.turbo-select-inline select {
+  min-height: 2.2rem;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.84rem;
+}
+
+.turbo-flags-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.32rem;
+}
+
+.turbo-chip {
+  padding: 0.16rem 0.46rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-alt);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-subtle);
+}
+
+.turbo-chip.is-on {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border-subtle));
+  color: var(--accent-fg);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-surface-alt));
+}
+
+.turbo-toggles-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.turbo-toggle-compact {
+  padding: 0.36rem 0.6rem;
+  background: var(--bg-surface-alt);
+}
+
+.turbo-toggle-compact label {
+  font-size: 0.81rem;
+  font-weight: 600;
+}
+
+.turbo-status-line {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.discord-rpc-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  padding: 0.55rem 0.68rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-control);
+  background: var(--bg-surface-alt);
+}
+
+.discord-rpc-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.discord-live-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--success);
+  flex: 0 0 auto;
+}
+
+.discord-live-dot[data-state="standby"] {
+  background: var(--accent);
+}
+
+.discord-live-dot[data-state="off"] {
+  background: var(--text-subtle);
+}
+
+.discord-rpc-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.discord-rpc-copy strong {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.discord-rpc-copy span {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.discord-rpc-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  padding-top: 0.32rem;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.72rem;
+  color: var(--text-subtle);
+}
+
+.discord-repo-tag {
+  color: var(--accent-fg);
+  font-weight: 600;
+}
+
+.turbo-btn-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.48rem;
+  width: 100%;
+}
+
+.play-runtime-strip {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.65rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.runtime-pill-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.16rem;
+  min-width: 0;
+  padding-right: 0.5rem;
+  border-right: 1px solid var(--border-subtle);
+}
+
+.runtime-pill-item:last-child {
+  border-right: 0;
+  padding-right: 0;
+}
+
+.runtime-pill-item .kv-key {
+  font-size: 0.74rem;
+  color: var(--text-subtle);
+}
+
+.runtime-pill-item strong {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1040px) {
+  .play-runtime-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .runtime-pill-item {
+    border-right: 0;
+  }
+}
+
+.profile-meta-card {
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.profile-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rail-quick-actions-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.32rem;
+}
+
+.rail-quick-actions-2 .btn-rail-mini {
+  width: 100%;
+  min-height: 1.95rem;
+  padding: 0 0.45rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.rail-quick-actions-2 .btn-rail-mini:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text);
+}

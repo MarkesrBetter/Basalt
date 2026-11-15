@@ -104,9 +104,37 @@ export interface AppConfig {
   ui_reduced_motion: boolean;
   ui_sounds: boolean;
   ui_language: UiLanguage;
+  discord_rpc: boolean;
+  download_threads: number;
+  network_boost: boolean;
+  process_boost: boolean;
   last_save_id: string | null;
   saved_servers: SavedServer[];
   graphics: GraphicsSettings;
+}
+
+export interface DiscordRpcStatus {
+  enabled: boolean;
+  connected: boolean;
+  pipe_name: string;
+  details: string;
+  state_label: string;
+  started_epoch_secs: number;
+  github_url: string;
+}
+
+export interface ClientOptimizationReport {
+  cdn_ping_ms: number | null;
+  local_ping_ms: number | null;
+  freed_bytes: number;
+  dns_flushed: boolean;
+  applied_flags_count: number;
+  active_flags: string[];
+}
+
+export interface TurboSettingsDto {
+  config: AppConfig;
+  discord_rpc_status: DiscordRpcStatus;
 }
 
 export interface MinecraftSaveSummary {
@@ -143,6 +171,7 @@ export interface VanillaEnvStatus {
 export interface VersionChangeDto {
   config: AppConfig;
   vanilla: VanillaEnvStatus;
+  discord_rpc_status: DiscordRpcStatus;
 }
 
 export interface RunningSessionDto {
@@ -163,6 +192,7 @@ export interface BootstrapDto {
   saves: MinecraftSaveSummary[];
   hardware: HardwareProfile;
   vanilla: VanillaEnvStatus;
+  discord_rpc_status: DiscordRpcStatus;
   skin_rgba: number[];
   skin_is_slim: boolean;
   running_session: RunningSessionDto | null;
