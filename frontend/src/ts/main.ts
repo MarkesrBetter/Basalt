@@ -12,6 +12,18 @@ import {
 } from "./i18n";
 import * as ipc from "./ipc";
 import {
+  animateDialogOpen,
+  animateToastIn,
+  animateViewHandoff,
+  cancelElementAnimation,
+  resolveEffectiveMotion,
+  syncRootMotionAttribute,
+  watchSystemMotion,
+  wireDetailsAccordion,
+  wireRovingTabGroup,
+  type EffectiveMotion,
+} from "./motion";
+import {
   drawSkinPreview,
   drawTopbarHead,
   renderClientStratumSvg,
@@ -157,6 +169,14 @@ function getEffectiveLanguage(): UiLanguage {
   return cfg === "Tr" || cfg === "De" || cfg === "En" ? cfg : "En";
 }
 
+let pendingLaunch = false;
+let pendingSaveProfile = false;
+let pendingSaveGfx = false;
+
+function getEffectiveMotion(): EffectiveMotion {
+  return resolveEffectiveMotion(Boolean(state?.config.ui_reduced_motion));
+}
+
 function errorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;
@@ -172,14 +192,17 @@ function showToast(message: string, tone: "neutral" | "success" | "error" = "neu
     toast.setAttribute("data-tone", tone);
   }
   toast.hidden = false;
+  animateToastIn(toast, getEffectiveMotion(), tone);
 
   if (toastTimer !== null) {
     window.clearTimeout(toastTimer);
   }
+  const durationMs = tone === "error" ? 5600 : 4200;
   toastTimer = window.setTimeout(() => {
+    cancelElementAnimation(toast);
     toast.hidden = true;
     toastTimer = null;
-  }, 4200);
+  }, durationMs);
 }
 
 function setBanner(
@@ -340,14 +363,20 @@ function updateDeckClock(): void {
 }
 
 function syncDeckClock(active: boolean): void {
-  if (active) {
-    updateDeckClock();
-    if (deckClockTimer === null) {
-      deckClockTimer = window.setInterval(updateDeckClock, 15_000);
-    }
-  } else if (deckClockTimer !== null) {
-    window.clearInterval(deckClockTimer);
+  if (deckClockTimer !== null) {
+    window.clearTimeout(deckClockTimer);
     deckClockTimer = null;
+  }
+  if (active && !document.hidden) {
+    updateDeckClock();
+    const now = new Date();
+    const msUntilNextMinute = Math.max(1000, (60 - now.getSeconds()) * 1000 - now.getMilliseconds());
+    deckClockTimer = window.setTimeout(() => {
+      deckClockTimer = null;
+      if (getEffectiveLayout() === "DeckMode" && !document.hidden) {
+        syncDeckClock(true);
+      }
+    }, msUntilNextMinute);
   }
 }
 
@@ -360,6 +389,7 @@ function currentActiveViewId(): ViewId {
 function applyPreferences(): void {
   const lang = getEffectiveLanguage();
   applyStaticI18n(lang);
+  syncRootMotionAttribute(Boolean(state?.config.ui_reduced_motion));
 
   for (const btn of Array.from(document.querySelectorAll<HTMLButtonElement>("[data-lang-choice]"))) {
     const active = btn.dataset.langChoice === lang;
@@ -402,7 +432,7 @@ function applyPreferences(): void {
   document.documentElement.setAttribute("data-layout", LAYOUT_ATTRS[layout] ?? "sidebar");
   applyDynamicDesignTokens(theme, accent, customHex, corner);
   document.body.classList.toggle("compact", state.config.ui_compact);
-  document.body.classList.toggle("reduce-motion", state.config.ui_reduced_motion);
+  syncRootMotionAttribute(state.config.ui_reduced_motion);
 
   byId<HTMLSpanElement>("rail-theme-label").textContent = THEME_SHORT_LABELS[lang][theme];
   byId<HTMLSpanElement>("rail-layout-label").textContent = LAYOUT_SHORT_LABELS[lang][layout];
@@ -440,9 +470,20 @@ function setActiveView(view: ViewId, updateHash = true, withSound = false): void
     }
   }
 
+  let incomingSection: HTMLElement | null = null;
   const sections = document.querySelectorAll<HTMLElement>("main .view[data-view]");
   for (const section of Array.from(sections)) {
-    section.hidden = section.dataset.view !== view;
+    const isTarget = section.dataset.view === view;
+    section.hidden = !isTarget;
+    if (isTarget) {
+      incomingSection = section;
+    } else {
+      cancelElementAnimation(section);
+    }
+  }
+
+  if (changed && incomingSection) {
+    animateViewHandoff(incomingSection, getEffectiveMotion());
   }
 
   byId<HTMLElement>("topbar-crumb").textContent = tr(getEffectiveLanguage(), `view.${view}`);
@@ -1151,7 +1192,7 @@ function enterConsoleMode(): void {
   setActiveView("play", true, false);
   renderConsoleHome();
   void ipc.setFullscreen(true).catch(() => undefined);
-  window.requestAnimationFrame(() => {
+  queueMicrotask(() => {
     const heroBtn = document.getElementById("btn-deck-primary");
     if (heroBtn instanceof HTMLButtonElement && !heroBtn.disabled) {
       heroBtn.focus({ preventScroll: true });
@@ -1764,7 +1805,8 @@ async function handleLaunchClient(
   saveId: string | null,
   serverAddress: string | null
 ): Promise<void> {
-  if (!state) return;
+  if (!state || pendingLaunch || state.running_session !== null) return;
+  pendingLaunch = true;
   const feedback = byId<HTMLDivElement>("launch-feedback");
   setBanner(feedback, null);
 
@@ -1800,6 +1842,8 @@ async function handleLaunchClient(
     const msg = errorMessage(err);
     setBanner(feedback, msg, "error");
     showToast(msg, "error");
+  } finally {
+    pendingLaunch = false;
   }
 }
 
@@ -1832,7 +1876,12 @@ function openDeleteDialog(save: MinecraftSaveSummary, trigger: HTMLElement): voi
       root: savesRoot,
     }
   );
-  byId<HTMLDialogElement>("delete-world-dialog").showModal();
+  const dialog = byId<HTMLDialogElement>("delete-world-dialog");
+  if (!dialog.open) {
+    dialog.showModal();
+  }
+  animateDialogOpen(dialog, getEffectiveMotion());
+  byId<HTMLButtonElement>("delete-dialog-cancel").focus({ preventScroll: true });
 }
 
 async function confirmDeleteSave(): Promise<void> {
@@ -1862,10 +1911,11 @@ async function confirmDeleteSave(): Promise<void> {
 
 async function handleSaveProfileForm(e: SubmitEvent): Promise<void> {
   e.preventDefault();
-  if (!state) return;
+  if (!state || pendingSaveProfile) return;
   const input = byId<HTMLInputElement>("profile-username");
   const errEl = byId<HTMLSpanElement>("profile-username-error");
   const statusEl = byId<HTMLSpanElement>("profile-save-status");
+  const saveBtn = byId<HTMLButtonElement>("btn-save-profile");
 
   const validation = validateUsername(input.value);
   if (validation) {
@@ -1876,6 +1926,8 @@ async function handleSaveProfileForm(e: SubmitEvent): Promise<void> {
     return;
   }
   errEl.hidden = true;
+  pendingSaveProfile = true;
+  saveBtn.disabled = true;
 
   try {
     state.config = await ipc.saveProfileSettings({
@@ -1900,6 +1952,9 @@ async function handleSaveProfileForm(e: SubmitEvent): Promise<void> {
   } catch (err) {
     playMcSound("error");
     showToast(errorMessage(err), "error");
+  } finally {
+    pendingSaveProfile = false;
+    saveBtn.disabled = false;
   }
 }
 
@@ -2041,7 +2096,10 @@ async function handleAutoOptimize(): Promise<void> {
 
 async function handleSaveGraphics(e: SubmitEvent): Promise<void> {
   e.preventDefault();
-  if (!state) return;
+  if (!state || pendingSaveGfx) return;
+  pendingSaveGfx = true;
+  const saveBtn = byId<HTMLButtonElement>("btn-save-graphics");
+  saveBtn.disabled = true;
   const statusEl = byId<HTMLSpanElement>("gfx-save-status");
   const nextGfx: GraphicsSettings = {
     preset: "Custom",
@@ -2068,6 +2126,9 @@ async function handleSaveGraphics(e: SubmitEvent): Promise<void> {
     showToast(tr(lang, "system.gfxSavedToast"), "success");
   } catch (err) {
     showToast(errorMessage(err), "error");
+  } finally {
+    pendingSaveGfx = false;
+    saveBtn.disabled = false;
   }
 }
 
@@ -2142,7 +2203,7 @@ async function handleProbeServer(address: string): Promise<void> {
   }
 }
 
-let deckRafId: number | null = null;
+let deckGamepadTimer: number | null = null;
 let deckPrevButtons: boolean[] = [];
 let deckLastRepeatDir: "up" | "down" | "left" | "right" | null = null;
 let deckLastRepeatAt = 0;
@@ -2155,9 +2216,17 @@ function getVisibleDeckFocusables(): HTMLElement[] {
   );
   return nodes.filter((el) => {
     if (el.hidden || el.closest("[hidden]")) return false;
-    const rect = el.getBoundingClientRect();
-    return rect.width > 0 && rect.height > 0 && el.offsetParent !== null;
+    return el.offsetParent !== null && el.getClientRects().length > 0;
   });
+}
+
+function getElementCenter(el: HTMLElement): { x: number; y: number } | null {
+  const rect = el.getClientRects()[0];
+  if (!rect) return null;
+  return {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2,
+  };
 }
 
 function moveDeckFocus(dir: "up" | "down" | "left" | "right"): void {
@@ -2213,18 +2282,20 @@ function moveDeckFocus(dir: "up" | "down" | "left" | "right"): void {
     return;
   }
 
-  const cur = active.getBoundingClientRect();
-  const cx = cur.left + cur.width / 2;
-  const cy = cur.top + cur.height / 2;
+  const curCenter = getElementCenter(active);
+  if (!curCenter) return;
+  const cx = curCenter.x;
+  const cy = curCenter.y;
 
   let best: HTMLElement | null = null;
   let bestScore = Number.POSITIVE_INFINITY;
 
   for (const el of candidates) {
     if (el === active) continue;
-    const r = el.getBoundingClientRect();
-    const tx = r.left + r.width / 2;
-    const ty = r.top + r.height / 2;
+    const targetCenter = getElementCenter(el);
+    if (!targetCenter) continue;
+    const tx = targetCenter.x;
+    const ty = targetCenter.y;
     const dx = tx - cx;
     const dy = ty - cy;
 
@@ -2293,8 +2364,8 @@ function exitConsoleMode(): void {
 }
 
 function pollGamepadFrame(): void {
-  if (getEffectiveLayout() !== "DeckMode") {
-    deckRafId = null;
+  deckGamepadTimer = null;
+  if (getEffectiveLayout() !== "DeckMode" || document.hidden) {
     return;
   }
 
@@ -2311,71 +2382,76 @@ function pollGamepadFrame(): void {
       : tr(lang, "deck.gamepadWaiting");
   }
 
-  if (pad) {
-    const btns = pad.buttons.map((b) => b.pressed);
-    const pressedEdge = (i: number) => Boolean(btns[i] && !deckPrevButtons[i]);
-
-    const ax = pad.axes[0] ?? 0;
-    const ay = pad.axes[1] ?? 0;
-    let dir: "up" | "down" | "left" | "right" | null = null;
-    if (btns[12] || ay < -0.55) dir = "up";
-    else if (btns[13] || ay > 0.55) dir = "down";
-    else if (btns[14] || ax < -0.55) dir = "left";
-    else if (btns[15] || ax > 0.55) dir = "right";
-
-    const now = performance.now();
-    if (dir && (dir !== deckLastRepeatDir || now - deckLastRepeatAt > 190)) {
-      deckLastRepeatDir = dir;
-      deckLastRepeatAt = now;
-      unlockAudioContext();
-      moveDeckFocus(dir);
-    } else if (!dir) {
-      deckLastRepeatDir = null;
-    }
-
-    if (pressedEdge(0)) {
-      unlockAudioContext();
-      const active = document.activeElement as HTMLElement | null;
-      const target =
-        active && active !== document.body && active !== document.documentElement
-          ? active
-          : byId<HTMLElement>("btn-deck-primary");
-      target.click();
-    }
-    if (pressedEdge(1)) {
-      unlockAudioContext();
-      const openDialog = document.querySelector<HTMLDialogElement>("dialog[open]");
-      if (openDialog) {
-        playMcSound("back");
-        openDialog.close();
-      } else {
-        exitConsoleMode();
-      }
-    }
-    if (pressedEdge(3)) {
-      toggleUiSound();
-    }
-    if (pressedEdge(4)) {
-      unlockAudioContext();
-      cycleActiveView(-1);
-    }
-    if (pressedEdge(5)) {
-      unlockAudioContext();
-      cycleActiveView(1);
-    }
-
-    deckPrevButtons = btns;
+  if (!pad) {
+    deckPrevButtons = [];
+    deckLastRepeatDir = null;
+    return;
   }
 
-  deckRafId = window.requestAnimationFrame(pollGamepadFrame);
+  const btns = pad.buttons.map((b) => b.pressed);
+  const pressedEdge = (i: number) => Boolean(btns[i] && !deckPrevButtons[i]);
+
+  const ax = pad.axes[0] ?? 0;
+  const ay = pad.axes[1] ?? 0;
+  let dir: "up" | "down" | "left" | "right" | null = null;
+  if (btns[12] || ay < -0.55) dir = "up";
+  else if (btns[13] || ay > 0.55) dir = "down";
+  else if (btns[14] || ax < -0.55) dir = "left";
+  else if (btns[15] || ax > 0.55) dir = "right";
+
+  const now = performance.now();
+  if (dir && (dir !== deckLastRepeatDir || now - deckLastRepeatAt > 190)) {
+    deckLastRepeatDir = dir;
+    deckLastRepeatAt = now;
+    unlockAudioContext();
+    moveDeckFocus(dir);
+  } else if (!dir) {
+    deckLastRepeatDir = null;
+  }
+
+  if (pressedEdge(0)) {
+    unlockAudioContext();
+    const active = document.activeElement as HTMLElement | null;
+    const target =
+      active && active !== document.body && active !== document.documentElement
+        ? active
+        : byId<HTMLElement>("btn-deck-primary");
+    target.click();
+  }
+  if (pressedEdge(1)) {
+    unlockAudioContext();
+    const openDialog = document.querySelector<HTMLDialogElement>("dialog[open]");
+    if (openDialog) {
+      playMcSound("back");
+      openDialog.close();
+    } else {
+      exitConsoleMode();
+    }
+  }
+  if (pressedEdge(3)) {
+    toggleUiSound();
+  }
+  if (pressedEdge(4)) {
+    unlockAudioContext();
+    cycleActiveView(-1);
+  }
+  if (pressedEdge(5)) {
+    unlockAudioContext();
+    cycleActiveView(1);
+  }
+
+  deckPrevButtons = btns;
+  deckGamepadTimer = window.setTimeout(pollGamepadFrame, 24);
 }
 
 function syncDeckGamepadLoop(active: boolean): void {
-  if (active && deckRafId === null) {
-    deckRafId = window.requestAnimationFrame(pollGamepadFrame);
-  } else if (!active && deckRafId !== null) {
-    window.cancelAnimationFrame(deckRafId);
-    deckRafId = null;
+  if (deckGamepadTimer !== null) {
+    window.clearTimeout(deckGamepadTimer);
+    deckGamepadTimer = null;
+  }
+  if (active && !document.hidden) {
+    pollGamepadFrame();
+  } else {
     deckPrevButtons = [];
     deckLastRepeatDir = null;
   }
@@ -2383,6 +2459,11 @@ function syncDeckGamepadLoop(active: boolean): void {
 
 function initDeckKeyboardNav(): void {
   window.addEventListener("gamepadconnected", () => {
+    if (getEffectiveLayout() === "DeckMode") {
+      syncDeckGamepadLoop(true);
+    }
+  });
+  window.addEventListener("gamepaddisconnected", () => {
     if (getEffectiveLayout() === "DeckMode") {
       syncDeckGamepadLoop(true);
     }
@@ -2873,7 +2954,13 @@ function wireEvents(): void {
   byId<HTMLButtonElement>("delete-dialog-confirm").addEventListener("click", () => {
     void confirmDeleteSave();
   });
+  dialog.addEventListener("click", (e) => {
+    if (e.target === dialog) {
+      closeDialog();
+    }
+  });
   dialog.addEventListener("close", () => {
+    cancelElementAnimation(dialog);
     const trigger = lastDialogTrigger;
     lastDialogTrigger = null;
     if (trigger && trigger.isConnected) {
@@ -2881,6 +2968,32 @@ function wireEvents(): void {
     } else {
       byId<HTMLButtonElement>("btn-refresh-worlds").focus();
     }
+  });
+
+  // Kinetic WebUI: accordions, roving tab groups, OS reduced-motion & window lifecycle
+  for (const drawerId of ["appearance-drawer", "hardware-runtime-drawer"]) {
+    const drawerEl = document.getElementById(drawerId);
+    if (drawerEl instanceof HTMLDetailsElement) {
+      wireDetailsAccordion(drawerEl, getEffectiveMotion);
+    }
+  }
+
+  const navContainer = document.querySelector<HTMLElement>("aside.rail .nav");
+  if (navContainer) {
+    wireRovingTabGroup(navContainer, ".nav-btn[data-nav]");
+  }
+  for (const group of Array.from(document.querySelectorAll<HTMLElement>(".seg-control"))) {
+    wireRovingTabGroup(group, ".seg-btn");
+  }
+
+  watchSystemMotion(() => {
+    applyPreferences();
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    const isDeck = getEffectiveLayout() === "DeckMode" && !document.hidden;
+    syncDeckClock(isDeck);
+    syncDeckGamepadLoop(isDeck);
   });
 }
 

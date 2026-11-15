@@ -63,14 +63,24 @@
       --shadow: 0 10px 26px rgba(22, 24, 28, 0.07);
     }
 
+    :root {
+      --kin-press: 100ms;
+      --kin-hover: 125ms;
+      --kin-ease-control: cubic-bezier(0.2, 0.8, 0.2, 1);
+      --kin-press-scale: 0.986;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      :root {
+        --kin-press: 0ms;
+        --kin-hover: 0ms;
+      }
+    }
+
     *,
     *::before,
     *::after {
       box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
     }
 
     body {
@@ -111,8 +121,7 @@
       position: sticky;
       top: 0;
       z-index: 40;
-      background: color-mix(in srgb, var(--bg) 90%, transparent);
-      backdrop-filter: blur(10px);
+      background: color-mix(in srgb, var(--bg) 96%, var(--card));
       border-bottom: 1px solid var(--border);
     }
 
@@ -1183,7 +1192,7 @@
           <article class="card">
             <div class="card-head">
               <h3>basalt.exe · v0.1.0</h3>
-              <span class="card-tag" id="download-meta-size">13.83 MB (14,503,936 B)</span>
+              <span class="card-tag" id="download-meta-size">13.83 MB (14,505,984 B)</span>
             </div>
             <p data-i18n="dl.desc">
               Runs on 64-bit Windows 10 and Windows 11 with Microsoft Edge WebView2 Runtime. Official Minecraft files are cached locally on first launch.
@@ -1215,7 +1224,7 @@
                 <span data-i18n="dl.shaLabel">SHA-256 Checksum</span>
                 <button type="button" class="copy-btn" id="copy-sha-btn" data-i18n="dl.copySha">Copy SHA-256</button>
               </div>
-              <p class="hash-code" id="sha-value">07694f5ce50e6aa95a9660182e6354c867c472902dffa0ac65a28fb93355b8d3</p>
+              <p class="hash-code" id="sha-value">d33dc3405e00fbdd157781fc446af767be04ad53b8e2a53d35e6b4d228b664e4</p>
             </div>
 
             <div class="hash-box">
@@ -1277,8 +1286,8 @@
       "use strict";
 
       const DEFAULT_GITHUB_REPO = "Markesrrr/Basalt";
-      const EXE_SHA256 = "07694f5ce50e6aa95a9660182e6354c867c472902dffa0ac65a28fb93355b8d3";
-      const EXE_SIZE_DISPLAY = "13.83 MB (14,503,936 B)";
+      const EXE_SHA256 = "d33dc3405e00fbdd157781fc446af767be04ad53b8e2a53d35e6b4d228b664e4";
+      const EXE_SIZE_DISPLAY = "13.83 MB (14,505,984 B)";
 
       const I18N = {
         en: {

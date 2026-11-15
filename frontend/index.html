@@ -1140,17 +1140,19 @@
   </div>
 
   <dialog id="delete-world-dialog" aria-labelledby="delete-dialog-title" aria-describedby="delete-dialog-desc">
-    <div class="dialog-head">
-      <span class="eyebrow" data-i18n="worlds.deleteEyebrow">PERMANENT ACTION</span>
-      <button class="btn-icon" type="button" id="delete-dialog-close" aria-label="Close confirmation dialog" data-i18n-aria="worlds.deleteCloseAria">
-        <svg class="ico small" aria-hidden="true"><use href="#ico-close" /></svg>
-      </button>
-    </div>
-    <h2 id="delete-dialog-title" data-i18n="worlds.deleteTitle">Delete world from disk</h2>
-    <p id="delete-dialog-desc"></p>
-    <div class="dialog-actions">
-      <button class="btn-secondary" type="button" id="delete-dialog-cancel" data-i18n="worlds.deleteCancel">Cancel</button>
-      <button class="btn-danger" type="button" id="delete-dialog-confirm" data-i18n="worlds.deleteConfirm">Delete permanently</button>
+    <div class="dialog-panel">
+      <div class="dialog-head">
+        <span class="eyebrow" data-i18n="worlds.deleteEyebrow">PERMANENT ACTION</span>
+        <button class="btn-icon" type="button" id="delete-dialog-close" aria-label="Close confirmation dialog" data-i18n-aria="worlds.deleteCloseAria">
+          <svg class="ico small" aria-hidden="true"><use href="#ico-close" /></svg>
+        </button>
+      </div>
+      <h2 id="delete-dialog-title" data-i18n="worlds.deleteTitle">Delete world from disk</h2>
+      <p id="delete-dialog-desc"></p>
+      <div class="dialog-actions">
+        <button class="btn-secondary" type="button" id="delete-dialog-cancel" data-i18n="worlds.deleteCancel">Cancel</button>
+        <button class="btn-danger" type="button" id="delete-dialog-confirm" data-i18n="worlds.deleteConfirm">Delete permanently</button>
+      </div>
     </div>
   </dialog>
 

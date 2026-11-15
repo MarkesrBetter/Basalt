@@ -69,7 +69,7 @@
   border-radius: 0;
   background: transparent;
   color: var(--text-muted);
-  transition: background-color 110ms ease, color 110ms ease;
+  transition: background-color var(--kin-hover) ease, color var(--kin-hover) ease;
 }
 
 .titlebar-btn:hover {
@@ -161,7 +161,15 @@
   background: transparent;
   color: var(--text-muted);
   text-align: left;
-  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+  transition:
+    background-color var(--kin-hover) ease,
+    color var(--kin-hover) ease,
+    border-color var(--kin-hover) ease,
+    transform var(--kin-press) var(--kin-ease-control);
+}
+
+.nav-btn:active:not(:disabled) {
+  transform: scale(var(--kin-press-scale));
 }
 
 .nav-btn:hover {
@@ -1483,5 +1491,25 @@ main {
 @media (max-width: 960px) {
   #view-play .play-under-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+:root[data-motion="none"] .titlebar-btn,
+:root[data-motion="none"] .nav-btn {
+  transition: none;
+}
+
+:root[data-motion="none"] .nav-btn:active:not(:disabled) {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .titlebar-btn,
+  .nav-btn {
+    transition: none;
+  }
+
+  .nav-btn:active:not(:disabled) {
+    transform: none;
   }
 }

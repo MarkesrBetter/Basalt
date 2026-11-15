@@ -15,7 +15,7 @@ select {
   border-radius: var(--radius-sm);
   color: var(--text);
   font-size: 0.95rem;
-  transition: border-color 120ms ease, background-color 120ms ease;
+  transition: border-color var(--kin-hover) ease, background-color var(--kin-hover) ease;
 }
 
 input[type="text"]:hover,
@@ -82,7 +82,20 @@ input[type="text"].invalid {
   border-radius: var(--radius-sm);
   font-size: 0.95rem;
   font-weight: 600;
-  transition: background-color 120ms ease, border-color 120ms ease, transform 80ms ease;
+  transform-origin: center;
+  transition:
+    background-color var(--kin-hover) ease,
+    border-color var(--kin-hover) ease,
+    color var(--kin-hover) ease,
+    transform var(--kin-press) var(--kin-ease-control);
+}
+
+.btn-primary:active:not(:disabled),
+.btn-secondary:active:not(:disabled),
+.btn-danger:active:not(:disabled),
+.btn-subtle:active:not(:disabled),
+.btn-icon:active:not(:disabled) {
+  transform: scale(var(--kin-press-scale));
 }
 
 .btn-primary {
@@ -95,10 +108,6 @@ input[type="text"].invalid {
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
-}
-
-.btn-primary:active:not(:disabled) {
-  transform: translateY(1px);
 }
 
 .btn-secondary {
@@ -213,8 +222,7 @@ input[type="text"].invalid {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.95rem 1.25rem;
-  background: color-mix(in srgb, var(--bg-surface) 90%, transparent);
-  backdrop-filter: blur(8px);
+  background: color-mix(in srgb, var(--bg-surface) 95%, var(--bg-canvas));
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -1044,6 +1052,10 @@ dialog {
   border: 1px solid var(--border-control);
   border-radius: var(--radius-md);
   max-width: min(92vw, 32rem);
+  padding: 0;
+}
+
+.dialog-panel {
   padding: 1.5rem 1.65rem;
 }
 
@@ -2150,4 +2162,80 @@ dialog p {
 .rail-quick-actions-2 .btn-rail-mini:hover:not(:disabled) {
   background: var(--bg-hover);
   color: var(--text);
+}
+
+.seg-btn,
+.swatch-btn,
+.layout-btn,
+.accent-chip,
+.deck-card {
+  transition:
+    background-color var(--kin-hover) ease,
+    border-color var(--kin-hover) ease,
+    color var(--kin-hover) ease,
+    transform var(--kin-press) var(--kin-ease-control);
+}
+
+.seg-btn:active:not(:disabled),
+.swatch-btn:active:not(:disabled),
+.layout-btn:active:not(:disabled),
+.accent-chip:active:not(:disabled),
+.deck-card:active:not(:disabled) {
+  transform: scale(var(--kin-press-scale));
+}
+
+:root[data-motion="none"] .btn-primary,
+:root[data-motion="none"] .btn-secondary,
+:root[data-motion="none"] .btn-danger,
+:root[data-motion="none"] .btn-subtle,
+:root[data-motion="none"] .btn-icon,
+:root[data-motion="none"] .seg-btn,
+:root[data-motion="none"] .swatch-btn,
+:root[data-motion="none"] .layout-btn,
+:root[data-motion="none"] .accent-chip,
+:root[data-motion="none"] .deck-card,
+:root[data-motion="none"] .recent-jump-row {
+  transition: none;
+}
+
+:root[data-motion="none"] .btn-primary:active:not(:disabled),
+:root[data-motion="none"] .btn-secondary:active:not(:disabled),
+:root[data-motion="none"] .btn-danger:active:not(:disabled),
+:root[data-motion="none"] .btn-subtle:active:not(:disabled),
+:root[data-motion="none"] .btn-icon:active:not(:disabled),
+:root[data-motion="none"] .seg-btn:active:not(:disabled),
+:root[data-motion="none"] .swatch-btn:active:not(:disabled),
+:root[data-motion="none"] .layout-btn:active:not(:disabled),
+:root[data-motion="none"] .accent-chip:active:not(:disabled),
+:root[data-motion="none"] .deck-card:active:not(:disabled) {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger,
+  .btn-subtle,
+  .btn-icon,
+  .seg-btn,
+  .swatch-btn,
+  .layout-btn,
+  .accent-chip,
+  .deck-card,
+  .recent-jump-row {
+    transition: none;
+  }
+
+  .btn-primary:active:not(:disabled),
+  .btn-secondary:active:not(:disabled),
+  .btn-danger:active:not(:disabled),
+  .btn-subtle:active:not(:disabled),
+  .btn-icon:active:not(:disabled),
+  .seg-btn:active:not(:disabled),
+  .swatch-btn:active:not(:disabled),
+  .layout-btn:active:not(:disabled),
+  .accent-chip:active:not(:disabled),
+  .deck-card:active:not(:disabled) {
+    transform: none;
+  }
 }

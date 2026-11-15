@@ -46,6 +46,60 @@
 
   --font-sans: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-mono: "Consolas", ui-monospace, monospace;
+
+  /* Kinetic WebUI motion token vocabulary (calibrated for desktop launcher feel) */
+  --kin-press: 100ms;
+  --kin-hover: 125ms;
+  --kin-select: 175ms;
+  --kin-surface-in: 210ms;
+  --kin-surface-out: 145ms;
+  --kin-route: 200ms;
+  --kin-spring-settle: 280ms;
+  --kin-stagger-small: 20ms;
+  --kin-ease-control: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --kin-ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --kin-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --kin-ease-symmetric: cubic-bezier(0.4, 0, 0.2, 1);
+  --kin-press-scale: 0.986;
+  --kin-distance-xs: 3px;
+  --kin-distance-sm: 7px;
+  --kin-distance-md: 12px;
+  --kin-distance-lg: 18px;
+}
+
+:root[data-motion="subtle"] {
+  --kin-press: 75ms;
+  --kin-hover: 90ms;
+  --kin-select: 125ms;
+  --kin-surface-in: 140ms;
+  --kin-surface-out: 105ms;
+  --kin-route: 135ms;
+  --kin-spring-settle: 180ms;
+  --kin-stagger-small: 0ms;
+}
+
+:root[data-motion="none"] {
+  --kin-press: 0ms;
+  --kin-hover: 0ms;
+  --kin-select: 0ms;
+  --kin-surface-in: 0ms;
+  --kin-surface-out: 0ms;
+  --kin-route: 0ms;
+  --kin-spring-settle: 0ms;
+  --kin-stagger-small: 0ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --kin-press: 0ms;
+    --kin-hover: 0ms;
+    --kin-select: 0ms;
+    --kin-surface-in: 0ms;
+    --kin-surface-out: 0ms;
+    --kin-route: 0ms;
+    --kin-spring-settle: 0ms;
+    --kin-stagger-small: 0ms;
+  }
 }
 
 :root[data-theme="ember"] {

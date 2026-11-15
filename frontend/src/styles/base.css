@@ -126,11 +126,14 @@ dd {
   left: 12px;
 }
 
+:root[data-motion="none"] *,
+:root[data-motion="none"] *::before,
+:root[data-motion="none"] *::after,
 body.reduce-motion *,
 body.reduce-motion *::before,
 body.reduce-motion *::after {
-  transition-duration: 0.01ms !important;
-  animation-duration: 0.01ms !important;
+  transition-duration: 0ms !important;
+  animation-duration: 0ms !important;
   scroll-behavior: auto !important;
 }
 
@@ -138,8 +141,8 @@ body.reduce-motion *::after {
   *,
   *::before,
   *::after {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
     scroll-behavior: auto !important;
   }
 }
