@@ -5,7 +5,7 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 
-use crate::config::{GraphicsSettings, JvmGcMode};
+use crate::config::{GraphicsSettings, JvmGcMode, SUPPORTED_MC_VERSIONS, normalize_mc_version};
 use crate::protocol::{MINECRAFT_1_21_4_NAME, local_player_uuid_bytes, local_player_uuid_dashed};
 
 pub const MOJANG_VERSION_MANIFEST_V2_URL: &str =
@@ -38,6 +38,8 @@ pub const DEFAULT_SKIN_PATHS: [&str; 18] = [
 
 #[derive(Debug, Clone, Serialize)]
 pub struct VanillaEnvStatus {
+    pub active_version: String,
+    pub installed_versions: Vec<String>,
     pub vanilla_dir: String,
     pub runs_dir: String,
     pub saves_dir: String,
@@ -379,9 +381,25 @@ pub fn inspect_vanilla_environment_with_runtime(
     run_dir: &Path,
     runtime_dir: Option<&Path>,
 ) -> VanillaEnvStatus {
+    inspect_vanilla_environment_for_version(vanilla_dir, run_dir, runtime_dir, MINECRAFT_1_21_4_NAME)
+}
+
+pub fn inspect_vanilla_environment_for_version(
+    vanilla_dir: &Path,
+    run_dir: &Path,
+    runtime_dir: Option<&Path>,
+    version: &str,
+) -> VanillaEnvStatus {
+    let active_version = normalize_mc_version(version);
     let saves_dir = run_dir.join("saves");
-    let client_ready = check_vanilla_client_ready(vanilla_dir);
-    let assets_ready = check_vanilla_assets_ready(vanilla_dir);
+    let client_ready = check_vanilla_client_ready_for(vanilla_dir, &active_version);
+    let assets_ready = check_vanilla_assets_ready_for(vanilla_dir, &active_version);
+    let installed_versions: Vec<String> = SUPPORTED_MC_VERSIONS
+        .iter()
+        .copied()
+        .filter(|v| check_vanilla_client_ready_for(vanilla_dir, v))
+        .map(str::to_string)
+        .collect();
 
     let discovery = probe_java21_environment(runtime_dir);
     let (java_ready, java_home, java_version_label, java_hint) = match discovery.java21 {
@@ -404,7 +422,7 @@ pub fn inspect_vanilla_environment_with_runtime(
                 (
                     format!("Missing ({older} too old)"),
                     format!(
-                        "Only {older} was found on this system; Vanilla Minecraft 1.21.4 requires Java 21+. Install it in one click below."
+                        "Only {older} was found on this system; Vanilla Minecraft {active_version} requires Java 21+. Install it in one click below."
                     ),
                 )
             } else {
@@ -419,6 +437,8 @@ pub fn inspect_vanilla_environment_with_runtime(
     };
 
     VanillaEnvStatus {
+        active_version,
+        installed_versions,
         vanilla_dir: vanilla_dir.to_string_lossy().into_owned(),
         runs_dir: run_dir.to_string_lossy().into_owned(),
         saves_dir: saves_dir.to_string_lossy().into_owned(),
@@ -498,6 +518,8 @@ pub struct MojangRule {
 #[derive(Debug, Clone, Deserialize)]
 pub struct MojangLibDownloads {
     pub artifact: Option<MojangArtifactInfo>,
+    #[serde(default)]
+    pub classifiers: HashMap<String, MojangArtifactInfo>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -620,24 +642,47 @@ pub fn is_library_allowed_for_target(
     true
 }
 
-fn version_json_path(vanilla_dir: &Path) -> PathBuf {
-    vanilla_dir
-        .join("versions")
-        .join(MINECRAFT_1_21_4_NAME)
-        .join(format!("{MINECRAFT_1_21_4_NAME}.json"))
+fn native_classifier_for_library<'a>(
+    lib: &'a MojangLibrary,
+    os_name: &str,
+) -> Option<&'a MojangArtifactInfo> {
+    if lib.downloads.classifiers.is_empty() {
+        return None;
+    }
+    let keys: &[&str] = match os_name {
+        "windows" => &["natives-windows", "natives-windows-64"],
+        "osx" => &["natives-macos", "natives-osx"],
+        _ => &["natives-linux"],
+    };
+    for &k in keys {
+        if let Some(info) = lib.downloads.classifiers.get(k) {
+            return Some(info);
+        }
+    }
+    None
 }
 
-fn client_jar_path(vanilla_dir: &Path) -> PathBuf {
+fn version_json_path_for(vanilla_dir: &Path, version: &str) -> PathBuf {
     vanilla_dir
         .join("versions")
-        .join(MINECRAFT_1_21_4_NAME)
-        .join(format!("{MINECRAFT_1_21_4_NAME}.jar"))
+        .join(version)
+        .join(format!("{version}.json"))
 }
 
-fn load_cached_version_manifest(vanilla_dir: &Path) -> Option<MojangVersionManifest> {
-    let raw = fs::read_to_string(version_json_path(vanilla_dir)).ok()?;
+fn client_jar_path_for(vanilla_dir: &Path, version: &str) -> PathBuf {
+    vanilla_dir
+        .join("versions")
+        .join(version)
+        .join(format!("{version}.jar"))
+}
+
+pub fn load_cached_version_manifest_for(
+    vanilla_dir: &Path,
+    version: &str,
+) -> Option<MojangVersionManifest> {
+    let raw = fs::read_to_string(version_json_path_for(vanilla_dir, version)).ok()?;
     let manifest: MojangVersionManifest = serde_json::from_str(&raw).ok()?;
-    if manifest.id != MINECRAFT_1_21_4_NAME
+    if manifest.id != version
         || manifest.libraries.is_empty()
         || manifest.main_class.trim().is_empty()
     {
@@ -658,11 +703,14 @@ fn check_file_size_and_sha1(path: &Path, expected_size: u64, expected_sha1: &str
         .is_ok_and(|actual| actual.eq_ignore_ascii_case(expected_sha1))
 }
 
-fn check_vanilla_client_ready(vanilla_dir: &Path) -> bool {
-    let Some(manifest) = load_cached_version_manifest(vanilla_dir) else {
+pub fn check_vanilla_client_ready_for(vanilla_dir: &Path, version: &str) -> bool {
+    let Some(manifest) = load_cached_version_manifest_for(vanilla_dir, version) else {
         return false;
     };
-    if !check_file_size(&client_jar_path(vanilla_dir), manifest.downloads.client.size) {
+    if !check_file_size(
+        &client_jar_path_for(vanilla_dir, version),
+        manifest.downloads.client.size,
+    ) {
         return false;
     }
     if let Some(ref logging) = manifest.logging
@@ -679,22 +727,32 @@ fn check_vanilla_client_ready(vanilla_dir: &Path) -> bool {
         if !is_library_allowed_for_target(&lib.name, &lib.rules, os_name, arch) {
             continue;
         }
-        let Some(ref art) = lib.downloads.artifact else {
-            continue;
-        };
-        let Some(ref rel) = art.path else {
-            continue;
-        };
-        let p = vanilla_dir.join("libraries").join(rel.replace('/', std::path::MAIN_SEPARATOR_STR));
-        if !check_file_size(&p, art.size) {
-            return false;
+        if let Some(ref art) = lib.downloads.artifact
+            && let Some(ref rel) = art.path
+        {
+            let p = vanilla_dir
+                .join("libraries")
+                .join(rel.replace('/', std::path::MAIN_SEPARATOR_STR));
+            if !check_file_size(&p, art.size) {
+                return false;
+            }
+        }
+        if let Some(nat) = native_classifier_for_library(lib, os_name)
+            && let Some(ref rel) = nat.path
+        {
+            let p = vanilla_dir
+                .join("libraries")
+                .join(rel.replace('/', std::path::MAIN_SEPARATOR_STR));
+            if !check_file_size(&p, nat.size) {
+                return false;
+            }
         }
     }
     true
 }
 
-fn check_vanilla_assets_ready(vanilla_dir: &Path) -> bool {
-    let Some(manifest) = load_cached_version_manifest(vanilla_dir) else {
+pub fn check_vanilla_assets_ready_for(vanilla_dir: &Path, version: &str) -> bool {
+    let Some(manifest) = load_cached_version_manifest_for(vanilla_dir, version) else {
         return false;
     };
     let idx_path = vanilla_dir
@@ -890,13 +948,13 @@ fn local_seed_roots() -> Vec<PathBuf> {
     out
 }
 
-fn find_local_cached_client_jar(sha1: &str, size: u64) -> Option<PathBuf> {
+fn find_local_cached_client_jar_for(version: &str, sha1: &str, size: u64) -> Option<PathBuf> {
     if let Some(appdata) = std::env::var_os("APPDATA") {
         let mc_jar = PathBuf::from(appdata)
             .join(".minecraft")
             .join("versions")
-            .join(MINECRAFT_1_21_4_NAME)
-            .join(format!("{MINECRAFT_1_21_4_NAME}.jar"));
+            .join(version)
+            .join(format!("{version}.jar"));
         if check_file_size_and_sha1(&mc_jar, size, sha1) {
             return Some(mc_jar);
         }
@@ -907,7 +965,7 @@ fn find_local_cached_client_jar(sha1: &str, size: u64) -> Option<PathBuf> {
                 .join(".gradle")
                 .join("caches")
                 .join("fabric-loom")
-                .join(MINECRAFT_1_21_4_NAME)
+                .join(version)
                 .join("minecraft-client.jar");
             if check_file_size_and_sha1(&loom_jar, size, sha1) {
                 return Some(loom_jar);
@@ -947,22 +1005,37 @@ fn find_local_cached_asset(hash: &str, size: u64) -> Option<PathBuf> {
 /// and assets are downloaded, SHA-1 verified, and cached inside `vanilla_dir`.
 pub fn ensure_vanilla_1_21_4_ready<F>(
     vanilla_dir: &Path,
+    log: F,
+) -> Result<MojangVersionManifest, String>
+where
+    F: FnMut(&str, bool),
+{
+    ensure_vanilla_version_ready(vanilla_dir, MINECRAFT_1_21_4_NAME, log)
+}
+
+/// Ensures official Vanilla Minecraft `version` manifest, client JAR, libraries, logging XML,
+/// and assets are downloaded, SHA-1 verified, and cached inside `vanilla_dir`.
+pub fn ensure_vanilla_version_ready<F>(
+    vanilla_dir: &Path,
+    version: &str,
     mut log: F,
 ) -> Result<MojangVersionManifest, String>
 where
     F: FnMut(&str, bool),
 {
+    let ver = normalize_mc_version(version);
     fs::create_dir_all(vanilla_dir)
         .map_err(|e| format!("Failed to create Vanilla data directory: {e}"))?;
-    let natives_dir = vanilla_dir.join("natives").join(MINECRAFT_1_21_4_NAME);
+    let natives_dir = vanilla_dir.join("natives").join(&ver);
     let _ = fs::create_dir_all(&natives_dir);
 
-    let vjson_path = version_json_path(vanilla_dir);
-    let manifest: MojangVersionManifest = match load_cached_version_manifest(vanilla_dir) {
+    let vjson_path = version_json_path_for(vanilla_dir, &ver);
+    let manifest: MojangVersionManifest = match load_cached_version_manifest_for(vanilla_dir, &ver)
+    {
         Some(m) => m,
         None => {
             log(
-                "Fetching official Mojang Minecraft 1.21.4 version manifest...",
+                &format!("Fetching official Mojang Minecraft {ver} version manifest..."),
                 false,
             );
             let index_bytes = curl_fetch_bytes(MOJANG_VERSION_MANIFEST_V2_URL)?;
@@ -971,24 +1044,24 @@ where
             let entry = v2
                 .versions
                 .into_iter()
-                .find(|v| v.id == MINECRAFT_1_21_4_NAME)
+                .find(|v| v.id == ver)
                 .ok_or_else(|| {
-                    "Minecraft 1.21.4 was not found in Mojang version manifest.".to_string()
+                    format!("Minecraft {ver} was not found in Mojang version manifest.")
                 })?;
             let ver_bytes = curl_fetch_bytes(&entry.url)?;
             let actual_sha = compute_sha1_hex(std::io::Cursor::new(&ver_bytes))
-                .map_err(|e| format!("Failed to hash 1.21.4.json: {e}"))?;
+                .map_err(|e| format!("Failed to hash {ver}.json: {e}"))?;
             if !actual_sha.eq_ignore_ascii_case(&entry.sha1) {
-                return Err("SHA-1 verification failed for Mojang 1.21.4.json.".to_string());
+                return Err(format!("SHA-1 verification failed for Mojang {ver}.json."));
             }
             if let Some(parent) = vjson_path.parent() {
                 fs::create_dir_all(parent)
                     .map_err(|e| format!("Failed to create version directory: {e}"))?;
             }
             fs::write(&vjson_path, &ver_bytes)
-                .map_err(|e| format!("Failed to write 1.21.4.json: {e}"))?;
+                .map_err(|e| format!("Failed to write {ver}.json: {e}"))?;
             serde_json::from_slice(&ver_bytes)
-                .map_err(|e| format!("Failed to parse 1.21.4.json: {e}"))?
+                .map_err(|e| format!("Failed to parse {ver}.json: {e}"))?
         }
     };
 
@@ -1045,9 +1118,10 @@ where
     let mut reused_count: usize = 0;
 
     // 1. Client JAR
-    let jar_dest = client_jar_path(vanilla_dir);
+    let jar_dest = client_jar_path_for(vanilla_dir, &ver);
     if !check_file_size(&jar_dest, manifest.downloads.client.size) {
-        if let Some(cached) = find_local_cached_client_jar(
+        if let Some(cached) = find_local_cached_client_jar_for(
+            &ver,
             &manifest.downloads.client.sha1,
             manifest.downloads.client.size,
         ) {
@@ -1055,7 +1129,7 @@ where
                 let _ = fs::create_dir_all(parent);
             }
             fs::copy(&cached, &jar_dest)
-                .map_err(|e| format!("Failed to copy cached 1.21.4 client.jar: {e}"))?;
+                .map_err(|e| format!("Failed to copy cached {ver} client.jar: {e}"))?;
             reused_count += 1;
         } else {
             missing_tasks.push(DownloadTask {
@@ -1063,7 +1137,7 @@ where
                 dest: jar_dest,
                 sha1: manifest.downloads.client.sha1.clone(),
                 size: manifest.downloads.client.size,
-                label: "Vanilla 1.21.4 client.jar".to_string(),
+                label: format!("Vanilla {ver} client.jar"),
             });
         }
     }
@@ -1084,7 +1158,7 @@ where
         }
     }
 
-    // 3. Libraries
+    // 3. Libraries & legacy native classifiers
     let os_name = current_mojang_os_name();
     let arch = current_mojang_arch();
     let seed_roots = local_seed_roots();
@@ -1092,42 +1166,48 @@ where
         if !is_library_allowed_for_target(&lib.name, &lib.rules, os_name, arch) {
             continue;
         }
-        let Some(ref art) = lib.downloads.artifact else {
-            continue;
-        };
-        let Some(ref rel) = art.path else {
-            continue;
-        };
-        let dest = vanilla_dir
-            .join("libraries")
-            .join(rel.replace('/', std::path::MAIN_SEPARATOR_STR));
-        if check_file_size(&dest, art.size) {
-            continue;
+        let mut lib_artifacts: Vec<&MojangArtifactInfo> = Vec::with_capacity(2);
+        if let Some(ref art) = lib.downloads.artifact {
+            lib_artifacts.push(art);
         }
-        let mut copied = false;
-        for root in &seed_roots {
-            let local_lib = root
+        if let Some(nat) = native_classifier_for_library(lib, os_name) {
+            lib_artifacts.push(nat);
+        }
+        for art in lib_artifacts {
+            let Some(ref rel) = art.path else {
+                continue;
+            };
+            let dest = vanilla_dir
                 .join("libraries")
                 .join(rel.replace('/', std::path::MAIN_SEPARATOR_STR));
-            if check_file_size_and_sha1(&local_lib, art.size, &art.sha1) {
-                if let Some(parent) = dest.parent() {
-                    let _ = fs::create_dir_all(parent);
-                }
-                if fs::copy(&local_lib, &dest).is_ok() {
-                    reused_count += 1;
-                    copied = true;
-                    break;
+            if check_file_size(&dest, art.size) {
+                continue;
+            }
+            let mut copied = false;
+            for root in &seed_roots {
+                let local_lib = root
+                    .join("libraries")
+                    .join(rel.replace('/', std::path::MAIN_SEPARATOR_STR));
+                if check_file_size_and_sha1(&local_lib, art.size, &art.sha1) {
+                    if let Some(parent) = dest.parent() {
+                        let _ = fs::create_dir_all(parent);
+                    }
+                    if fs::copy(&local_lib, &dest).is_ok() {
+                        reused_count += 1;
+                        copied = true;
+                        break;
+                    }
                 }
             }
-        }
-        if !copied {
-            missing_tasks.push(DownloadTask {
-                url: art.url.clone(),
-                dest,
-                sha1: art.sha1.clone(),
-                size: art.size,
-                label: rel.clone(),
-            });
+            if !copied {
+                missing_tasks.push(DownloadTask {
+                    url: art.url.clone(),
+                    dest,
+                    sha1: art.sha1.clone(),
+                    size: art.size,
+                    label: rel.clone(),
+                });
+            }
         }
     }
 
@@ -1183,9 +1263,7 @@ where
         let _ = fs::remove_file(&stamp);
         let total = missing_tasks.len();
         log(
-            &format!(
-                "Downloading {total} verified Vanilla 1.21.4 file(s) from Mojang CDN..."
-            ),
+            &format!("Downloading {total} verified Vanilla {ver} file(s) from Mojang CDN..."),
             false,
         );
         let temp_dir = vanilla_dir.join("tmp");
@@ -1196,19 +1274,47 @@ where
             download_batch_with_curl(&refs, &temp_dir)?;
             completed += chunk.len();
             log(
-                &format!("Vanilla 1.21.4 download progress: {completed} / {total} verified."),
+                &format!("Vanilla {ver} download progress: {completed} / {total} verified."),
                 false,
             );
         }
         let _ = fs::remove_dir_all(&temp_dir);
     } else {
         log(
-            "Vanilla Minecraft 1.21.4 client, libraries, and assets are verified and ready.",
+            &format!(
+                "Vanilla Minecraft {ver} client, libraries, and assets are verified and ready."
+            ),
             false,
         );
     }
 
-    let _ = fs::write(&stamp, b"1.21.4\n");
+    // Extract legacy native classifier DLLs (used in 1.16.5 - 1.18.2) into natives/<ver> if present.
+    for lib in &manifest.libraries {
+        if !is_library_allowed_for_target(&lib.name, &lib.rules, os_name, arch) {
+            continue;
+        }
+        if let Some(nat) = native_classifier_for_library(lib, os_name)
+            && let Some(ref rel) = nat.path
+        {
+            let jar_path = vanilla_dir
+                .join("libraries")
+                .join(rel.replace('/', std::path::MAIN_SEPARATOR_STR));
+            if jar_path.is_file() {
+                let mut cmd = Command::new("tar.exe");
+                cmd.args(["-xf"])
+                    .arg(&jar_path)
+                    .arg("-C")
+                    .arg(&natives_dir)
+                    .stdin(Stdio::null())
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null());
+                hide_window(&mut cmd);
+                let _ = cmd.status();
+            }
+        }
+    }
+
+    let _ = fs::write(&stamp, format!("{ver}\n").as_bytes());
 
     Ok(manifest)
 }
@@ -1345,9 +1451,9 @@ pub fn build_stored_zip(entries: &[(&str, &[u8])]) -> Result<Vec<u8>, String> {
     Ok(out)
 }
 
-/// Writes `run/resourcepacks/basalt_skin.zip` for pure Vanilla 1.21.4 (`pack_format: 46`)
-/// overriding both the Slim/Classic aligned singleplayer slot and the offline multiplayer
-/// fallback slot, returning the aligned player UUID string.
+/// Writes `run/resourcepacks/basalt_skin.zip` for pure Vanilla Minecraft (`1.16.5` through `1.21.4`),
+/// overriding both the 1.19.3+ Slim/Classic aligned singleplayer slot, the offline multiplayer
+/// fallback slot, and the legacy `entity/alex.png` + `entity/steve.png` slots, returning the aligned player UUID string.
 pub fn write_basalt_skin_resource_pack(
     run_dir: &Path,
     username: &str,
@@ -1359,7 +1465,7 @@ pub fn write_basalt_skin_resource_pack(
     let aligned_slot = default_skin_slot(&aligned_uuid);
     let offline_slot = default_skin_slot(&base_uuid);
 
-    let mcmeta = br#"{"pack":{"pack_format":46,"description":"Basalt active skin"}}"#;
+    let mcmeta = br#"{"pack":{"pack_format":46,"supported_formats":{"min_inclusive":6,"max_inclusive":64},"description":"Basalt active skin"}}"#;
     let primary_path = DEFAULT_SKIN_PATHS[aligned_slot];
     let offline_path = DEFAULT_SKIN_PATHS[offline_slot];
 
@@ -1370,6 +1476,8 @@ pub fn write_basalt_skin_resource_pack(
     if offline_path != primary_path {
         entries.push((offline_path, skin_png_bytes));
     }
+    entries.push(("assets/minecraft/textures/entity/alex.png", skin_png_bytes));
+    entries.push(("assets/minecraft/textures/entity/steve.png", skin_png_bytes));
 
     let zip_bytes = build_stored_zip(&entries)?;
     let rp_dir = run_dir.join("resourcepacks");
@@ -1380,6 +1488,14 @@ pub fn write_basalt_skin_resource_pack(
         .map_err(|e| format!("Failed to write {}: {e}", zip_path.display()))?;
 
     Ok(format_uuid_dashed(&aligned_uuid))
+}
+
+/// Returns true if the given Minecraft version supports `--quickPlaySingleplayer` / `--quickPlayMultiplayer` (`1.20+`).
+pub fn version_supports_quick_play(version: &str) -> bool {
+    let mut parts = version.trim().split('.');
+    let major = parts.next().and_then(|s| s.parse::<u32>().ok()).unwrap_or(1);
+    let minor = parts.next().and_then(|s| s.parse::<u32>().ok()).unwrap_or(21);
+    major > 1 || (major == 1 && minor >= 20)
 }
 
 #[derive(Debug, Clone)]
@@ -1393,7 +1509,7 @@ pub struct VanillaLaunchConfig {
 }
 
 /// Builds direct JVM and Minecraft `net.minecraft.client.main.Main` command-line arguments
-/// from the parsed Mojang 1.21.4 manifest and Basalt's hardware settings.
+/// from the parsed Mojang version manifest and Basalt's hardware settings.
 pub fn build_vanilla_launch_args(
     vanilla_dir: &Path,
     run_dir: &Path,
@@ -1466,21 +1582,34 @@ pub fn build_vanilla_launch_args(
         if !is_library_allowed_for_target(&lib.name, &lib.rules, os_name, arch) {
             continue;
         }
-        let Some(ref art) = lib.downloads.artifact else {
-            continue;
-        };
-        let Some(ref rel) = art.path else {
-            continue;
-        };
-        cp_entries.push(
-            vanilla_dir
-                .join("libraries")
-                .join(rel.replace('/', std::path::MAIN_SEPARATOR_STR))
-                .to_string_lossy()
-                .into_owned(),
-        );
+        if let Some(ref art) = lib.downloads.artifact
+            && let Some(ref rel) = art.path
+        {
+            cp_entries.push(
+                vanilla_dir
+                    .join("libraries")
+                    .join(rel.replace('/', std::path::MAIN_SEPARATOR_STR))
+                    .to_string_lossy()
+                    .into_owned(),
+            );
+        }
+        if let Some(nat) = native_classifier_for_library(lib, os_name)
+            && let Some(ref rel) = nat.path
+        {
+            cp_entries.push(
+                vanilla_dir
+                    .join("libraries")
+                    .join(rel.replace('/', std::path::MAIN_SEPARATOR_STR))
+                    .to_string_lossy()
+                    .into_owned(),
+            );
+        }
     }
-    cp_entries.push(client_jar_path(vanilla_dir).to_string_lossy().into_owned());
+    cp_entries.push(
+        client_jar_path_for(vanilla_dir, &manifest.id)
+            .to_string_lossy()
+            .into_owned(),
+    );
 
     let cp_sep = if cfg!(windows) { ";" } else { ":" };
     args.push("-cp".to_string());
@@ -1519,18 +1648,28 @@ pub fn build_vanilla_launch_args(
         "release".to_string(),
     ]);
 
-    if let Some(ref sp) = cfg.quick_play_singleplayer {
-        args.push("--quickPlaySingleplayer".to_string());
-        args.push(sp.clone());
+    if version_supports_quick_play(&manifest.id) {
+        if let Some(ref sp) = cfg.quick_play_singleplayer {
+            args.push("--quickPlaySingleplayer".to_string());
+            args.push(sp.clone());
+        } else if let Some(ref mp) = cfg.quick_play_multiplayer {
+            args.push("--quickPlayMultiplayer".to_string());
+            args.push(mp.clone());
+        }
     } else if let Some(ref mp) = cfg.quick_play_multiplayer {
-        args.push("--quickPlayMultiplayer".to_string());
-        args.push(mp.clone());
+        let (host, port) = mp.rsplit_once(':').unwrap_or((mp.as_str(), "25565"));
+        if !host.trim().is_empty() {
+            args.push("--server".to_string());
+            args.push(host.trim().to_string());
+            args.push("--port".to_string());
+            args.push(port.trim().to_string());
+        }
     }
 
     args
 }
 
-/// Spawns Vanilla Minecraft 1.21.4 directly with `java.exe` (no Gradle/Fabric intermediary).
+/// Spawns Vanilla Minecraft directly with `java.exe` (no Gradle/Fabric intermediary).
 pub fn spawn_vanilla_client(
     vanilla_dir: &Path,
     run_dir: &Path,
@@ -1567,7 +1706,7 @@ pub fn spawn_vanilla_client(
     hide_window(&mut cmd);
 
     cmd.spawn()
-        .map_err(|e| format!("Failed to start Vanilla Minecraft 1.21.4 process: {e}"))
+        .map_err(|e| format!("Failed to start Vanilla Minecraft {} process: {e}", manifest.id))
 }
 
 /// Pure-Rust FIPS 180-4 SHA-1 digest helper for verifying official Mojang downloads.
@@ -1881,6 +2020,7 @@ pub fn summarize_process_failure(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::fs;
     use std::io::{Cursor, Read};
     use std::path::{Path, PathBuf};
@@ -1890,12 +2030,12 @@ mod tests {
         MojangLibDownloads, MojangLibrary, MojangLoggingClient, MojangLoggingFile,
         MojangLoggingSection, MojangRule, MojangRuleOs, MojangVersionDownloads,
         MojangVersionManifest, VanillaLaunchConfig, align_uuid_for_skin_model, build_stored_zip,
-        build_vanilla_launch_args, check_vanilla_assets_ready, compute_sha1_hex,
+        build_vanilla_launch_args, check_vanilla_assets_ready_for, compute_sha1_hex,
         compute_sha256_hex, default_skin_slot, evaluate_jdk_candidates, is_ascii_path,
-        is_library_allowed_for_target, load_cached_version_manifest, parse_java_major,
-        summarize_process_failure, write_basalt_skin_resource_pack,
+        is_library_allowed_for_target, load_cached_version_manifest_for, parse_java_major,
+        summarize_process_failure, version_supports_quick_play, write_basalt_skin_resource_pack,
     };
-    use crate::config::{GraphicsSettings, JvmGcMode};
+    use crate::config::{GraphicsSettings, JvmGcMode, normalize_mc_version};
     use crate::protocol::local_player_uuid_bytes;
 
     #[test]
@@ -2042,6 +2182,7 @@ mod tests {
                         size: 10,
                         url: String::new(),
                     }),
+                    classifiers: HashMap::new(),
                 },
                 rules: vec![],
             }],
@@ -2151,6 +2292,7 @@ mod tests {
                         url: "https://example.invalid/dummy.jar".to_string(),
                         path: Some("org/example/dummy/1.0/dummy-1.0.jar".to_string()),
                     }),
+                    classifiers: HashMap::new(),
                 },
                 rules: Vec::new(),
             }],
@@ -2208,9 +2350,9 @@ mod tests {
             r#"{"id":"1.20.4","mainClass":"x","assetIndex":{"id":"19","sha1":"0","size":10,"url":"u"},"downloads":{"client":{"sha1":"0","size":10,"url":"u"}},"libraries":[]}"#,
         )
         .unwrap();
-        assert!(load_cached_version_manifest(&vanilla_dir).is_none());
+        assert!(load_cached_version_manifest_for(&vanilla_dir, "1.21.4").is_none());
 
-        // Even if .verified-19.ok stamp exists, missing asset object must make check_vanilla_assets_ready return false
+        // Even if .verified-19.ok stamp exists, missing asset object must make check_vanilla_assets_ready_for return false
         let idx_payload = r#"{"objects":{"minecraft/lang/en_us.json":{"hash":"abcd000000000000000000000000000000000000","size":12}}}"#;
         fs::write(
             ver_dir.join("1.21.4.json"),
@@ -2220,11 +2362,21 @@ mod tests {
             ),
         )
         .unwrap();
-        assert!(load_cached_version_manifest(&vanilla_dir).is_some());
+        assert!(load_cached_version_manifest_for(&vanilla_dir, "1.21.4").is_some());
         fs::create_dir_all(vanilla_dir.join("assets").join("indexes")).unwrap();
         fs::write(vanilla_dir.join("assets").join("indexes").join("19.json"), idx_payload).unwrap();
         fs::write(vanilla_dir.join("assets").join(".verified-19.ok"), b"1.21.4\n").unwrap();
-        assert!(!check_vanilla_assets_ready(&vanilla_dir));
+        assert!(!check_vanilla_assets_ready_for(&vanilla_dir, "1.21.4"));
+
+        // Verify multi-version quick play and version normalization
+        assert!(version_supports_quick_play("1.21.4"));
+        assert!(version_supports_quick_play("1.20.1"));
+        assert!(version_supports_quick_play("1.20"));
+        assert!(!version_supports_quick_play("1.19.4"));
+        assert!(!version_supports_quick_play("1.16.5"));
+        assert_eq!(normalize_mc_version("1.20.4"), "1.20.4");
+        assert_eq!(normalize_mc_version("1.16.5"), "1.16.5");
+        assert_eq!(normalize_mc_version("invalid"), "1.21.4");
 
         let _ = fs::remove_dir_all(&tmp);
     }

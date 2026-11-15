@@ -54,7 +54,44 @@ export interface SavedServer {
   address: string;
 }
 
+export const SUPPORTED_MC_VERSIONS = [
+  "1.21.4",
+  "1.21.3",
+  "1.21.2",
+  "1.21.1",
+  "1.21",
+  "1.20.6",
+  "1.20.4",
+  "1.20.2",
+  "1.20.1",
+  "1.20",
+  "1.19.4",
+  "1.19.2",
+  "1.18.2",
+  "1.17.1",
+  "1.16.5",
+] as const;
+
+export const MC_VERSION_PROTOCOLS: Record<string, number> = {
+  "1.21.4": 769,
+  "1.21.3": 768,
+  "1.21.2": 768,
+  "1.21.1": 767,
+  "1.21": 767,
+  "1.20.6": 766,
+  "1.20.4": 765,
+  "1.20.2": 764,
+  "1.20.1": 763,
+  "1.20": 763,
+  "1.19.4": 762,
+  "1.19.2": 760,
+  "1.18.2": 758,
+  "1.17.1": 756,
+  "1.16.5": 754,
+};
+
 export interface AppConfig {
+  mc_version: string;
   username: string;
   skin_file: string | null;
   skin_model: SkinModel;
@@ -90,6 +127,8 @@ export interface HardwareProfile {
 }
 
 export interface VanillaEnvStatus {
+  active_version: string;
+  installed_versions: string[];
   vanilla_dir: string;
   runs_dir: string;
   saves_dir: string;
@@ -99,6 +138,11 @@ export interface VanillaEnvStatus {
   java_home: string | null;
   java_version_label: string;
   java_hint: string;
+}
+
+export interface VersionChangeDto {
+  config: AppConfig;
+  vanilla: VanillaEnvStatus;
 }
 
 export interface RunningSessionDto {

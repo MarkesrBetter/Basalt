@@ -135,6 +135,38 @@ pub struct SavedServer {
     pub address: String,
 }
 
+pub const DEFAULT_MC_VERSION: &str = "1.21.4";
+
+pub const SUPPORTED_MC_VERSIONS: &[&str] = &[
+    "1.21.4",
+    "1.21.3",
+    "1.21.2",
+    "1.21.1",
+    "1.21",
+    "1.20.6",
+    "1.20.4",
+    "1.20.2",
+    "1.20.1",
+    "1.20",
+    "1.19.4",
+    "1.19.2",
+    "1.18.2",
+    "1.17.1",
+    "1.16.5",
+];
+
+pub fn normalize_mc_version(raw: &str) -> String {
+    let trimmed = raw.trim();
+    if SUPPORTED_MC_VERSIONS.contains(&trimmed) {
+        return trimmed.to_string();
+    }
+    DEFAULT_MC_VERSION.to_string()
+}
+
+fn default_mc_version() -> String {
+    DEFAULT_MC_VERSION.to_string()
+}
+
 fn default_legacy_config_version() -> u8 {
     0
 }
@@ -144,6 +176,8 @@ fn default_legacy_config_version() -> u8 {
 pub struct AppConfig {
     #[serde(default = "default_legacy_config_version")]
     pub config_version: u8,
+    #[serde(default = "default_mc_version")]
+    pub mc_version: String,
     pub username: String,
     pub skin_file: Option<PathBuf>,
     pub skin_model: SkinModel,
@@ -165,6 +199,7 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             config_version: 1,
+            mc_version: DEFAULT_MC_VERSION.to_string(),
             username: "Player".to_string(),
             skin_file: None,
             skin_model: SkinModel::Auto,
@@ -226,6 +261,7 @@ impl AppPaths {
 
 impl AppConfig {
     pub fn sanitize(&mut self) {
+        self.mc_version = normalize_mc_version(&self.mc_version);
         if !self.graphics.fov_degrees.is_finite() {
             self.graphics.fov_degrees = 75.0;
         }

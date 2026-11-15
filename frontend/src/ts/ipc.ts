@@ -23,6 +23,7 @@ import type {
   SkinResultDto,
   ThemeMode,
   UiLanguage,
+  VersionChangeDto,
 } from "./types";
 
 export function isTauriRuntime(): boolean {
@@ -70,12 +71,13 @@ function makeSampleSkinRgba(): number[] {
 // Isolated browser-preview sample data (only used outside Tauri desktop runtime)
 const previewState: BootstrapDto = {
   config: {
+    mc_version: "1.21.4",
     username: "Player",
     skin_file: null,
     skin_model: "Auto",
     theme: "Dark",
     ui_accent: "Auto",
-    custom_accent_hex: "#a47cff",
+    custom_accent_hex: "#e07d44",
     ui_corner: "Balanced",
     ui_layout: "Sidebar",
     ui_compact: false,
@@ -123,6 +125,8 @@ const previewState: BootstrapDto = {
     gpu_device_type: "Discrete",
   },
   vanilla: {
+    active_version: "1.21.4",
+    installed_versions: ["1.21.4"],
     vanilla_dir: "C:\\basalt\\vanilla",
     runs_dir: "C:\\basalt\\run",
     saves_dir: "C:\\basalt\\run\\saves",
@@ -219,6 +223,7 @@ export async function saveProfileSettings(input: {
   ui_reduced_motion: boolean;
   ui_sounds: boolean;
   ui_language?: UiLanguage;
+  mc_version?: string;
 }): Promise<AppConfig> {
   if (isTauriRuntime()) {
     return invoke<AppConfig>("save_profile_settings", { input });
@@ -239,7 +244,25 @@ export async function saveProfileSettings(input: {
   if (input.ui_language) {
     previewState.config.ui_language = input.ui_language;
   }
+  if (input.mc_version) {
+    previewState.config.mc_version = input.mc_version;
+    previewState.vanilla.active_version = input.mc_version;
+  }
   return structuredClone(previewState.config);
+}
+
+export async function setMcVersion(version: string): Promise<VersionChangeDto> {
+  if (isTauriRuntime()) {
+    return invoke<VersionChangeDto>("set_mc_version", { version });
+  }
+  previewState.config.mc_version = version;
+  previewState.vanilla.active_version = version;
+  previewState.vanilla.client_ready =
+    previewState.vanilla.installed_versions.includes(version);
+  return {
+    config: structuredClone(previewState.config),
+    vanilla: structuredClone(previewState.vanilla),
+  };
 }
 
 export async function saveGraphicsSettings(
@@ -461,12 +484,13 @@ export async function launchClient(input: {
   mode: LaunchMode;
   save_id: string | null;
   server_address: string | null;
+  mc_version?: string;
 }): Promise<RunningSessionDto> {
   if (isTauriRuntime()) {
     return invoke<RunningSessionDto>("launch_client", { input });
   }
   throw new Error(
-    "Minecraft 1.21.4 Vanilla client can only be launched from the desktop application (basalt.exe)."
+    "Minecraft Vanilla client can only be launched from the desktop application (basalt.exe)."
   );
 }
 

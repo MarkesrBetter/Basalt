@@ -17,7 +17,7 @@ use basalt::assets::{
 };
 use basalt::config::{
     AccentTone, AppConfig, AppPaths, CornerStyle, GraphicsSettings, LayoutMode, SavedServer,
-    SkinModel, ThemeMode, UiLanguage, normalize_hex_color,
+    SkinModel, ThemeMode, UiLanguage, normalize_hex_color, normalize_mc_version,
 };
 use basalt::hardware::HardwareProfile;
 use basalt::options_txt::{sync_minecraft_options, sync_minecraft_options_with_pack};
@@ -31,8 +31,8 @@ use basalt::sounds::{
 };
 use basalt::vanilla::{
     BASALT_SKIN_PACK_NAME, VanillaEnvStatus, VanillaLaunchConfig, compute_file_sha256_hex,
-    discover_java21_home_with_runtime, ensure_vanilla_1_21_4_ready,
-    inspect_vanilla_environment_with_runtime, migrate_legacy_client_gradle_saves,
+    discover_java21_home_with_runtime, ensure_vanilla_version_ready,
+    inspect_vanilla_environment_for_version, migrate_legacy_client_gradle_saves,
     resolve_vanilla_dir, spawn_vanilla_client, summarize_process_failure,
     write_basalt_skin_resource_pack,
 };
@@ -92,6 +92,12 @@ struct SessionEndedPayload {
     vanilla: VanillaEnvStatus,
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct VersionChangeDto {
+    config: AppConfig,
+    vanilla: VanillaEnvStatus,
+}
+
 #[derive(Debug, Deserialize)]
 struct ProfileInput {
     username: String,
@@ -110,6 +116,8 @@ struct ProfileInput {
     ui_sounds: bool,
     #[serde(default)]
     ui_language: Option<UiLanguage>,
+    #[serde(default)]
+    mc_version: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -117,6 +125,8 @@ struct LaunchInput {
     mode: String,
     save_id: Option<String>,
     server_address: Option<String>,
+    #[serde(default)]
+    mc_version: Option<String>,
 }
 
 struct AppState {
@@ -257,6 +267,7 @@ struct SessionDirs<'a> {
     run: &'a Path,
     saves: &'a Path,
     runtime: &'a Path,
+    version: &'a str,
 }
 
 fn emit_session_ended(
@@ -267,8 +278,12 @@ fn emit_session_ended(
     dirs: &SessionDirs<'_>,
 ) {
     let saves = scan_saves(dirs.saves).unwrap_or_default();
-    let vanilla =
-        inspect_vanilla_environment_with_runtime(dirs.vanilla, dirs.run, Some(dirs.runtime));
+    let vanilla = inspect_vanilla_environment_for_version(
+        dirs.vanilla,
+        dirs.run,
+        Some(dirs.runtime),
+        dirs.version,
+    );
     let _ = app.emit(
         "basalt://session-ended",
         SessionEndedPayload {
@@ -409,10 +424,11 @@ fn get_bootstrap_state(state: tauri::State<AppState>) -> Result<BootstrapDto, St
         .clone();
 
     let saves = scan_saves(&state.saves_dir())?;
-    let vanilla = inspect_vanilla_environment_with_runtime(
+    let vanilla = inspect_vanilla_environment_for_version(
         &state.vanilla_dir,
         &state.run_dir,
         Some(&state.paths.runtime_dir),
+        &config.mc_version,
     );
     let skin_img = load_active_skin_image(config.skin_file.as_deref());
     let skin_is_slim = resolve_skin_is_slim(config.skin_model, &skin_img);
@@ -514,8 +530,38 @@ fn save_profile_settings(
     if let Some(lang) = input.ui_language {
         config.ui_language = lang;
     }
+    if let Some(ref ver) = input.mc_version {
+        config.mc_version = normalize_mc_version(ver);
+    }
     config.save(&state.paths.config_file)?;
     Ok(config.clone())
+}
+
+#[tauri::command]
+fn set_mc_version(
+    state: tauri::State<AppState>,
+    version: String,
+) -> Result<VersionChangeDto, String> {
+    let clean_ver = normalize_mc_version(&version);
+    let config_snapshot = {
+        let mut config = state
+            .config
+            .lock()
+            .map_err(|_| "Failed to unlock configuration".to_string())?;
+        config.mc_version = clean_ver.clone();
+        config.save(&state.paths.config_file)?;
+        config.clone()
+    };
+    let vanilla = inspect_vanilla_environment_for_version(
+        &state.vanilla_dir,
+        &state.run_dir,
+        Some(&state.paths.runtime_dir),
+        &clean_ver,
+    );
+    Ok(VersionChangeDto {
+        config: config_snapshot,
+        vanilla,
+    })
 }
 
 #[tauri::command]
@@ -561,7 +607,17 @@ fn window_close(window: tauri::Window) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn window_start_drag(window: tauri::Window) -> Result<(), String> {
+fn window_start_drag(window: tauri::WebviewWindow) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        unsafe extern "system" {
+            fn ReleaseCapture() -> i32;
+        }
+        // Release WebView2 child HWND mouse capture so Win32 HTCAPTION move loop starts reliably.
+        unsafe {
+            ReleaseCapture();
+        }
+    }
     window
         .start_dragging()
         .map_err(|e| format!("Failed to drag window: {e}"))
@@ -816,10 +872,16 @@ async fn probe_local_server_cmd(
 
 #[tauri::command]
 fn recheck_java_21(state: tauri::State<AppState>) -> Result<VanillaEnvStatus, String> {
-    Ok(inspect_vanilla_environment_with_runtime(
+    let ver = state
+        .config
+        .lock()
+        .map(|c| c.mc_version.clone())
+        .unwrap_or_else(|_| "1.21.4".to_string());
+    Ok(inspect_vanilla_environment_for_version(
         &state.vanilla_dir,
         &state.run_dir,
         Some(&state.paths.runtime_dir),
+        &ver,
     ))
 }
 
@@ -1055,6 +1117,11 @@ fn install_java_21(
         let run_dir = state.run_dir.clone();
         let saves_dir = state.saves_dir();
         let runtime_dir = state.paths.runtime_dir.clone();
+        let active_ver = state
+            .config
+            .lock()
+            .map(|c| c.mc_version.clone())
+            .unwrap_or_else(|_| "1.21.4".to_string());
 
         thread::spawn(move || {
             let result = install_java21_blocking(&app, &runtime_dir);
@@ -1073,6 +1140,7 @@ fn install_java_21(
                     run: &run_dir,
                     saves: &saves_dir,
                     runtime: &runtime_dir,
+                    version: &active_ver,
                 },
             );
         });
@@ -1086,10 +1154,15 @@ fn prepare_vanilla_client(
     app: tauri::AppHandle,
     state: tauri::State<AppState>,
 ) -> Result<RunningSessionDto, String> {
+    let active_ver = state
+        .config
+        .lock()
+        .map(|c| c.mc_version.clone())
+        .unwrap_or_else(|_| "1.21.4".to_string());
     let session = RunningSessionDto {
         pid: std::process::id(),
         kind: "prepare".to_string(),
-        label: "Vanilla 1.21.4 Verification & Assets".to_string(),
+        label: format!("Vanilla {active_ver} Verification & Assets"),
     };
     begin_running_session(&state.running, session.clone())?;
 
@@ -1100,7 +1173,7 @@ fn prepare_vanilla_client(
     let runtime_dir = state.paths.runtime_dir.clone();
 
     thread::spawn(move || {
-        let res = ensure_vanilla_1_21_4_ready(&vanilla_dir, |line, is_err| {
+        let res = ensure_vanilla_version_ready(&vanilla_dir, &active_ver, |line, is_err| {
             let _ = app.emit(
                 "basalt://launch-log",
                 LaunchLogPayload {
@@ -1124,6 +1197,7 @@ fn prepare_vanilla_client(
                 run: &run_dir,
                 saves: &saves_dir,
                 runtime: &runtime_dir,
+                version: &active_ver,
             },
         );
     });
@@ -1151,7 +1225,7 @@ fn launch_client(
     let initial_session = RunningSessionDto {
         pid: std::process::id(),
         kind: "launch".to_string(),
-        label: "Minecraft 1.21.4 (Vanilla)".to_string(),
+        label: "Minecraft (Vanilla)".to_string(),
     };
     begin_running_session(&state.running, initial_session)?;
     let mut reservation = SessionReservation {
@@ -1168,6 +1242,10 @@ fn launch_client(
             .config
             .lock()
             .map_err(|_| "Failed to unlock configuration".to_string())?;
+        if let Some(ref requested_ver) = input.mc_version {
+            config.mc_version = normalize_mc_version(requested_ver);
+        }
+        let ver = config.mc_version.clone();
 
         match input.mode.as_str() {
             "singleplayer" => {
@@ -1183,7 +1261,7 @@ fn launch_client(
                 config.save(&state.paths.config_file)?;
                 (
                     config.clone(),
-                    format!("Minecraft 1.21.4 ({save_id})"),
+                    format!("Minecraft {ver} ({save_id})"),
                     Some(save_id),
                     None,
                 )
@@ -1194,19 +1272,23 @@ fn launch_client(
                     .as_deref()
                     .ok_or_else(|| "No server address specified.".to_string())?;
                 let addr = validate_server_address(raw_addr)?;
+                config.save(&state.paths.config_file)?;
                 (
                     config.clone(),
-                    format!("Minecraft 1.21.4 ({addr})"),
+                    format!("Minecraft {ver} ({addr})"),
                     None,
                     Some(addr),
                 )
             }
-            "title" => (
-                config.clone(),
-                "Minecraft 1.21.4 (Vanilla)".to_string(),
-                None,
-                None,
-            ),
+            "title" => {
+                config.save(&state.paths.config_file)?;
+                (
+                    config.clone(),
+                    format!("Minecraft {ver} (Vanilla)"),
+                    None,
+                    None,
+                )
+            }
             _ => return Err("Invalid launch mode.".to_string()),
         }
     };
@@ -1234,6 +1316,7 @@ fn launch_client(
     }
     reservation.running = None;
 
+    let active_ver = config_snapshot.mc_version.clone();
     let launch_cfg = VanillaLaunchConfig {
         username: config_snapshot.username,
         player_uuid,
@@ -1261,7 +1344,7 @@ fn launch_client(
             );
         };
 
-        let (exit_code, error) = match ensure_vanilla_1_21_4_ready(&vanilla_dir, log_emit) {
+        let (exit_code, error) = match ensure_vanilla_version_ready(&vanilla_dir, &active_ver, log_emit) {
             Err(err) => (Some(1), Some(err)),
             Ok(manifest) => {
                 match spawn_vanilla_client(&vanilla_dir, &run_dir, &manifest, &launch_cfg) {
@@ -1289,6 +1372,7 @@ fn launch_client(
                 run: &run_dir,
                 saves: &saves_dir,
                 runtime: &runtime_dir,
+                version: &active_ver,
             },
         );
     });
@@ -1367,6 +1451,7 @@ fn main() {
             select_save,
             delete_save,
             save_profile_settings,
+            set_mc_version,
             set_fullscreen,
             window_minimize,
             window_toggle_maximize,

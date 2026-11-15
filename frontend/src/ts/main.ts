@@ -19,20 +19,21 @@ import {
   type SkinViewMode,
 } from "./skin_canvas";
 import { initMinecraftSounds, playMcSound, setSoundsEnabled, unlockAudioContext } from "./sounds";
-import type {
-  AccentTone,
-  BootstrapDto,
-  CornerStyle,
-  VanillaEnvStatus,
-  GraphicsSettings,
-  LaunchMode,
-  LayoutMode,
-  MinecraftSaveSummary,
-  SavedServer,
-  ServerPingInfo,
-  SkinModel,
-  ThemeMode,
-  UiLanguage,
+import {
+  MC_VERSION_PROTOCOLS,
+  type AccentTone,
+  type BootstrapDto,
+  type CornerStyle,
+  type VanillaEnvStatus,
+  type GraphicsSettings,
+  type LaunchMode,
+  type LayoutMode,
+  type MinecraftSaveSummary,
+  type SavedServer,
+  type ServerPingInfo,
+  type SkinModel,
+  type ThemeMode,
+  type UiLanguage,
 } from "./types";
 
 type ViewId = "play" | "worlds" | "profile" | "system";
@@ -454,9 +455,52 @@ function appendLogLine(line: string, isErr: boolean): void {
   box.scrollTop = box.scrollHeight;
 }
 
+function syncVersionUi(): void {
+  if (!state) return;
+  const ver = state.config.mc_version || "1.21.4";
+  const proto = MC_VERSION_PROTOCOLS[ver] ?? 769;
+
+  const titlebarTag = document.getElementById("titlebar-version-tag");
+  if (titlebarTag) titlebarTag.textContent = `VANILLA ${ver}`;
+
+  const railSub = document.getElementById("rail-brand-sub");
+  if (railSub) railSub.textContent = `VANILLA ${ver}`;
+
+  const railBuildVer = document.getElementById("rail-build-ver");
+  if (railBuildVer) railBuildVer.textContent = `MC ${ver} · Vanilla`;
+
+  const railVerTag = document.getElementById("rail-version-tag");
+  if (railVerTag) railVerTag.textContent = `MC ${ver}`;
+
+  const launchHeroVer = document.getElementById("launch-version-hero");
+  if (launchHeroVer) launchHeroVer.textContent = `VANILLA ${ver}`;
+
+  const launchProtoBadge = document.getElementById("launch-proto-badge");
+  if (launchProtoBadge) launchProtoBadge.textContent = `PROTO ${proto}`;
+
+  const playSpecsBadge = document.getElementById("play-specs-version-badge");
+  if (playSpecsBadge) playSpecsBadge.textContent = `Vanilla ${ver} · LWJGL 3`;
+
+  const settingsVerBadge = document.getElementById("settings-active-ver-badge");
+  if (settingsVerBadge) settingsVerBadge.textContent = `MC ${ver} · Proto ${proto}`;
+
+  const playVerSelect = document.getElementById("play-version-select");
+  if (playVerSelect instanceof HTMLSelectElement) {
+    playVerSelect.value = ver;
+    playVerSelect.disabled = state.running_session !== null;
+  }
+
+  const settingsVerSelect = document.getElementById("settings-version-select");
+  if (settingsVerSelect instanceof HTMLSelectElement) {
+    settingsVerSelect.value = ver;
+    settingsVerSelect.disabled = state.running_session !== null;
+  }
+}
+
 function renderTopbarAndSession(): void {
   if (!state) return;
   const lang = getEffectiveLanguage();
+  syncVersionUi();
   byId<HTMLSpanElement>("preview-mode-badge").hidden = ipc.isTauriRuntime();
   byId<HTMLSpanElement>("topbar-username").textContent = state.config.username;
   byId<HTMLSpanElement>("deck-username").textContent = state.config.username;
@@ -536,6 +580,7 @@ function renderPlayView(): void {
   const lang = getEffectiveLanguage();
   const { config, saves, hardware, vanilla } = state;
   const cacheReady = vanilla.client_ready && vanilla.assets_ready;
+  syncVersionUi();
 
   const selectedSave = saves.find((s) => s.id === config.last_save_id) ?? null;
   const activeSaveId = selectedSave ? selectedSave.id : null;
@@ -1300,6 +1345,7 @@ function renderSystemView(): void {
   if (!state) return;
   const lang = getEffectiveLanguage();
   const { hardware, config, vanilla, hardware_notice } = state;
+  syncVersionUi();
 
   setBanner(byId<HTMLDivElement>("hardware-optimize-notice"), hardware_notice, "neutral");
 
@@ -1360,6 +1406,30 @@ async function handleSelectSave(saveId: string | null): Promise<void> {
     renderTopbarAndSession();
   } catch (err) {
     showToast(errorMessage(err), "error");
+  }
+}
+
+async function handleVersionChange(version: string): Promise<void> {
+  if (!state) return;
+  unlockAudioContext();
+  playMcSound("click");
+  try {
+    const res = await ipc.setMcVersion(version);
+    state.config = res.config;
+    state.vanilla = res.vanilla;
+    renderTopbarAndSession();
+    renderPlayView();
+    renderSystemView();
+    showToast(
+      tr(getEffectiveLanguage(), "system.versionChangedToast", {
+        ver: state.config.mc_version,
+      }),
+      "success"
+    );
+  } catch (err) {
+    playMcSound("error");
+    showToast(errorMessage(err), "error");
+    syncVersionUi();
   }
 }
 
@@ -2167,6 +2237,8 @@ async function syncWindowMaximizeIcon(): Promise<void> {
 
 function wireWindowControls(): void {
   const titlebar = document.getElementById("app-titlebar");
+  const topbar = document.querySelector<HTMLElement>("header.topbar");
+  const railBrand = document.querySelector<HTMLElement>("aside.rail .brand");
   const minBtn = document.getElementById("btn-win-minimize");
   const maxBtn = document.getElementById("btn-win-maximize");
   const closeBtn = document.getElementById("btn-win-close");
@@ -2189,18 +2261,36 @@ function wireWindowControls(): void {
     void ipc.windowClose();
   });
 
+  const isInteractiveTarget = (target: HTMLElement | null): boolean =>
+    Boolean(
+      target?.closest(
+        "button, a, input, select, textarea, label, summary, details, canvas, [role='button'], .titlebar-actions, .player-chip, .engine-pill"
+      )
+    );
+
+  const startWindowDrag = (e: MouseEvent): void => {
+    if (e.button !== 0 || e.detail > 1) return;
+    const target = e.target as HTMLElement | null;
+    if (isInteractiveTarget(target)) return;
+    e.preventDefault();
+    void ipc.windowStartDrag().catch(() => undefined);
+  };
+
   titlebar?.addEventListener("dblclick", (e) => {
     const target = e.target as HTMLElement | null;
-    if (target?.closest(".titlebar-actions")) return;
+    if (isInteractiveTarget(target)) return;
     void ipc.windowToggleMaximize().then(updateMaximizeIconState).catch(() => undefined);
   });
 
-  titlebar?.addEventListener("mousedown", (e) => {
-    if (e.button !== 0 || e.detail > 1) return;
+  topbar?.addEventListener("dblclick", (e) => {
     const target = e.target as HTMLElement | null;
-    if (target?.closest("button, a, input, select, .titlebar-actions")) return;
-    void ipc.windowStartDrag().catch(() => undefined);
+    if (isInteractiveTarget(target)) return;
+    void ipc.windowToggleMaximize().then(updateMaximizeIconState).catch(() => undefined);
   });
+
+  titlebar?.addEventListener("mousedown", startWindowDrag);
+  topbar?.addEventListener("mousedown", startWindowDrag);
+  railBrand?.addEventListener("mousedown", startWindowDrag);
 
   window.addEventListener("resize", () => {
     void syncWindowMaximizeIcon();
@@ -2296,9 +2386,23 @@ function wireEvents(): void {
     setActiveView("worlds", true, true);
   });
 
+  byId<HTMLButtonElement>("btn-goto-settings").addEventListener("click", () => {
+    setActiveView("system", true, true);
+  });
+
   byId<HTMLSelectElement>("play-save-select").addEventListener("change", (e) => {
     const val = (e.currentTarget as HTMLSelectElement).value;
     void handleSelectSave(val ? val : null);
+  });
+
+  byId<HTMLSelectElement>("play-version-select").addEventListener("change", (e) => {
+    const val = (e.currentTarget as HTMLSelectElement).value;
+    if (val) void handleVersionChange(val);
+  });
+
+  byId<HTMLSelectElement>("settings-version-select").addEventListener("change", (e) => {
+    const val = (e.currentTarget as HTMLSelectElement).value;
+    if (val) void handleVersionChange(val);
   });
 
   byId<HTMLButtonElement>("btn-prepare-gradle").addEventListener("click", () => {
