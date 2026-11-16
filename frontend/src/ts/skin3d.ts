@@ -296,6 +296,7 @@ export class Skin3DViewer {
   private cachedRect = { left: 0, top: 0, width: 240, height: 280 };
   private resizeObs: ResizeObserver | null = null;
   private onVisibilityChange: (() => void) | null = null;
+  private listenerAbort: AbortController | null = null;
 
   constructor(canvas: HTMLCanvasElement, opts: Skin3DOption = {}) {
     this.canvas = canvas;
@@ -305,8 +306,39 @@ export class Skin3DViewer {
     this.targetBaseYaw = this.baseYaw;
 
     ensureGlobalPointerTracking();
+    this.listenerAbort = new AbortController();
     this.initGl();
     this.observeBounds();
+
+    this.canvas.addEventListener(
+      "webglcontextlost",
+      (e) => {
+        e.preventDefault();
+        this.gl = null;
+        this.prog = null;
+        this.tex = null;
+        this.fallback2dMode = true;
+        if (this.rafId !== null) {
+          cancelAnimationFrame(this.rafId);
+          this.rafId = null;
+        }
+        if (this.rgba.length) {
+          drawSkinPreview(this.canvas, this.rgba, this.currentView as SkinViewMode, this.isSlim);
+        }
+      },
+      { signal: this.listenerAbort.signal }
+    );
+    this.canvas.addEventListener(
+      "webglcontextrestored",
+      () => {
+        this.fallback2dMode = false;
+        this.initGl();
+        if (!this.fallback2dMode && this.rgba.length) {
+          this.setSkin(this.rgba, this.isSlim);
+        }
+      },
+      { signal: this.listenerAbort.signal }
+    );
 
     if (opts.interactive ?? true) {
       this.bindInteraction(opts.onClickFlip);
@@ -338,6 +370,7 @@ export class Skin3DViewer {
   }
 
   private observeBounds(): void {
+    const signal = this.listenerAbort?.signal;
     if (typeof ResizeObserver !== "undefined") {
       this.resizeObs = new ResizeObserver((entries) => {
         const entry = entries[0];
@@ -346,18 +379,22 @@ export class Skin3DViewer {
         if (width >= 10 && height >= 10) {
           this.refreshCachedBounds();
           this.resizeCanvas();
-          this.wake();
+          if (this.fallback2dMode && this.rgba.length) {
+            drawSkinPreview(this.canvas, this.rgba, this.currentView as SkinViewMode, this.isSlim);
+          } else {
+            this.wake();
+          }
         }
       });
       this.resizeObs.observe(this.canvas);
     }
-    window.addEventListener("resize", () => this.refreshCachedBounds(), { passive: true });
+    window.addEventListener("resize", () => this.refreshCachedBounds(), { passive: true, signal });
     window.addEventListener(
       "pointermove",
       () => {
         if (this.trackCursor) this.wake();
       },
-      { passive: true }
+      { passive: true, signal }
     );
   }
 
@@ -377,6 +414,11 @@ export class Skin3DViewer {
       this.fallback2dMode = true;
       return;
     }
+    const tex = gl.createTexture();
+    if (!tex) {
+      this.fallback2dMode = true;
+      return;
+    }
     this.gl = gl;
     this.prog = prog;
     this.locPos = gl.getAttribLocation(prog, "aPos");
@@ -388,15 +430,12 @@ export class Skin3DViewer {
     this.locShadow = gl.getUniformLocation(prog, "uShadow");
     this.locCutoff = gl.getUniformLocation(prog, "uAlphaCutoff");
 
-    const tex = gl.createTexture();
-    if (tex) {
-      gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      this.tex = tex;
-    }
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    this.tex = tex;
 
     this.rebuildGeometry(this.isSlim);
   }
@@ -483,6 +522,7 @@ export class Skin3DViewer {
       }
     });
 
+    const signal = this.listenerAbort?.signal;
     window.addEventListener("pointermove", (e) => {
       if (!this.dragging) return;
       const dx = e.clientX - this.dragStartX;
@@ -493,7 +533,7 @@ export class Skin3DViewer {
       this.targetBaseYaw += dx * 0.013;
       this.targetBasePitch = Math.max(-0.42, Math.min(0.45, this.targetBasePitch + dy * 0.008));
       this.wake();
-    });
+    }, { signal });
 
     const stopDrag = (e: PointerEvent) => {
       if (!this.dragging) return;
@@ -512,8 +552,8 @@ export class Skin3DViewer {
         onClickFlip?.(next);
       }
     };
-    window.addEventListener("pointerup", stopDrag);
-    window.addEventListener("pointercancel", stopDrag);
+    window.addEventListener("pointerup", stopDrag, { signal });
+    window.addEventListener("pointercancel", stopDrag, { signal });
   }
 
   public wake(): void {
@@ -591,7 +631,6 @@ export class Skin3DViewer {
       this.rafId = null;
       if (document.hidden || this.fallback2dMode || !this.hasSkinTex) return;
       if (this.canvas.offsetParent === null) {
-        this.rafId = requestAnimationFrame(frame);
         return;
       }
       const keepGoing = this.renderFrame(now);
@@ -756,6 +795,8 @@ export class Skin3DViewer {
       this.rafId = null;
     }
     this.resizeObs?.disconnect();
+    this.listenerAbort?.abort();
+    this.listenerAbort = null;
     if (this.onVisibilityChange) {
       document.removeEventListener("visibilitychange", this.onVisibilityChange);
       this.onVisibilityChange = null;

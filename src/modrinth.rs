@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 
 use serde::{Deserialize, Serialize};
 
@@ -10,7 +11,12 @@ use crate::vanilla::{DownloadTask, curl_fetch_bytes_with_ua, download_batch_with
 const BASALT_HTTP_UA: &str = "Basalt-Launcher/0.3.0 (https://github.com/Markesrrr/Basalt)";
 const MODRINTH_API_BASE: &str = "https://api.modrinth.com/v2";
 const MANIFEST_INDEX_FILE: &str = ".basalt-manifest.json";
-const MAX_DEP_DEPTH: usize = 4;
+const MAX_DEP_DEPTH: usize = 8;
+
+fn manifest_index_lock() -> &'static Mutex<()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(()))
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -94,6 +100,8 @@ struct ModrinthVersion {
     #[serde(default)]
     project_id: String,
     #[serde(default)]
+    version_type: String,
+    #[serde(default)]
     files: Vec<ModrinthVersionFile>,
     #[serde(default)]
     dependencies: Vec<ModrinthDependency>,
@@ -114,13 +122,15 @@ struct ModrinthVersionFile {
 #[derive(Debug, Clone, Default, Deserialize)]
 struct ModrinthFileHashes {
     #[serde(default)]
-    sha1: String,
+    sha1: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 struct ModrinthDependency {
     #[serde(default)]
     project_id: Option<String>,
+    #[serde(default)]
+    version_id: Option<String>,
     #[serde(default)]
     dependency_type: String,
 }
@@ -235,7 +245,7 @@ pub fn search_modrinth(
         .map_err(|e| format!("Failed to parse Modrinth search response: {e}"))?;
 
     let installed_index = load_manifest_index(target_dir);
-    let installed_names_lower = collect_installed_stems_lower(target_dir);
+    let installed_stems_tokens = collect_installed_stems_lower(target_dir);
 
     let hits = raw
         .hits
@@ -247,9 +257,10 @@ pub fn search_modrinth(
                     .get(&h.project_id)
                     .is_some_and(|fname| is_item_present(target_dir, fname));
             let by_filename = !slug_norm.is_empty()
-                && installed_names_lower
+                && slug_norm.len() >= 3
+                && installed_stems_tokens
                     .iter()
-                    .any(|stem| stem.contains(&slug_norm));
+                    .any(|stem| *stem == slug_norm || stem.starts_with(&format!("{slug_norm}0")) || stem.starts_with(&format!("{slug_norm}1")) || stem.starts_with(&format!("{slug_norm}2")));
             ModrinthSearchHit {
                 project_id: h.project_id,
                 slug: h.slug,
@@ -313,6 +324,7 @@ pub fn install_modrinth_project(
     }
 
     if !manifest_entries.is_empty() {
+        let _guard = manifest_index_lock().lock().unwrap_or_else(|p| p.into_inner());
         let mut index = load_manifest_index(target_dir);
         for (pid, fname) in manifest_entries {
             index.insert(pid, fname);
@@ -321,6 +333,15 @@ pub fn install_modrinth_project(
     }
 
     Ok(outcome)
+}
+
+fn fetch_specific_version(version_id: &str) -> Result<Option<ModrinthVersion>, String> {
+    let encoded = percent_encode(version_id);
+    let url = format!("{MODRINTH_API_BASE}/version/{encoded}");
+    let bytes = curl_fetch_bytes_with_ua(&url, Some(BASALT_HTTP_UA))?;
+    let ver: ModrinthVersion = serde_json::from_slice(&bytes)
+        .map_err(|e| format!("Failed to parse Modrinth version {version_id}: {e}"))?;
+    Ok(Some(ver))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -375,6 +396,22 @@ fn collect_project_downloads(
         .ok_or_else(|| format!("Modrinth version {} has no downloadable files", version.id))?;
 
     let safe_name = sanitize_single_file_name(&file.filename)?;
+    let lower_name = safe_name.to_ascii_lowercase();
+    let expected_ext = match kind {
+        LibraryKind::Mod => ".jar",
+        LibraryKind::Shader | LibraryKind::ResourcePack => ".zip",
+    };
+    if !lower_name.ends_with(expected_ext) {
+        return Err(format!(
+            "Modrinth file '{safe_name}' has unexpected extension (expected {expected_ext})"
+        ));
+    }
+    let expected_sha1 = file.hashes.sha1.clone().unwrap_or_default();
+    if expected_sha1.trim().is_empty() && file.size == 0 {
+        return Err(format!(
+            "Modrinth file '{safe_name}' provides no size or SHA-1 hash for safe verification"
+        ));
+    }
     let dest = target_dir.join(&safe_name);
     let disabled_dest = target_dir.join(format!("{safe_name}.disabled"));
     if dest.is_file() || disabled_dest.is_file() {
@@ -383,7 +420,7 @@ fn collect_project_downloads(
         tasks.push(DownloadTask {
             url: file.url.clone(),
             dest,
-            sha1: file.hashes.sha1.clone(),
+            sha1: expected_sha1,
             size: file.size,
             label: safe_name.clone(),
         });
@@ -399,11 +436,29 @@ fn collect_project_downloads(
 
     if kind == LibraryKind::Mod {
         for dep in &version.dependencies {
-            if dep.dependency_type == "required"
-                && let Some(ref dep_pid) = dep.project_id
-            {
+            if dep.dependency_type != "required" {
+                continue;
+            }
+            if let Some(ref dep_pid) = dep.project_id {
                 collect_project_downloads(
                     dep_pid,
+                    LibraryKind::Mod,
+                    loader,
+                    mc_version,
+                    target_dir,
+                    depth + 1,
+                    visited,
+                    tasks,
+                    manifest_entries,
+                    outcome,
+                )?;
+            } else if let Some(ref dep_vid) = dep.version_id
+                && visited.insert(format!("ver:{dep_vid}"))
+                && let Ok(Some(dep_ver)) = fetch_specific_version(dep_vid)
+                && !dep_ver.project_id.is_empty()
+            {
+                collect_project_downloads(
+                    &dep_ver.project_id,
                     LibraryKind::Mod,
                     loader,
                     mc_version,
@@ -419,6 +474,14 @@ fn collect_project_downloads(
     }
 
     Ok(())
+}
+
+fn pick_preferred_version(versions: Vec<ModrinthVersion>) -> Option<ModrinthVersion> {
+    if let Some(rel) = versions.iter().position(|v| v.version_type == "release") {
+        let mut v = versions;
+        return Some(v.swap_remove(rel));
+    }
+    versions.into_iter().next()
 }
 
 fn fetch_best_compatible_version(
@@ -440,7 +503,7 @@ fn fetch_best_compatible_version(
     let bytes = curl_fetch_bytes_with_ua(&primary_url, Some(BASALT_HTTP_UA))?;
     let versions: Vec<ModrinthVersion> = serde_json::from_slice(&bytes)
         .map_err(|e| format!("Failed to parse Modrinth versions for {project_id_or_slug}: {e}"))?;
-    if let Some(first) = versions.into_iter().next() {
+    if let Some(first) = pick_preferred_version(versions) {
         return Ok(Some(first));
     }
 
@@ -451,7 +514,7 @@ fn fetch_best_compatible_version(
         let fb_versions: Vec<ModrinthVersion> = serde_json::from_slice(&fb_bytes).map_err(|e| {
             format!("Failed to parse Modrinth fallback versions for {project_id_or_slug}: {e}")
         })?;
-        return Ok(fb_versions.into_iter().next());
+        return Ok(pick_preferred_version(fb_versions));
     }
 
     Ok(None)
@@ -469,7 +532,7 @@ pub fn install_shader_preset_bundle(
     let (target_loader, mod_slugs, shader_slugs): (LoaderKind, &[&str], &[&str]) = match preset_id {
         "fabric_shaders" => (
             LoaderKind::Fabric,
-            &["fabric-api", "sodium", "iris", "lithium"],
+            &["fabric-api", "iris", "sodium", "lithium"],
             &["complementary-unbound"],
         ),
         "forge_shaders" => (
@@ -485,6 +548,7 @@ pub fn install_shader_preset_bundle(
         skipped_count: 0,
         warnings: Vec::new(),
     };
+    let mut mod_success_count = 0usize;
 
     for slug in mod_slugs {
         match install_modrinth_project(
@@ -496,9 +560,24 @@ pub fn install_shader_preset_bundle(
             temp_dir,
             parallel_streams,
         ) {
-            Ok(part) => merge_outcome(&mut combined, part),
+            Ok(part) => {
+                mod_success_count += 1;
+                merge_outcome(&mut combined, part);
+            }
             Err(err) => combined.warnings.push(format!("{slug}: {err}")),
         }
+    }
+
+    if !mod_slugs.is_empty() && mod_success_count == 0 {
+        let loader_name = match target_loader {
+            LoaderKind::Fabric => "Fabric",
+            LoaderKind::Forge => "Forge",
+            LoaderKind::Vanilla => "Vanilla",
+        };
+        return Err(format!(
+            "No compatible shader/FPS mods found on Modrinth for {loader_name} {mc_version} ({}). For shaders on 1.21.4 use Fabric, or Forge on 1.20.1 / import OptiFine manually.",
+            combined.warnings.join(" | ")
+        ));
     }
 
     for shader_slug in shader_slugs {
@@ -605,7 +684,7 @@ pub fn count_library_items(mods_dir: &Path, shaderpacks_dir: &Path, resourcepack
     }
 }
 
-/// Flips `<name>` <-> `<name>.disabled` inside `dir`.
+/// Flips `<name>` <-> `<name>.disabled` inside `dir` without overwriting an existing sibling.
 pub fn toggle_library_item(dir: &Path, file_name: &str) -> Result<String, String> {
     let safe = sanitize_single_file_name(file_name)?;
     let src = dir.join(&safe);
@@ -618,6 +697,11 @@ pub fn toggle_library_item(dir: &Path, file_name: &str) -> Result<String, String
         format!("{safe}.disabled")
     };
     let dst = dir.join(&next_name);
+    if dst.exists() {
+        return Err(format!(
+            "Cannot toggle '{safe}': target '{next_name}' already exists"
+        ));
+    }
     fs::rename(&src, &dst).map_err(|e| format!("Failed to rename '{safe}': {e}"))?;
     Ok(next_name)
 }
@@ -635,11 +719,14 @@ pub fn delete_library_item(dir: &Path, file_name: &str) -> Result<(), String> {
     }
 
     let base_name = safe.strip_suffix(".disabled").unwrap_or(&safe);
-    let mut index = load_manifest_index(dir);
-    let before = index.len();
-    index.retain(|_, v| v != base_name);
-    if index.len() != before {
-        save_manifest_index(dir, &index);
+    if !is_item_present(dir, base_name) {
+        let _guard = manifest_index_lock().lock().unwrap_or_else(|p| p.into_inner());
+        let mut index = load_manifest_index(dir);
+        let before = index.len();
+        index.retain(|_, v| v != base_name);
+        if index.len() != before {
+            save_manifest_index(dir, &index);
+        }
     }
     Ok(())
 }
@@ -672,11 +759,28 @@ pub fn import_library_file(src_path: &Path, target_dir: &Path, kind: LibraryKind
     Ok(safe_name)
 }
 
-/// Validates that `name` is a single safe path segment without traversal characters.
+/// Validates that `name` is a single safe Windows/Unix filename segment without traversal, reserved devices, or hidden-dotfile collisions.
 pub fn sanitize_single_file_name(name: &str) -> Result<String, String> {
     let trimmed = name.trim();
-    if trimmed.is_empty() || trimmed.contains(['/', '\\', '\0']) {
+    if trimmed.is_empty()
+        || trimmed.starts_with('.')
+        || trimmed.ends_with(['.', ' '])
+        || trimmed.chars().any(|c| c.is_control() || matches!(c, '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*'))
+    {
         return Err("Invalid file name".to_string());
+    }
+    let stem_upper = trimmed
+        .split('.')
+        .next()
+        .unwrap_or("")
+        .to_ascii_uppercase();
+    if matches!(
+        stem_upper.as_str(),
+        "CON" | "PRN" | "AUX" | "NUL"
+            | "COM1" | "COM2" | "COM3" | "COM4" | "COM5" | "COM6" | "COM7" | "COM8" | "COM9"
+            | "LPT1" | "LPT2" | "LPT3" | "LPT4" | "LPT5" | "LPT6" | "LPT7" | "LPT8" | "LPT9"
+    ) {
+        return Err("Reserved device filename is not allowed".to_string());
     }
     let path_buf = PathBuf::from(trimmed);
     let mut components = path_buf.components().collect::<Vec<_>>();
@@ -760,6 +864,10 @@ mod tests {
     fn sanitize_and_toggle_mod_item_roundtrip() {
         assert!(sanitize_single_file_name("../evil.jar").is_err());
         assert!(sanitize_single_file_name("sub/evil.jar").is_err());
+        assert!(sanitize_single_file_name(".basalt-manifest.json").is_err());
+        assert!(sanitize_single_file_name("CON.jar").is_err());
+        assert!(sanitize_single_file_name("mod:stream.jar").is_err());
+        assert!(sanitize_single_file_name("mod.jar.").is_err());
         assert_eq!(sanitize_single_file_name("sodium-0.6.5.jar").unwrap(), "sodium-0.6.5.jar");
 
         let temp_root = std::env::temp_dir().join(format!(
@@ -783,6 +891,13 @@ mod tests {
         assert_eq!(items_after.len(), 1);
         assert!(!items_after[0].enabled);
 
+        // If both enabled and disabled copies exist, toggle refuses instead of overwriting.
+        fs::write(&mod_path, b"fresh-bytes").unwrap();
+        assert!(toggle_library_item(&temp_root, "sodium-0.6.5.jar").is_err());
+        assert!(mod_path.is_file());
+        assert!(temp_root.join(&toggled).is_file());
+
+        delete_library_item(&temp_root, "sodium-0.6.5.jar").unwrap();
         delete_library_item(&temp_root, &toggled).unwrap();
         assert!(list_library_items(&temp_root, LibraryKind::Mod).is_empty());
         let _ = fs::remove_dir_all(&temp_root);

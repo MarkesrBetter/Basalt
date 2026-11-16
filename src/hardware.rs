@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sysinfo::System;
+use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
 
 use crate::config::{GraphicsPreset, GraphicsSettings, JvmGcMode};
 
@@ -34,7 +34,11 @@ impl GpuTier {
 
 impl HardwareProfile {
     pub fn detect(adapter_info: &wgpu::AdapterInfo) -> Self {
-        let mut sys = System::new_all();
+        let mut sys = System::new_with_specifics(
+            RefreshKind::nothing()
+                .with_cpu(CpuRefreshKind::everything())
+                .with_memory(MemoryRefreshKind::everything()),
+        );
         sys.refresh_cpu_all();
         sys.refresh_memory();
 
@@ -77,28 +81,31 @@ impl HardwareProfile {
         let (tx, rx) = mpsc::channel();
         std::thread::spawn(move || {
             let probed = std::panic::catch_unwind(|| {
-                // On Windows, restrict to DX12 to avoid slow OpenGL dummy windows (NVOpenGLPbuffer)
-                // and Vulkan ICD initialization stalls on fresh or headless user profiles.
-                let backends = if cfg!(target_os = "windows") {
-                    wgpu::Backends::DX12
-                } else {
-                    wgpu::Backends::PRIMARY
+                let probe_backend = |backends: wgpu::Backends| -> Option<wgpu::AdapterInfo> {
+                    let mut desc = wgpu::InstanceDescriptor::new_without_display_handle();
+                    desc.backends = backends;
+                    let instance = wgpu::Instance::new(desc);
+                    pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+                        power_preference: wgpu::PowerPreference::HighPerformance,
+                        compatible_surface: None,
+                        force_fallback_adapter: false,
+                    }))
+                    .ok()
+                    .map(|adapter| adapter.get_info())
                 };
-                let mut desc = wgpu::InstanceDescriptor::new_without_display_handle();
-                desc.backends = backends;
-                let instance = wgpu::Instance::new(desc);
-                pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-                    power_preference: wgpu::PowerPreference::HighPerformance,
-                    compatible_surface: None,
-                    force_fallback_adapter: false,
-                }))
-                .ok()
-                .map(|adapter| adapter.get_info())
+                if cfg!(target_os = "windows") {
+                    // Probe DX12 first (avoids NVOpenGLPbuffer/Vulkan ICD startup cost on modern GPUs),
+                    // then fall back to Vulkan for VMs, RDP, or older GPUs without DX12 hardware drivers.
+                    probe_backend(wgpu::Backends::DX12)
+                        .or_else(|| probe_backend(wgpu::Backends::VULKAN))
+                } else {
+                    probe_backend(wgpu::Backends::PRIMARY)
+                }
             });
             let _ = tx.send(probed.ok().flatten());
         });
 
-        if let Ok(Some(info)) = rx.recv_timeout(Duration::from_millis(1200)) {
+        if let Ok(Some(info)) = rx.recv_timeout(Duration::from_millis(3500)) {
             return info;
         }
 

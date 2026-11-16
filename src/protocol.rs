@@ -65,11 +65,15 @@ impl PacketBuffer {
     }
 
     pub fn read_exact(&mut self, len: usize) -> Result<&[u8], String> {
-        if self.cursor + len > self.data.len() {
+        let end = self
+            .cursor
+            .checked_add(len)
+            .ok_or_else(|| format!("Packet length overflow: requested {len} bytes"))?;
+        if end > self.data.len() {
             return Err(format!("Insufficient packet data: requested {len} bytes"));
         }
-        let slice = &self.data[self.cursor..self.cursor + len];
-        self.cursor += len;
+        let slice = &self.data[self.cursor..end];
+        self.cursor = end;
         Ok(slice)
     }
 
@@ -77,13 +81,13 @@ impl PacketBuffer {
         let mut num_read = 0u32;
         let mut result = 0i32;
         loop {
-            let byte = self.read_u8()?;
-            let value = (byte & 0x7F) as i32;
-            result |= value << (7 * num_read);
-            num_read += 1;
-            if num_read > 5 {
+            if num_read >= 5 {
                 return Err("Invalid VarInt (> 5 bytes)".to_string());
             }
+            let byte = self.read_u8()?;
+            let value = (byte & 0x7F) as i32;
+            result |= value.wrapping_shl(7 * num_read);
+            num_read += 1;
             if (byte & 0x80) == 0 {
                 break;
             }
@@ -249,16 +253,16 @@ fn read_varint_stream(stream: &mut TcpStream) -> Result<i32, String> {
     let mut result = 0i32;
     let mut buf = [0u8; 1];
     loop {
+        if num_read >= 5 {
+            return Err("Invalid VarInt in network stream".to_string());
+        }
         stream
             .read_exact(&mut buf)
             .map_err(|e| format!("Network read error: {e}"))?;
         let byte = buf[0];
         let value = (byte & 0x7F) as i32;
-        result |= value << (7 * num_read);
+        result |= value.wrapping_shl(7 * num_read);
         num_read += 1;
-        if num_read > 5 {
-            return Err("Invalid VarInt in network stream".to_string());
-        }
         if (byte & 0x80) == 0 {
             break;
         }
@@ -534,4 +538,21 @@ pub fn probe_local_dev_login_1_21_4(
     Ok(LocalHandshakeResult::Disconnected(
         "Login timed out".to_string(),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_overlong_varint_without_shift_overflow_and_parses_ipv6() {
+        let mut buf = PacketBuffer::from_bytes(vec![0x80, 0x80, 0x80, 0x80, 0x80, 0x01]);
+        assert!(buf.read_varint().is_err());
+
+        let mut short_buf = PacketBuffer::from_bytes(vec![1, 2]);
+        assert!(short_buf.read_exact(usize::MAX).is_err());
+
+        assert_eq!(parse_host_port("[::1]:25575"), ("::1".to_string(), 25575));
+        assert_eq!(parse_host_port("[::1]"), ("::1".to_string(), 25565));
+    }
 }

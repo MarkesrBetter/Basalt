@@ -12,10 +12,10 @@
       {
         "label": "main",
         "title": "Basalt",
-        "width": 1280,
-        "height": 800,
-        "minWidth": 960,
-        "minHeight": 640,
+        "width": 1180,
+        "height": 700,
+        "minWidth": 860,
+        "minHeight": 500,
         "decorations": false,
         "resizable": true
       }

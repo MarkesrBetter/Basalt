@@ -4,9 +4,15 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Duration;
 
-use crate::config::{GraphicsSettings, JvmGcMode, SUPPORTED_MC_VERSIONS, normalize_mc_version};
-use crate::protocol::{MINECRAFT_1_21_4_NAME, local_player_uuid_bytes, local_player_uuid_dashed};
+use crate::config::{
+    GraphicsSettings, JvmGcMode, LoaderKind, SUPPORTED_MC_VERSIONS, normalize_mc_version,
+};
+use crate::protocol::{
+    MINECRAFT_1_21_4_NAME, local_player_uuid_bytes, local_player_uuid_dashed, parse_host_port,
+};
 
 pub const MOJANG_VERSION_MANIFEST_V2_URL: &str =
     "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
@@ -86,18 +92,19 @@ fn ascii_root_candidates(fingerprint: &str) -> Vec<PathBuf> {
     let mut out = Vec::new();
     #[cfg(windows)]
     {
-        for key in ["PUBLIC", "ProgramData", "ALLUSERSPROFILE"] {
+        // Prefer isolated %SystemDrive%\Basalt\<fp> over world-readable Public before shared folders.
+        let sys_drive = std::env::var("SystemDrive").unwrap_or_else(|_| "C:".to_string());
+        let clean_drive = sys_drive.trim().trim_end_matches(['\\', '/']);
+        if !clean_drive.is_empty() {
+            out.push(PathBuf::from(format!("{clean_drive}\\Basalt\\{fingerprint}")));
+        }
+        for key in ["ProgramData", "ALLUSERSPROFILE", "PUBLIC"] {
             if let Some(val) = std::env::var_os(key) {
                 let raw = val.to_string_lossy().trim().to_string();
                 if !raw.is_empty() {
                     out.push(PathBuf::from(raw).join("Basalt").join(fingerprint));
                 }
             }
-        }
-        let sys_drive = std::env::var("SystemDrive").unwrap_or_else(|_| "C:".to_string());
-        let clean_drive = sys_drive.trim().trim_end_matches(['\\', '/']);
-        if !clean_drive.is_empty() {
-            out.push(PathBuf::from(format!("{clean_drive}\\Basalt\\{fingerprint}")));
         }
     }
     #[cfg(not(windows))]
@@ -244,8 +251,17 @@ pub fn parse_java_major(home: &Path) -> Option<(u32, String)> {
         for line in content.lines() {
             if let Some(rest) = line.strip_prefix("JAVA_VERSION=") {
                 let ver = rest.trim().trim_matches('"');
-                let first = ver.split(['.', '-', '_', '+']).next()?;
-                if let Ok(major) = first.parse::<u32>() {
+                let mut parts = ver.split(['.', '-', '_', '+']);
+                if let Some(first) = parts.next()
+                    && let Ok(major) = first.parse::<u32>()
+                {
+                    // Legacy Java 8 reports JAVA_VERSION="1.8.0_xxx"
+                    if major == 1
+                        && let Some(second) = parts.next()
+                        && let Ok(legacy_major) = second.parse::<u32>()
+                    {
+                        return Some((legacy_major, ver.to_string()));
+                    }
                     return Some((major, ver.to_string()));
                 }
             }
@@ -255,7 +271,7 @@ pub fn parse_java_major(home: &Path) -> Option<(u32, String)> {
     for digits in dir_name.split(|c: char| !c.is_ascii_digit()) {
         if !digits.is_empty()
             && let Ok(n) = digits.parse::<u32>()
-            && (17..=35).contains(&n)
+            && (8..=35).contains(&n)
         {
             return Some((n, dir_name.to_string()));
         }
@@ -279,9 +295,9 @@ pub fn evaluate_jdk_candidates(candidates: &[PathBuf]) -> JavaDiscovery {
             continue;
         };
         let has_javac = dir.join("bin").join(compiler_executable_name()).is_file();
-        if (21..=25).contains(&major) {
+        if (21..=29).contains(&major) {
             let jdk_bonus = if has_javac { 2000 } else { 0 };
-            let version_score = if major == 21 { 1000 } else { 500 + (30 - major) };
+            let version_score = if major == 21 { 1000 } else { 500 + (35 - major) };
             let score = jdk_bonus + version_score;
             if best_21.as_ref().is_none_or(|(b_score, _, _)| score > *b_score) {
                 best_21 = Some((score, strip_verbatim_prefix(dir.clone()), label));
@@ -297,7 +313,7 @@ pub fn evaluate_jdk_candidates(candidates: &[PathBuf]) -> JavaDiscovery {
     }
 }
 
-pub fn probe_java21_environment(runtime_dir: Option<&Path>) -> JavaDiscovery {
+fn collect_java_candidates(runtime_dir: Option<&Path>) -> Vec<PathBuf> {
     let mut candidates: Vec<PathBuf> = Vec::new();
 
     if let Some(rt) = runtime_dir
@@ -324,11 +340,21 @@ pub fn probe_java21_environment(runtime_dir: Option<&Path>) -> JavaDiscovery {
         "JAVA_HOME_22_X64",
         "JAVA_HOME_23_X64",
         "JAVA_HOME_24_X64",
+        "JAVA_HOME_21_ARM64",
+        "JAVA_HOME_17_X64",
+        "JAVA_HOME_8_X64",
     ] {
         if let Ok(env_jh) = std::env::var(env_key) {
             let cleaned = env_jh.trim().trim_matches('"');
             if !cleaned.is_empty() {
-                candidates.push(PathBuf::from(cleaned));
+                let p = PathBuf::from(cleaned);
+                if p.file_name().is_some_and(|n| n.eq_ignore_ascii_case("bin"))
+                    && let Some(parent) = p.parent()
+                {
+                    candidates.push(parent.to_path_buf());
+                } else {
+                    candidates.push(p);
+                }
             }
         }
     }
@@ -372,7 +398,43 @@ pub fn probe_java21_environment(runtime_dir: Option<&Path>) -> JavaDiscovery {
         }
     }
 
+    candidates
+}
+
+pub fn probe_java21_environment(runtime_dir: Option<&Path>) -> JavaDiscovery {
+    let candidates = collect_java_candidates(runtime_dir);
     evaluate_jdk_candidates(&candidates)
+}
+
+/// Picks the most compatible installed JDK for `mc_version` + `loader`:
+/// Forge `1.16.5` prefers Java 8/11/17 when available; Forge `1.17.1-1.20.4` prefers Java 17;
+/// all other targets use Java 21+. Falls back cleanly to Java 21 if legacy JDKs aren't present.
+pub fn discover_java_for_loader(
+    runtime_dir: Option<&Path>,
+    mc_version: &str,
+    loader: LoaderKind,
+) -> Option<(PathBuf, String)> {
+    let candidates = collect_java_candidates(runtime_dir);
+    if loader == LoaderKind::Forge {
+        let preferred_majors: &[u32] = if mc_version == "1.16.5" {
+            &[8, 11, 17]
+        } else if matches!(mc_version, "1.17.1" | "1.18.2" | "1.19.2" | "1.19.4" | "1.20" | "1.20.1" | "1.20.2" | "1.20.4") {
+            &[17, 21]
+        } else {
+            &[21]
+        };
+        for &target_major in preferred_majors {
+            for dir in &candidates {
+                if is_java_home_valid(dir)
+                    && let Some((maj, label)) = parse_java_major(dir)
+                    && maj == target_major
+                {
+                    return Some((strip_verbatim_prefix(dir.clone()), label));
+                }
+            }
+        }
+    }
+    evaluate_jdk_candidates(&candidates).java21
 }
 
 pub fn discover_java21_home() -> Option<(PathBuf, String)> {
@@ -521,6 +583,8 @@ pub struct MojangRuleOs {
 pub struct MojangRule {
     pub action: String,
     pub os: Option<MojangRuleOs>,
+    #[serde(default)]
+    pub features: Option<HashMap<String, bool>>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -600,6 +664,11 @@ pub fn is_library_allowed_for_target(
 ) -> bool {
     let mut allowed = rules.is_empty();
     for rule in rules {
+        if let Some(ref feat) = rule.features
+            && !feat.is_empty()
+        {
+            continue;
+        }
         let os_matches = match rule.os {
             None => true,
             Some(ref os) => {
@@ -658,7 +727,7 @@ pub fn native_classifier_for_library<'a>(
         return None;
     }
     let keys: &[&str] = match os_name {
-        "windows" => &["natives-windows", "natives-windows-64"],
+        "windows" => &["natives-windows", "natives-windows-64", "natives-windows-32"],
         "osx" => &["natives-macos", "natives-osx"],
         _ => &["natives-linux"],
     };
@@ -771,6 +840,36 @@ pub fn check_vanilla_client_ready_for(vanilla_dir: &Path, version: &str) -> bool
     true
 }
 
+fn is_valid_asset_sha1(hash: &str) -> bool {
+    hash.len() == 40 && hash.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
+pub fn resolve_curl_exe() -> PathBuf {
+    #[cfg(windows)]
+    {
+        if let Some(root) = std::env::var_os("SystemRoot").or_else(|| std::env::var_os("windir")) {
+            let sys = PathBuf::from(root).join("System32").join("curl.exe");
+            if sys.is_file() {
+                return sys;
+            }
+        }
+    }
+    PathBuf::from("curl.exe")
+}
+
+pub fn resolve_tar_exe() -> PathBuf {
+    #[cfg(windows)]
+    {
+        if let Some(root) = std::env::var_os("SystemRoot").or_else(|| std::env::var_os("windir")) {
+            let sys = PathBuf::from(root).join("System32").join("tar.exe");
+            if sys.is_file() {
+                return sys;
+            }
+        }
+    }
+    PathBuf::from("tar.exe")
+}
+
 pub fn check_vanilla_assets_ready_for(vanilla_dir: &Path, version: &str) -> bool {
     let Some(manifest) = load_cached_version_manifest_for(vanilla_dir, version) else {
         return false;
@@ -793,7 +892,7 @@ pub fn check_vanilla_assets_ready_for(vanilla_dir: &Path, version: &str) -> bool
     }
     let mut seen = HashSet::new();
     for obj in idx.objects.values() {
-        if obj.hash.len() < 4 || !seen.insert(obj.hash.clone()) {
+        if !is_valid_asset_sha1(&obj.hash) || !seen.insert(obj.hash.clone()) {
             continue;
         }
         let obj_path = vanilla_dir
@@ -839,48 +938,81 @@ pub fn curl_fetch_bytes(url: &str) -> Result<Vec<u8>, String> {
 }
 
 pub fn curl_fetch_bytes_with_ua(url: &str, user_agent: Option<&str>) -> Result<Vec<u8>, String> {
-    let caps = CurlCapabilities::detect();
-    let mut cmd = Command::new("curl.exe");
-    cmd.args(["-fsSL", "--retry", "2", "--connect-timeout", "20", "--max-time", "60"]);
-    if caps.supports_ssl_revoke_best_effort {
-        cmd.arg("--ssl-revoke-best-effort");
-    }
-    if let Some(ua) = user_agent {
-        cmd.arg("-A").arg(ua);
-    }
-    cmd.arg(url).stdin(Stdio::null());
-    hide_window(&mut cmd);
-    let out = cmd
-        .output()
-        .map_err(|e| format!("Failed to invoke curl.exe for {url}: {e}"))?;
-    if !out.status.success() {
+    let mut caps = CurlCapabilities::detect();
+    let curl_exe = resolve_curl_exe();
+    for attempt in 0..2 {
+        let mut cmd = Command::new(&curl_exe);
+        cmd.args([
+            "-fsSL",
+            "--retry",
+            "2",
+            "--connect-timeout",
+            "20",
+            "--speed-limit",
+            "1024",
+            "--speed-time",
+            "30",
+            "--max-time",
+            "90",
+        ]);
+        if caps.supports_ssl_revoke_best_effort {
+            cmd.arg("--ssl-revoke-best-effort");
+        }
+        if let Some(ua) = user_agent {
+            cmd.arg("-A").arg(ua);
+        }
+        cmd.arg(url).stdin(Stdio::null());
+        hide_window(&mut cmd);
+        let out = cmd
+            .output()
+            .map_err(|e| format!("Failed to invoke curl.exe for {url}: {e}"))?;
+        if out.status.success() {
+            return Ok(out.stdout);
+        }
+        if attempt == 0 && out.status.code() == Some(2) && caps.supports_ssl_revoke_best_effort {
+            caps.supports_ssl_revoke_best_effort = false;
+            continue;
+        }
         let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
         return Err(format!(
             "Download failed ({url}, exit code {:?}): {stderr}",
             out.status.code()
         ));
     }
-    Ok(out.stdout)
+    Err(format!("Download failed for {url}"))
 }
 
 fn escape_curl_config_value(s: &str) -> String {
+    if s.starts_with("\\\\") {
+        // Preserve Windows UNC prefix `\\server\share`
+        return s.replace('\\', "\\\\").replace('"', "\\\"");
+    }
     s.replace('\\', "/").replace('"', "\\\"")
 }
 
-fn commit_verified_part(part_path: &Path, dest: &Path) -> Result<(), String> {
+/// Atomically moves `part_path` into `dest`, retrying briefly if Windows Defender holds a sharing lock.
+pub fn commit_verified_part(part_path: &Path, dest: &Path) -> Result<(), String> {
     if let Some(parent) = dest.parent() {
         fs::create_dir_all(parent)
             .map_err(|e| format!("Failed to create parent folder {}: {e}", parent.display()))?;
     }
-    let _ = fs::remove_file(dest);
-    if fs::rename(part_path, dest).is_ok() {
-        return Ok(());
+    for retry in 0..8 {
+        let _ = fs::remove_file(dest);
+        if fs::rename(part_path, dest).is_ok() {
+            return Ok(());
+        }
+        std::thread::sleep(Duration::from_millis(40 + retry * 20));
     }
-    fs::copy(part_path, dest).map_err(|e| {
-        format!(
-            "Failed to move verified file into {}: {e}",
-            dest.display()
-        )
+    let stage = dest.with_extension("basalt_tmp");
+    let _ = fs::remove_file(&stage);
+    fs::copy(part_path, &stage).map_err(|e| {
+        let _ = fs::remove_file(&stage);
+        format!("Failed to copy verified file into {}: {e}", dest.display())
+    })?;
+    let _ = fs::remove_file(dest);
+    fs::rename(&stage, dest).map_err(|e| {
+        let _ = fs::remove_file(&stage);
+        format!("Failed to move verified file into {}: {e}", dest.display())
     })?;
     let _ = fs::remove_file(part_path);
     Ok(())
@@ -906,8 +1038,10 @@ impl CurlCapabilities {
                 let mut parts = ver_str.split('.').filter_map(|p| p.parse::<u32>().ok());
                 if let (Some(maj), Some(min)) = (parts.next(), parts.next()) {
                     supports_parallel = (maj, min) >= (7, 66);
-                }
-                if trimmed.contains("Schannel") {
+                    if trimmed.contains("Schannel") && (maj, min) >= (7, 70) {
+                        supports_ssl_revoke_best_effort = true;
+                    }
+                } else if trimmed.contains("Schannel") {
                     supports_ssl_revoke_best_effort = true;
                 }
             } else if let Some(rest) = trimmed.strip_prefix("Features:") {
@@ -927,7 +1061,7 @@ impl CurlCapabilities {
     pub fn detect() -> Self {
         static CACHE: std::sync::OnceLock<CurlCapabilities> = std::sync::OnceLock::new();
         *CACHE.get_or_init(|| {
-            let mut cmd = Command::new("curl.exe");
+            let mut cmd = Command::new(resolve_curl_exe());
             cmd.arg("--version").stdin(Stdio::null());
             hide_window(&mut cmd);
             if let Ok(out) = cmd.output()
@@ -945,6 +1079,16 @@ impl CurlCapabilities {
     }
 }
 
+static BATCH_TEMP_SEQ: AtomicU64 = AtomicU64::new(1);
+
+struct ScopedTempDir(PathBuf);
+
+impl Drop for ScopedTempDir {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
+}
+
 fn build_curl_transfer_args(
     caps: CurlCapabilities,
     parallel_max: Option<&str>,
@@ -955,6 +1099,10 @@ fn build_curl_transfer_args(
         "-sS".to_string(),
         "-fL".to_string(),
         "--tcp-nodelay".to_string(),
+        "--speed-limit".to_string(),
+        "1024".to_string(),
+        "--speed-time".to_string(),
+        "35".to_string(),
     ];
     if caps.supports_ssl_revoke_best_effort {
         args.push("--ssl-revoke-best-effort".to_string());
@@ -1023,7 +1171,7 @@ fn download_segmented_with_curl(
 
     let seg_max_str = seg_paths.len().to_string();
     let args = build_curl_transfer_args(caps, Some(&seg_max_str), "15", false);
-    let mut cmd = Command::new("curl.exe");
+    let mut cmd = Command::new(resolve_curl_exe());
     cmd.args(&args)
         .arg("-K")
         .arg(&cfg_path)
@@ -1096,13 +1244,16 @@ pub fn download_batch_with_curl(
     if tasks.is_empty() {
         return Ok(());
     }
-    fs::create_dir_all(temp_dir)
+    let seq = BATCH_TEMP_SEQ.fetch_add(1, Ordering::Relaxed);
+    let work_dir = temp_dir.join(format!("b-{}-{seq}", std::process::id()));
+    fs::create_dir_all(&work_dir)
         .map_err(|e| format!("Failed to create temp download dir: {e}"))?;
+    let _guard = ScopedTempDir(work_dir.clone());
 
     let mut pending: Vec<usize> = Vec::with_capacity(tasks.len());
     for (idx, &t) in tasks.iter().enumerate() {
         if t.size >= 4 * 1024 * 1024
-            && download_segmented_with_curl(t, temp_dir, 8).unwrap_or(false)
+            && download_segmented_with_curl(t, &work_dir, 8).unwrap_or(false)
         {
             continue;
         }
@@ -1115,13 +1266,14 @@ pub fn download_batch_with_curl(
     let mut last_err = String::new();
     let mut caps = CurlCapabilities::detect();
     let max_streams = parallel_streams.clamp(4, 32).to_string();
+    let curl_exe = resolve_curl_exe();
 
     for attempt in 0..3 {
-        let cfg_path = temp_dir.join(format!("curl-batch-{}-{attempt}.cfg", std::process::id()));
+        let cfg_path = work_dir.join(format!("curl-batch-{attempt}.cfg"));
         let mut cfg = String::with_capacity(pending.len() * 192);
         for &idx in &pending {
             let t = tasks[idx];
-            let part_path = temp_dir.join(format!("dl-{idx:04}.part"));
+            let part_path = work_dir.join(format!("dl-{idx:04}.part"));
             let _ = fs::remove_file(&part_path);
             cfg.push_str(&format!(
                 "url = \"{}\"\noutput = \"{}\"\n",
@@ -1138,7 +1290,7 @@ pub fn download_batch_with_curl(
             "6"
         };
         let args = build_curl_transfer_args(caps, Some(parallel_max), "20", true);
-        let mut cmd = Command::new("curl.exe");
+        let mut cmd = Command::new(&curl_exe);
         cmd.args(&args)
             .arg("-K")
             .arg(&cfg_path)
@@ -1173,7 +1325,7 @@ pub fn download_batch_with_curl(
         let mut still_pending = Vec::new();
         for &idx in &pending {
             let t = tasks[idx];
-            let part_path = temp_dir.join(format!("dl-{idx:04}.part"));
+            let part_path = work_dir.join(format!("dl-{idx:04}.part"));
             if check_file_size_and_sha1(&part_path, t.size, &t.sha1) {
                 commit_verified_part(&part_path, &t.dest)?;
             } else {
@@ -1492,7 +1644,7 @@ where
 
     let mut seen_hashes = HashSet::new();
     for obj in idx.objects.values() {
-        if obj.hash.len() < 4 || !seen_hashes.insert(obj.hash.clone()) {
+        if !is_valid_asset_sha1(&obj.hash) || !seen_hashes.insert(obj.hash.clone()) {
             continue;
         }
         let dest = vanilla_dir
@@ -1571,6 +1723,7 @@ where
     }
 
     // Extract legacy native classifier DLLs (used in 1.16.5 - 1.18.2) into natives/<ver> if present.
+    let tar_exe = resolve_tar_exe();
     for lib in &manifest.libraries {
         if !is_library_allowed_for_target(&lib.name, &lib.rules, os_name, arch) {
             continue;
@@ -1582,16 +1735,27 @@ where
                 .join("libraries")
                 .join(rel.replace('/', std::path::MAIN_SEPARATOR_STR));
             if jar_path.is_file() {
-                let mut cmd = Command::new("tar.exe");
+                let mut cmd = Command::new(&tar_exe);
                 cmd.args(["-xf"])
                     .arg(&jar_path)
                     .arg("-C")
                     .arg(&natives_dir)
-                    .stdin(Stdio::null())
-                    .stdout(Stdio::null())
-                    .stderr(Stdio::null());
+                    .stdin(Stdio::null());
                 hide_window(&mut cmd);
-                let _ = cmd.status();
+                let out = cmd.output().map_err(|e| {
+                    format!(
+                        "Failed to invoke {} to extract native DLLs from {}: {e}",
+                        tar_exe.display(),
+                        jar_path.display()
+                    )
+                })?;
+                if !out.status.success() {
+                    let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+                    return Err(format!(
+                        "Failed to extract native DLLs from {}: {stderr}",
+                        jar_path.display()
+                    ));
+                }
             }
         }
     }
@@ -1733,26 +1897,54 @@ pub fn build_stored_zip(entries: &[(&str, &[u8])]) -> Result<Vec<u8>, String> {
     Ok(out)
 }
 
-/// Writes `run/resourcepacks/basalt_skin.zip` for pure Vanilla Minecraft (`1.16.5` through `1.21.4`),
+fn pack_format_for_mc_version(mc_version: Option<&str>) -> (u32, bool) {
+    match mc_version.unwrap_or("1.21.4") {
+        v if v.starts_with("1.16") => (6, false),
+        v if v.starts_with("1.17") => (7, false),
+        v if v.starts_with("1.18") => (8, false),
+        "1.19" | "1.19.1" | "1.19.2" => (9, false),
+        "1.19.3" => (12, false),
+        "1.19.4" => (13, false),
+        "1.20" | "1.20.1" => (15, false),
+        "1.20.2" => (18, true),
+        "1.20.3" | "1.20.4" => (22, true),
+        "1.20.5" | "1.20.6" => (32, true),
+        "1.21" | "1.21.1" => (34, true),
+        "1.21.2" | "1.21.3" => (42, true),
+        _ => (46, true),
+    }
+}
+
+/// Writes `run/resourcepacks/basalt_skin.zip` for Minecraft (`1.16.5` through `1.21.4`),
 /// overriding both the 1.19.3+ Slim/Classic aligned singleplayer slot, the offline multiplayer
 /// fallback slot, and the legacy `entity/alex.png` + `entity/steve.png` slots, returning the aligned player UUID string.
-pub fn write_basalt_skin_resource_pack(
+pub fn write_basalt_skin_resource_pack_for(
     run_dir: &Path,
     username: &str,
     skin_png_bytes: &[u8],
     is_slim: bool,
+    mc_version: Option<&str>,
 ) -> Result<String, String> {
     let base_uuid = local_player_uuid_bytes(username);
     let aligned_uuid = align_uuid_for_skin_model(base_uuid, is_slim);
     let aligned_slot = default_skin_slot(&aligned_uuid);
     let offline_slot = default_skin_slot(&base_uuid);
 
-    let mcmeta = br#"{"pack":{"pack_format":46,"supported_formats":{"min_inclusive":6,"max_inclusive":64},"description":"Basalt active skin"}}"#;
+    let (fmt, has_supported_formats) = pack_format_for_mc_version(mc_version);
+    let mcmeta_string = if has_supported_formats {
+        format!(
+            r#"{{"pack":{{"pack_format":{fmt},"supported_formats":{{"min_inclusive":6,"max_inclusive":64}},"description":"Basalt active skin"}}}}"#
+        )
+    } else {
+        format!(
+            r#"{{"pack":{{"pack_format":{fmt},"description":"Basalt active skin"}}}}"#
+        )
+    };
     let primary_path = DEFAULT_SKIN_PATHS[aligned_slot];
     let offline_path = DEFAULT_SKIN_PATHS[offline_slot];
 
     let mut entries: Vec<(&str, &[u8])> = vec![
-        ("pack.mcmeta", mcmeta),
+        ("pack.mcmeta", mcmeta_string.as_bytes()),
         (primary_path, skin_png_bytes),
     ];
     if offline_path != primary_path {
@@ -1770,6 +1962,15 @@ pub fn write_basalt_skin_resource_pack(
         .map_err(|e| format!("Failed to write {}: {e}", zip_path.display()))?;
 
     Ok(format_uuid_dashed(&aligned_uuid))
+}
+
+pub fn write_basalt_skin_resource_pack(
+    run_dir: &Path,
+    username: &str,
+    skin_png_bytes: &[u8],
+    is_slim: bool,
+) -> Result<String, String> {
+    write_basalt_skin_resource_pack_for(run_dir, username, skin_png_bytes, is_slim, None)
 }
 
 /// Returns true if the given Minecraft version supports `--quickPlaySingleplayer` / `--quickPlayMultiplayer` (`1.20+`).
@@ -2024,12 +2225,12 @@ pub fn append_minecraft_game_args(
             args.push(mp.clone());
         }
     } else if let Some(ref mp) = cfg.quick_play_multiplayer {
-        let (host, port) = mp.rsplit_once(':').unwrap_or((mp.as_str(), "25565"));
-        if !host.trim().is_empty() {
+        let (host, port) = parse_host_port(mp);
+        if !host.is_empty() {
             args.push("--server".to_string());
-            args.push(host.trim().to_string());
+            args.push(host);
             args.push("--port".to_string());
-            args.push(port.trim().to_string());
+            args.push(port.to_string());
         }
     }
 }
@@ -2088,6 +2289,30 @@ pub fn build_vanilla_launch_args(
     args
 }
 
+fn escape_java_argfile_token(token: &str) -> String {
+    let needs_quote = token.is_empty()
+        || token
+            .chars()
+            .any(|c| c.is_whitespace() || matches!(c, '"' | '\\' | '#' | '\''));
+    if !needs_quote {
+        return token.to_string();
+    }
+    let mut out = String::with_capacity(token.len() + 4);
+    out.push('"');
+    for ch in token.chars() {
+        match ch {
+            '\\' => out.push_str("\\\\"),
+            '"' => out.push_str("\\\""),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            _ => out.push(ch),
+        }
+    }
+    out.push('"');
+    out
+}
+
 /// Spawns any prepared Minecraft Java command line directly via `java.exe` (shared by Vanilla, Fabric, and Forge).
 pub fn spawn_java_client(
     run_dir: &Path,
@@ -2106,9 +2331,29 @@ pub fn spawn_java_client(
         ));
     }
 
+    let approx_cmd_chars: usize = args.iter().map(|s| s.len() + 3).sum();
+    let java_major = parse_java_major(java_home).map(|(m, _)| m).unwrap_or(21);
+    let mut argfile_guard: Option<PathBuf> = None;
+
     let mut cmd = Command::new(&java_bin);
-    cmd.args(args)
-        .current_dir(run_dir)
+    if cfg!(windows) && approx_cmd_chars > 24_000 && java_major >= 9 {
+        let argfile_path = run_dir.join(format!("basalt-launch-{}.args", std::process::id()));
+        let body: String = args
+            .iter()
+            .map(|a| escape_java_argfile_token(a))
+            .collect::<Vec<_>>()
+            .join("\n");
+        if fs::write(&argfile_path, body.as_bytes()).is_ok() {
+            cmd.arg(format!("@{}", argfile_path.display()));
+            argfile_guard = Some(argfile_path);
+        } else {
+            cmd.args(args);
+        }
+    } else {
+        cmd.args(args);
+    }
+
+    cmd.current_dir(run_dir)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -2124,8 +2369,15 @@ pub fn spawn_java_client(
 
     hide_window_with_priority(&mut cmd, process_boost);
 
-    cmd.spawn()
-        .map_err(|e| format!("Failed to start Minecraft {label} process: {e}"))
+    let res = cmd
+        .spawn()
+        .map_err(|e| format!("Failed to start Minecraft {label} process: {e}"));
+    if res.is_err()
+        && let Some(p) = argfile_guard
+    {
+        let _ = fs::remove_file(p);
+    }
+    res
 }
 
 /// Spawns Vanilla Minecraft directly with `java.exe` (no Gradle/Fabric intermediary).
@@ -2468,9 +2720,9 @@ mod tests {
         MojangVersionDownloads, MojangVersionManifest, VanillaLaunchConfig,
         align_uuid_for_skin_model, build_stored_zip, build_vanilla_launch_args,
         check_vanilla_assets_ready_for, compute_sha1_hex, compute_sha256_hex, default_skin_slot,
-        evaluate_jdk_candidates, is_ascii_path, is_library_allowed_for_target,
-        load_cached_version_manifest_for, parse_java_major, summarize_process_failure,
-        version_supports_quick_play, write_basalt_skin_resource_pack,
+        evaluate_jdk_candidates, is_ascii_path, is_library_allowed_for_target, is_valid_asset_sha1,
+        load_cached_version_manifest_for, pack_format_for_mc_version, parse_java_major,
+        summarize_process_failure, version_supports_quick_play, write_basalt_skin_resource_pack,
     };
     use crate::config::{GraphicsSettings, JvmGcMode, normalize_mc_version};
     use crate::protocol::local_player_uuid_bytes;
@@ -2522,6 +2774,7 @@ mod tests {
                 name: Some("windows".to_string()),
                 arch: None,
             }),
+            features: None,
         }];
         let linux_rule = vec![MojangRule {
             action: "allow".to_string(),
@@ -2529,6 +2782,7 @@ mod tests {
                 name: Some("linux".to_string()),
                 arch: None,
             }),
+            features: None,
         }];
 
         assert!(is_library_allowed_for_target(
@@ -2850,6 +3104,20 @@ mod tests {
                 supports_ssl_revoke_best_effort: false,
             }
         );
+
+        let pre_770_schannel = "curl 7.68.0 (Windows) libcurl/7.68.0 Schannel";
+        assert!(!CurlCapabilities::parse_version_output(pre_770_schannel).supports_ssl_revoke_best_effort);
+
+        // Java 8 parsing & asset hash guard
+        let j8 = tmp.join("jdk-1.8.0_412");
+        fs::create_dir_all(&j8).unwrap();
+        fs::write(j8.join("release"), "JAVA_VERSION=\"1.8.0_412\"\n").unwrap();
+        assert_eq!(parse_java_major(&j8).map(|(m, _)| m), Some(8));
+        assert!(!is_valid_asset_sha1("abcd"));
+        assert!(!is_valid_asset_sha1("\u{0131}bcdef0123456789012345678901234567890123"));
+        assert!(is_valid_asset_sha1(&"a".repeat(40)));
+        assert_eq!(pack_format_for_mc_version(Some("1.16.5")), (6, false));
+        assert_eq!(pack_format_for_mc_version(Some("1.21.4")), (46, true));
 
         let _ = fs::remove_dir_all(&tmp);
     }

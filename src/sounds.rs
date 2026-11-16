@@ -204,6 +204,9 @@ pub fn fetch_missing_minecraft_sounds(sounds_dir: &Path) -> usize {
     }
     let mut downloaded = 0usize;
 
+    let curl_exe = crate::vanilla::resolve_curl_exe();
+    let caps = crate::vanilla::CurlCapabilities::detect();
+
     for spec in MC_SOUND_SPECS {
         let dest = sounds_dir.join(format!("{}.ogg", spec.key));
         if fs::read(&dest).ok().is_some_and(|b| is_valid_ogg(&b)) {
@@ -211,10 +214,10 @@ pub fn fetch_missing_minecraft_sounds(sounds_dir: &Path) -> usize {
         }
         let hash = spec.sha1_1_21_4;
         let url = format!("https://resources.download.minecraft.net/{}/{hash}", &hash[..2]);
-        let tmp = sounds_dir.join(format!("{}.ogg.tmp", spec.key));
+        let tmp = sounds_dir.join(format!("{}.ogg.{}.tmp", spec.key, std::process::id()));
         let _ = fs::remove_file(&tmp);
 
-        let mut cmd = std::process::Command::new("curl.exe");
+        let mut cmd = std::process::Command::new(&curl_exe);
         cmd.args([
             "-fsSL",
             "--retry",
@@ -223,17 +226,13 @@ pub fn fetch_missing_minecraft_sounds(sounds_dir: &Path) -> usize {
             "8",
             "--max-time",
             "20",
-            "-o",
-        ])
-        .arg(&tmp)
-        .arg(&url);
-
-        #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt;
-            const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-            cmd.creation_flags(CREATE_NO_WINDOW);
+        ]);
+        if caps.supports_ssl_revoke_best_effort {
+            cmd.arg("--ssl-revoke-best-effort");
         }
+        cmd.arg("-o").arg(&tmp).arg(&url);
+
+        crate::vanilla::hide_window(&mut cmd);
 
         if let Ok(status) = cmd.status()
             && status.success()
@@ -241,7 +240,7 @@ pub fn fetch_missing_minecraft_sounds(sounds_dir: &Path) -> usize {
             && is_valid_ogg(&bytes)
             && crate::vanilla::compute_sha1_hex(std::io::Cursor::new(&bytes))
                 .is_ok_and(|actual| actual.eq_ignore_ascii_case(hash))
-            && fs::rename(&tmp, &dest).is_ok()
+            && crate::vanilla::commit_verified_part(&tmp, &dest).is_ok()
         {
             downloaded += 1;
         }

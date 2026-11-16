@@ -99,7 +99,8 @@
   padding: 0.8rem 0.72rem 0.72rem;
   min-width: 0;
   height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .brand {
@@ -1123,13 +1124,13 @@ body.compact .world-row {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: nowrap;
-  gap: 0.65rem;
-  padding: 0.5rem 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  padding: 0.5rem 1.15rem;
   border-right: 0;
   border-bottom: 1px solid var(--hairline);
   background: var(--bg-rail);
-  overflow: hidden;
+  overflow: visible;
 }
 
 :root[data-layout="deck"] .brand {
@@ -1909,7 +1910,7 @@ main {
   min-height: 100%;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1040px) {
   :root {
     --rail-w: 12.6rem;
   }

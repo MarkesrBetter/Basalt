@@ -67,7 +67,13 @@ let libCatalogHits: ModrinthSearchHit[] = [];
 let libTotalHits = 0;
 let libInstalledItems: InstalledLibraryItem[] = [];
 let libCatalogLoading = false;
+let libCatalogError: string | null = null;
 let libLastCatalogKey = "";
+let libCatalogSeq = 0;
+let libInstalledSeq = 0;
+let loaderSwitchSeq = 0;
+let versionSwitchSeq = 0;
+let libImportBusy = false;
 const installingProjects = new Set<string>();
 
 interface ServerCheckState {
@@ -516,8 +522,8 @@ function setActiveView(view: ViewId, updateHash = true, withSound = false): void
   }
   if (view === "library" && state) {
     renderLibraryView();
-    const currentKey = `${libActiveTab}:${libTargetLoader}:${state.config.mc_version}`;
-    if (libActiveTab !== "installed" && libLastCatalogKey !== currentKey) {
+    const currentKey = buildCurrentCatalogKey();
+    if (libActiveTab !== "installed" && (libLastCatalogKey !== currentKey || libCatalogError !== null)) {
       void loadLibraryCatalog(false);
     } else if (libActiveTab === "installed") {
       void loadLibraryInstalled();
@@ -1971,6 +1977,12 @@ function syncLibraryControls(): void {
     btn.classList.toggle("active", active);
   }
 
+  const runningLocked = state.running_session !== null;
+  for (const id of ["btn-kit-fabric-shaders", "btn-kit-forge-shaders", "btn-import-jar", "btn-import-zip"]) {
+    const btn = document.getElementById(id);
+    if (btn instanceof HTMLButtonElement) btn.disabled = runningLocked || libImportBusy;
+  }
+
   const prepareBtn = document.getElementById("btn-lib-prepare-loader");
   const prepareLabel = document.getElementById("lib-prepare-label");
   if (prepareBtn instanceof HTMLButtonElement && prepareLabel) {
@@ -2025,6 +2037,14 @@ function renderLibraryCatalog(): void {
     return;
   }
 
+  if (libCatalogError) {
+    const errBox = document.createElement("div");
+    errBox.className = "library-empty-state";
+    errBox.textContent = tr(lang, "library.offlineCatalog", { err: libCatalogError });
+    grid.appendChild(errBox);
+    return;
+  }
+
   if (libCatalogHits.length === 0) {
     const empty = document.createElement("div");
     empty.className = "library-empty-state";
@@ -2034,6 +2054,7 @@ function renderLibraryCatalog(): void {
   }
 
   const activeKind: LibraryKind = libActiveTab === "installed" ? "mod" : libActiveTab;
+  const sessionRunning = state.running_session !== null;
   for (const hit of libCatalogHits) {
     const card = document.createElement("article");
     card.className = "lib-card";
@@ -2091,7 +2112,7 @@ function renderLibraryCatalog(): void {
     installBtn.type = "button";
     const isBusy = installingProjects.has(hit.projectId);
     installBtn.className = hit.installed ? "btn-secondary btn-sm is-installed" : "btn-primary btn-sm";
-    installBtn.disabled = isBusy || hit.installed;
+    installBtn.disabled = isBusy || hit.installed || sessionRunning;
     installBtn.textContent = isBusy
       ? tr(lang, "library.installingBtn")
       : hit.installed
@@ -2174,57 +2195,87 @@ function renderLibraryView(): void {
   }
 }
 
-async function loadLibraryCatalog(force = false): Promise<void> {
-  if (!state || libActiveTab === "installed") return;
+function buildCurrentCatalogKey(): string {
+  if (!state) return "";
   const queryEl = document.getElementById("library-search-input");
   const sortEl = document.getElementById("library-sort-select");
   const query = queryEl instanceof HTMLInputElement ? queryEl.value.trim() : "";
   const sort = sortEl instanceof HTMLSelectElement ? sortEl.value : "downloads";
   const loader = getEffectiveCatalogLoader();
-  const key = `${libActiveTab}:${loader}:${state.config.mc_version}:${query}:${sort}`;
-  if (!force && libLastCatalogKey === key && libCatalogHits.length > 0) return;
+  return `${libActiveTab}:${loader}:${state.config.mc_version}:${query}:${sort}`;
+}
 
+async function loadLibraryCatalog(force = false): Promise<void> {
+  if (!state || libActiveTab === "installed") return;
+  const requestedTab = libActiveTab;
+  const queryEl = document.getElementById("library-search-input");
+  const sortEl = document.getElementById("library-sort-select");
+  const query = queryEl instanceof HTMLInputElement ? queryEl.value.trim() : "";
+  const sort = sortEl instanceof HTMLSelectElement ? sortEl.value : "downloads";
+  const loader = getEffectiveCatalogLoader();
+  const key = `${requestedTab}:${loader}:${state.config.mc_version}:${query}:${sort}`;
+  if (!force && libLastCatalogKey === key && libCatalogHits.length > 0 && !libCatalogError) return;
+
+  const seq = ++libCatalogSeq;
   libCatalogLoading = true;
+  libCatalogError = null;
   renderLibraryCatalog();
   try {
     const res = await ipc.searchModrinthCatalog({
       query,
-      kind: libActiveTab,
+      kind: requestedTab,
       loader,
       sort,
       limit: 24,
       category: null,
     });
+    if (seq !== libCatalogSeq) return;
     libCatalogHits = res.hits;
     libTotalHits = res.totalHits;
     libLastCatalogKey = key;
+    libCatalogError = null;
   } catch (err) {
-    showToast(errorMessage(err), "error");
+    if (seq !== libCatalogSeq) return;
+    const msg = errorMessage(err);
+    libCatalogError = msg;
+    showToast(msg, "error");
     libCatalogHits = [];
     libTotalHits = 0;
   } finally {
-    libCatalogLoading = false;
-    renderLibraryCatalog();
+    if (seq === libCatalogSeq) {
+      libCatalogLoading = false;
+      if (libActiveTab === requestedTab) {
+        renderLibraryCatalog();
+      }
+    }
   }
 }
 
 async function loadLibraryInstalled(): Promise<void> {
   if (!state) return;
+  const seq = ++libInstalledSeq;
   try {
-    libInstalledItems = await ipc.listLibraryItems(libInstalledKind, getEffectiveCatalogLoader());
+    const items = await ipc.listLibraryItems(libInstalledKind, getEffectiveCatalogLoader());
+    if (seq !== libInstalledSeq) return;
+    libInstalledItems = items;
   } catch (err) {
+    if (seq !== libInstalledSeq) return;
     showToast(errorMessage(err), "error");
     libInstalledItems = [];
   }
-  renderLibraryInstalled();
+  if (seq === libInstalledSeq) {
+    renderLibraryInstalled();
+  }
 }
 
 async function handleLoaderChange(loader: LoaderKind): Promise<void> {
   if (!state) return;
   unlockAudioContext();
   playMcSound("click");
+  const seq = ++loaderSwitchSeq;
   try {
     const res = await ipc.setModLoader(loader);
+    if (seq !== loaderSwitchSeq) return;
     state.config = res.config;
     state.vanilla = res.vanilla;
     state.loader_status = res.loader_status;
@@ -2239,25 +2290,28 @@ async function handleLoaderChange(loader: LoaderKind): Promise<void> {
     renderLibraryView();
     showToast(tr(getEffectiveLanguage(), "loader.switchedToast", { loader }), "success");
   } catch (err) {
+    if (seq !== loaderSwitchSeq) return;
     playMcSound("error");
     showToast(errorMessage(err), "error");
   }
 }
 
 async function handleInstallCatalogItem(hit: ModrinthSearchHit, kind: LibraryKind): Promise<void> {
-  if (!state) return;
+  if (!state || state.running_session !== null) return;
   unlockAudioContext();
   playMcSound("click");
+  const targetLoader = getEffectiveCatalogLoader();
   installingProjects.add(hit.projectId);
   renderLibraryCatalog();
   try {
     const res = await ipc.installModrinthItem({
       projectId: hit.projectId,
       kind,
-      loader: getEffectiveCatalogLoader(),
+      loader: targetLoader,
     });
-    state.config = res.config;
-    state.loader_status = res.loaderStatus;
+    if (res.loaderStatus.mcVersion === state.config.mc_version) {
+      state.loader_status = res.loaderStatus;
+    }
     state.library_counts = res.libraryCounts;
     hit.installed = true;
     const msg =
@@ -2316,9 +2370,11 @@ async function handleInstallShaderBundle(presetId: "fabric_shaders" | "forge_sha
 }
 
 async function handleImportLibraryFile(kind: LibraryKind): Promise<void> {
-  if (!state) return;
+  if (!state || libImportBusy || state.running_session !== null) return;
   unlockAudioContext();
   playMcSound("click");
+  libImportBusy = true;
+  syncLibraryControls();
   try {
     const res = await ipc.pickAndImportLibraryFile(kind, getEffectiveCatalogLoader());
     if (!res) return;
@@ -2331,6 +2387,9 @@ async function handleImportLibraryFile(kind: LibraryKind): Promise<void> {
   } catch (err) {
     playMcSound("error");
     showToast(errorMessage(err), "error");
+  } finally {
+    libImportBusy = false;
+    syncLibraryControls();
   }
 }
 
@@ -2425,13 +2484,16 @@ async function handleVersionChange(version: string): Promise<void> {
   if (!state) return;
   unlockAudioContext();
   playMcSound("click");
+  const seq = ++versionSwitchSeq;
   try {
     const res = await ipc.setMcVersion(version);
+    if (seq !== versionSwitchSeq) return;
     state.config = res.config;
     state.vanilla = res.vanilla;
     state.loader_status = res.loader_status;
     state.library_counts = res.library_counts;
     libLastCatalogKey = "";
+    libCatalogError = null;
     if (res.discord_rpc_status) {
       state.discord_rpc_status = res.discord_rpc_status;
     }
@@ -2447,6 +2509,7 @@ async function handleVersionChange(version: string): Promise<void> {
       "success"
     );
   } catch (err) {
+    if (seq !== versionSwitchSeq) return;
     playMcSound("error");
     showToast(errorMessage(err), "error");
     syncVersionUi();
@@ -3657,7 +3720,9 @@ function wireEvents(): void {
   document.getElementById("btn-lib-open-folder")?.addEventListener("click", () => {
     const kind: LibraryKind =
       libActiveTab === "installed" ? libInstalledKind : libActiveTab;
-    void ipc.openLibraryFolder(kind, getEffectiveCatalogLoader());
+    void ipc.openLibraryFolder(kind, getEffectiveCatalogLoader()).catch((err) => {
+      showToast(errorMessage(err), "error");
+    });
   });
   document.getElementById("btn-lib-prepare-loader")?.addEventListener("click", () => {
     void handlePrepareLoader();
@@ -4047,6 +4112,7 @@ async function init(): Promise<void> {
     state = await ipc.getBootstrapState();
     renderAll();
   } catch (err) {
+    setActiveView("play", false, false);
     setBanner(
       byId<HTMLDivElement>("launch-feedback"),
       tr(getEffectiveLanguage(), "err.bootstrap", { err: errorMessage(err) }),

@@ -84,8 +84,12 @@ function getOrCreateAudioContext(): AudioContext | null {
     (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!Ctor) return null;
   if (!audioCtx || audioCtx.state === "closed") {
-    audioCtx = new Ctor();
-    decodingStarted = false;
+    try {
+      audioCtx = new Ctor();
+      decodingStarted = false;
+    } catch {
+      return null;
+    }
   }
   return audioCtx;
 }

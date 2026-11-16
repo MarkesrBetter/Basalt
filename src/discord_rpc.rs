@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
-use std::fs::OpenOptions;
+use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
+use std::sync::{Arc, Mutex, OnceLock, mpsc};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Public Discord Rich Presence application client ID for Basalt Launcher.
@@ -102,8 +103,86 @@ pub fn build_clear_activity_payload(pid: u32) -> String {
     .to_string()
 }
 
-/// Attempts a single non-blocking handshake + activity update over Windows named pipes
-/// `\\.\pipe\discord-ipc-0` .. `\\.\pipe\discord-ipc-9`.
+struct PersistentPipe {
+    file: File,
+    label: String,
+}
+
+fn pipe_cell() -> &'static Mutex<Option<PersistentPipe>> {
+    static PIPE: OnceLock<Mutex<Option<PersistentPipe>>> = OnceLock::new();
+    PIPE.get_or_init(|| Mutex::new(None))
+}
+
+struct DiscordUpdateReq {
+    enabled: bool,
+    mc_version: String,
+    details: String,
+    state_label: String,
+    started_epoch_secs: u64,
+    discord_arc: Arc<Mutex<DiscordRpcStatus>>,
+    seq: u64,
+}
+
+static DISCORD_SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+fn discord_worker_sender() -> &'static mpsc::Sender<DiscordUpdateReq> {
+    static TX: OnceLock<mpsc::Sender<DiscordUpdateReq>> = OnceLock::new();
+    TX.get_or_init(|| {
+        let (tx, rx) = mpsc::channel::<DiscordUpdateReq>();
+        std::thread::spawn(move || {
+            while let Ok(mut latest) = rx.recv() {
+                // Coalesce burst updates and apply only the newest activity state.
+                while let Ok(newer) = rx.try_recv() {
+                    latest = newer;
+                }
+                let updated = publish_discord_activity(
+                    latest.enabled,
+                    &latest.mc_version,
+                    &latest.details,
+                    &latest.state_label,
+                    latest.started_epoch_secs,
+                );
+                if DISCORD_SEQ.load(std::sync::atomic::Ordering::SeqCst) == latest.seq
+                    && let Ok(mut guard) = latest.discord_arc.lock()
+                {
+                    *guard = updated;
+                }
+            }
+        });
+        tx
+    })
+}
+
+/// Queues a non-blocking Discord Rich Presence update on a single persistent background worker.
+pub fn queue_discord_activity_update(
+    discord_arc: Arc<Mutex<DiscordRpcStatus>>,
+    enabled: bool,
+    mc_version: String,
+    details: String,
+    state_label: String,
+    started_epoch_secs: u64,
+) {
+    let seq = DISCORD_SEQ.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+    let _ = discord_worker_sender().send(DiscordUpdateReq {
+        enabled,
+        mc_version,
+        details,
+        state_label,
+        started_epoch_secs,
+        discord_arc,
+        seq,
+    });
+}
+
+/// Closes any open Discord IPC pipe cleanly so Rich Presence clears on launcher exit.
+pub fn shutdown_discord_rpc() {
+    if let Ok(mut guard) = pipe_cell().lock() {
+        *guard = None;
+    }
+}
+
+/// Sends a Discord Rich Presence handshake/activity update while retaining the open named-pipe handle
+/// (`\\.\pipe\discord-ipc-0..9`) so Discord keeps displaying the activity cleanly.
 pub fn publish_discord_activity(
     enabled: bool,
     mc_version: &str,
@@ -122,19 +201,41 @@ pub fn publish_discord_activity(
     };
 
     let pid = std::process::id();
-    let handshake_json = serde_json::json!({
-        "v": 1,
-        "client_id": BASALT_DISCORD_CLIENT_ID
-    })
-    .to_string();
-    let handshake_frame = encode_ipc_frame(0, &handshake_json);
-
     let activity_json = if enabled {
         build_activity_payload(pid, details, state_label, started_epoch_secs, mc_version)
     } else {
         build_clear_activity_payload(pid)
     };
     let activity_frame = encode_ipc_frame(1, &activity_json);
+
+    let Ok(mut pipe_guard) = pipe_cell().lock() else {
+        return status;
+    };
+
+    if !enabled {
+        if let Some(ref mut existing) = *pipe_guard {
+            let _ = existing.file.write_all(&activity_frame);
+            let _ = existing.file.flush();
+        }
+        *pipe_guard = None;
+        return status;
+    }
+
+    if let Some(ref mut existing) = *pipe_guard {
+        if existing.file.write_all(&activity_frame).is_ok() && existing.file.flush().is_ok() {
+            status.connected = true;
+            status.pipe_name = existing.label.clone();
+            return status;
+        }
+        *pipe_guard = None;
+    }
+
+    let handshake_json = serde_json::json!({
+        "v": 1,
+        "client_id": BASALT_DISCORD_CLIENT_ID
+    })
+    .to_string();
+    let handshake_frame = encode_ipc_frame(0, &handshake_json);
 
     for idx in 0..10 {
         let pipe_label = format!("discord-ipc-{idx}");
@@ -158,8 +259,12 @@ pub fn publish_discord_activity(
         }
 
         if pipe.write_all(&activity_frame).is_ok() && pipe.flush().is_ok() {
-            status.connected = enabled;
-            status.pipe_name = pipe_label;
+            status.connected = true;
+            status.pipe_name = pipe_label.clone();
+            *pipe_guard = Some(PersistentPipe {
+                file: pipe,
+                label: pipe_label,
+            });
             break;
         }
     }

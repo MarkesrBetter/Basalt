@@ -19,10 +19,12 @@ use basalt::config::{
     AccentTone, AppConfig, AppPaths, CornerStyle, GraphicsSettings, LayoutMode, LoaderKind,
     SavedServer, SkinModel, ThemeMode, UiLanguage, normalize_hex_color, normalize_mc_version,
 };
-use basalt::discord_rpc::{BASALT_GITHUB_URL, DiscordRpcStatus, publish_discord_activity};
+use basalt::discord_rpc::{
+    BASALT_GITHUB_URL, DiscordRpcStatus, queue_discord_activity_update, shutdown_discord_rpc,
+};
 use basalt::hardware::HardwareProfile;
 use basalt::loaders::{
-    LoaderEnvStatus, ensure_fabric_version_ready, ensure_forge_version_ready,
+    LoaderEnvStatus, ensure_fabric_version_ready, ensure_forge_version_ready, forge_profile_dir,
     inspect_loader_environment, loader_mods_dir, shared_resourcepacks_dir, shared_shaderpacks_dir,
     spawn_modded_client, sync_profile_shared_files,
 };
@@ -41,11 +43,12 @@ use basalt::sounds::{
     load_local_minecraft_sounds,
 };
 use basalt::vanilla::{
-    BASALT_SKIN_PACK_NAME, ClientOptimizationReport, VanillaEnvStatus, VanillaLaunchConfig,
-    compute_file_sha256_hex, discover_java21_home_with_runtime,
-    ensure_vanilla_version_ready_with_threads, inspect_vanilla_environment_for_version,
-    migrate_legacy_client_gradle_saves, resolve_vanilla_dir, run_client_and_network_optimization,
-    spawn_vanilla_client, summarize_process_failure, write_basalt_skin_resource_pack,
+    BASALT_SKIN_PACK_NAME, ClientOptimizationReport, CurlCapabilities, VanillaEnvStatus,
+    VanillaLaunchConfig, compute_file_sha256_hex, discover_java_for_loader,
+    ensure_vanilla_version_ready_with_threads,
+    inspect_vanilla_environment_for_version, migrate_legacy_client_gradle_saves, resolve_curl_exe,
+    resolve_tar_exe, resolve_vanilla_dir, run_client_and_network_optimization, spawn_vanilla_client,
+    summarize_process_failure, write_basalt_skin_resource_pack_for,
 };
 
 #[derive(Debug, Clone, Serialize)]
@@ -205,18 +208,14 @@ fn spawn_discord_sync(
         guard.state_label = state_label.clone();
         guard.started_epoch_secs = started_epoch_secs;
     }
-    thread::spawn(move || {
-        let updated = publish_discord_activity(
-            enabled,
-            &mc_version,
-            &details,
-            &state_label,
-            started_epoch_secs,
-        );
-        if let Ok(mut guard) = discord_arc.lock() {
-            *guard = updated;
-        }
-    });
+    queue_discord_activity_update(
+        discord_arc,
+        enabled,
+        mc_version,
+        details,
+        state_label,
+        started_epoch_secs,
+    );
 }
 
 impl AppState {
@@ -841,7 +840,7 @@ async fn install_modrinth_item(
         &state.vanilla_dir,
         &state.run_dir,
         &config_snapshot.mc_version,
-        config_snapshot.mod_loader,
+        loader,
     );
     Ok(InstallActionDto {
         config: config_snapshot,
@@ -861,19 +860,18 @@ async fn install_shader_bundle(
         "forge_shaders" => LoaderKind::Forge,
         _ => return Err(format!("Unsupported shader bundle '{preset_id}'")),
     };
+    if state.running.lock().is_ok_and(|guard| guard.is_some()) {
+        return Err("Another launch or verification task is already running.".to_string());
+    }
 
-    let config_snapshot = {
-        let mut config = state
+    let (mc_version, dl_threads) = {
+        let config = state
             .config
             .lock()
             .map_err(|_| "Failed to unlock configuration".to_string())?;
-        config.mod_loader = target_loader;
-        config.save(&state.paths.config_file)?;
-        config.clone()
+        (config.mc_version.clone(), config.download_threads)
     };
 
-    let mc_version = config_snapshot.mc_version.clone();
-    let dl_threads = config_snapshot.download_threads;
     let mods_dir = loader_mods_dir(&state.vanilla_dir, &state.run_dir, target_loader, &mc_version);
     let shaderpacks_dir = shared_shaderpacks_dir(&state.run_dir);
     let temp_dir = state.vanilla_dir.join("cache").join("tmp");
@@ -891,11 +889,21 @@ async fn install_shader_bundle(
     .await
     .map_err(|e| format!("Shader bundle installation failed: {e}"))??;
 
+    let config_snapshot = {
+        let mut config = state
+            .config
+            .lock()
+            .map_err(|_| "Failed to unlock configuration".to_string())?;
+        config.mod_loader = target_loader;
+        config.save(&state.paths.config_file)?;
+        config.clone()
+    };
+
     let (loader_status, library_counts) = compute_loader_status_and_counts(
         &state.vanilla_dir,
         &state.run_dir,
         &config_snapshot.mc_version,
-        config_snapshot.mod_loader,
+        target_loader,
     );
     Ok(InstallActionDto {
         config: config_snapshot,
@@ -945,7 +953,7 @@ fn toggle_library_item_cmd(
         &state.vanilla_dir,
         &state.run_dir,
         &config.mc_version,
-        config.mod_loader,
+        loader,
     );
     Ok(counts)
 }
@@ -974,13 +982,14 @@ fn delete_library_item_cmd(
         &state.vanilla_dir,
         &state.run_dir,
         &config.mc_version,
-        config.mod_loader,
+        loader,
     );
     Ok(counts)
 }
 
 #[tauri::command]
 async fn pick_and_import_library_file(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     kind: LibraryKind,
     loader: LoaderKind,
@@ -993,13 +1002,17 @@ async fn pick_and_import_library_file(
     let title_owned = title.to_string();
     let filter_owned = filter_label.to_string();
     let exts_owned: Vec<String> = exts.into_iter().map(ToString::to_string).collect();
+    let parent_win = app.get_webview_window("main");
 
     let picked = tauri::async_runtime::spawn_blocking(move || {
         let refs: Vec<&str> = exts_owned.iter().map(String::as_str).collect();
-        rfd::FileDialog::new()
+        let mut dialog = rfd::FileDialog::new()
             .set_title(&title_owned)
-            .add_filter(&filter_owned, &refs)
-            .pick_file()
+            .add_filter(&filter_owned, &refs);
+        if let Some(ref win) = parent_win {
+            dialog = dialog.set_parent(win);
+        }
+        dialog.pick_file()
     })
     .await
     .map_err(|e| format!("File dialog failed: {e}"))?;
@@ -1030,7 +1043,7 @@ async fn pick_and_import_library_file(
         &state.vanilla_dir,
         &state.run_dir,
         &config.mc_version,
-        config.mod_loader,
+        loader,
     );
     Ok(Some(ImportLibraryDto {
         file_name,
@@ -1050,7 +1063,8 @@ fn open_library_folder(
         .map(|c| c.mc_version.clone())
         .unwrap_or_else(|_| "1.21.4".to_string());
     let dir = resolve_library_dir_for(&state.vanilla_dir, &state.run_dir, kind, loader, &mc_version);
-    let _ = fs::create_dir_all(&dir);
+    fs::create_dir_all(&dir)
+        .map_err(|e| format!("Failed to prepare library folder {}: {e}", dir.display()))?;
     #[cfg(windows)]
     {
         Command::new("explorer.exe")
@@ -1083,7 +1097,11 @@ fn save_turbo_settings(
         config.save(&state.paths.config_file)?;
         config.clone()
     };
-    let details = format!("Minecraft {} (Vanilla)", config_snapshot.mc_version);
+    let details = format!(
+        "Minecraft {} ({})",
+        config_snapshot.mc_version,
+        loader_display_name(config_snapshot.mod_loader)
+    );
     let state_label = format!("Basalt Launcher · {}", config_snapshot.username);
     spawn_discord_sync(
         Arc::clone(&state.discord),
@@ -1145,7 +1163,8 @@ fn open_github_page() -> Result<(), String> {
 #[tauri::command]
 fn open_game_folder(state: tauri::State<AppState>) -> Result<(), String> {
     let run_dir = state.run_dir();
-    let _ = fs::create_dir_all(&run_dir);
+    fs::create_dir_all(&run_dir)
+        .map_err(|e| format!("Failed to prepare game directory {}: {e}", run_dir.display()))?;
     #[cfg(windows)]
     {
         Command::new("explorer.exe")
@@ -1297,14 +1316,17 @@ fn save_graphics_settings(
     graphics: GraphicsSettings,
 ) -> Result<AppConfig, String> {
     let validated = validate_graphics(graphics)?;
-    let mut config = state
-        .config
-        .lock()
-        .map_err(|_| "Failed to unlock configuration".to_string())?;
-    config.graphics = validated;
-    config.save(&state.paths.config_file)?;
-    let _ = sync_minecraft_options(&state.run_dir(), &config.graphics);
-    Ok(config.clone())
+    let snapshot = {
+        let mut config = state
+            .config
+            .lock()
+            .map_err(|_| "Failed to unlock configuration".to_string())?;
+        config.graphics = validated;
+        config.save(&state.paths.config_file)?;
+        config.clone()
+    };
+    let _ = sync_minecraft_options(&state.run_dir(), &snapshot.graphics);
+    Ok(snapshot)
 }
 
 #[tauri::command]
@@ -1317,14 +1339,17 @@ fn auto_optimize_graphics(state: tauri::State<AppState>) -> Result<OptimizeResul
     *hw_guard = hardware.clone();
     drop(hw_guard);
 
-    let mut config = state
-        .config
-        .lock()
-        .map_err(|_| "Failed to unlock configuration".to_string())?;
-    let (recommended, reason) = hardware.recommend_settings(&config.graphics);
-    config.graphics = recommended.clone();
-    config.save(&state.paths.config_file)?;
-    let _ = sync_minecraft_options(&state.run_dir(), &config.graphics);
+    let (recommended, reason) = {
+        let mut config = state
+            .config
+            .lock()
+            .map_err(|_| "Failed to unlock configuration".to_string())?;
+        let (recommended, reason) = hardware.recommend_settings(&config.graphics);
+        config.graphics = recommended.clone();
+        config.save(&state.paths.config_file)?;
+        (recommended, reason)
+    };
+    let _ = sync_minecraft_options(&state.run_dir(), &recommended);
 
     Ok(OptimizeResultDto {
         graphics: recommended,
@@ -1334,13 +1359,18 @@ fn auto_optimize_graphics(state: tauri::State<AppState>) -> Result<OptimizeResul
 
 #[tauri::command]
 async fn pick_and_import_skin(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<Option<SkinResultDto>, String> {
-    let picked = tauri::async_runtime::spawn_blocking(|| {
-        rfd::FileDialog::new()
+    let parent_win = app.get_webview_window("main");
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        let mut dialog = rfd::FileDialog::new()
             .set_title("Select Local Skin PNG File")
-            .add_filter("PNG Image", &["png"])
-            .pick_file()
+            .add_filter("PNG Image", &["png"]);
+        if let Some(ref win) = parent_win {
+            dialog = dialog.set_parent(win);
+        }
+        dialog.pick_file()
     })
     .await
     .map_err(|e| format!("File dialog failed: {e}"))?;
@@ -1547,26 +1577,62 @@ fn install_java21_blocking(app: &tauri::AppHandle, runtime_dir: &Path) -> Result
         let _ = app.emit("basalt://launch-log", LaunchLogPayload { line, is_err });
     };
 
+    let arch = if cfg!(target_arch = "aarch64") {
+        "aarch64"
+    } else if cfg!(target_arch = "x86") {
+        "x86"
+    } else {
+        "x64"
+    };
     fs::create_dir_all(runtime_dir)
         .map_err(|e| format!("Failed to create runtime directory: {e}"))?;
     log(
-        "Querying Adoptium official API for Eclipse Temurin JDK 21 (Windows x64)...".to_string(),
+        format!("Querying Adoptium official API for Eclipse Temurin JDK 21 (Windows {arch})..."),
         false,
     );
 
     let api_url =
-        "https://api.adoptium.net/v3/assets/latest/21/hotspot?os=windows&architecture=x64&image_type=jdk";
-    let mut meta_cmd = Command::new("curl.exe");
+        format!("https://api.adoptium.net/v3/assets/latest/21/hotspot?os=windows&architecture={arch}&image_type=jdk");
+    let curl_exe = resolve_curl_exe();
+    let mut caps = CurlCapabilities::detect();
+    let mut meta_args = vec![
+        "-fsSL",
+        "--connect-timeout",
+        "20",
+        "--speed-limit",
+        "1024",
+        "--speed-time",
+        "30",
+        "--max-time",
+        "45",
+    ];
+    if caps.supports_ssl_revoke_best_effort {
+        meta_args.push("--ssl-revoke-best-effort");
+    }
+    let mut meta_cmd = Command::new(&curl_exe);
     meta_cmd
-        .args(["-fsSL", "--connect-timeout", "20", "--max-time", "30", api_url])
+        .args(&meta_args)
+        .arg(&api_url)
         .stdin(Stdio::null());
     hide_console_window(&mut meta_cmd);
-    let meta_out = meta_cmd
+    let mut meta_out = meta_cmd
         .output()
         .map_err(|e| format!("Failed to query Adoptium API via curl.exe: {e}"))?;
+    if !meta_out.status.success() && meta_out.status.code() == Some(2) && caps.supports_ssl_revoke_best_effort {
+        caps.supports_ssl_revoke_best_effort = false;
+        let mut retry_cmd = Command::new(&curl_exe);
+        retry_cmd
+            .args(["-fsSL", "--connect-timeout", "20", "--max-time", "45", &api_url])
+            .stdin(Stdio::null());
+        hide_console_window(&mut retry_cmd);
+        meta_out = retry_cmd
+            .output()
+            .map_err(|e| format!("Failed to query Adoptium API via curl.exe: {e}"))?;
+    }
     if !meta_out.status.success() {
+        let stderr_tail = String::from_utf8_lossy(&meta_out.stderr).trim().to_string();
         return Err(format!(
-            "Adoptium API did not respond (curl exit code: {}).",
+            "Adoptium API did not respond (curl exit code: {}). {stderr_tail}",
             meta_out.status.code().unwrap_or(-1)
         ));
     }
@@ -1609,18 +1675,26 @@ fn install_java21_blocking(app: &tauri::AppHandle, runtime_dir: &Path) -> Result
     let _temp_guard = TempInstallGuard(&zip_path, &ext_dir);
 
     log("Downloading JDK 21 archive, please wait...".to_string(), false);
-    let mut dl_cmd = Command::new("curl.exe");
+    let mut dl_args = vec![
+        "-fL",
+        "--retry",
+        "2",
+        "--connect-timeout",
+        "20",
+        "--speed-limit",
+        "1024",
+        "--speed-time",
+        "35",
+        "-s",
+        "-S",
+    ];
+    if caps.supports_ssl_revoke_best_effort {
+        dl_args.push("--ssl-revoke-best-effort");
+    }
+    let mut dl_cmd = Command::new(&curl_exe);
     dl_cmd
-        .args([
-            "-fL",
-            "--retry",
-            "2",
-            "--connect-timeout",
-            "20",
-            "-s",
-            "-S",
-            "-o",
-        ])
+        .args(&dl_args)
+        .arg("-o")
         .arg(&zip_path)
         .arg(link)
         .stdin(Stdio::null());
@@ -1648,7 +1722,8 @@ fn install_java21_blocking(app: &tauri::AppHandle, runtime_dir: &Path) -> Result
     log("Extracting Java 21 archive...".to_string(), false);
     fs::create_dir_all(&ext_dir)
         .map_err(|e| format!("Failed to create temporary extraction directory: {e}"))?;
-    let mut tar_cmd = Command::new("tar.exe");
+    let tar_exe = resolve_tar_exe();
+    let mut tar_cmd = Command::new(&tar_exe);
     tar_cmd
         .args(["-xf"])
         .arg(&zip_path)
@@ -1672,7 +1747,12 @@ fn install_java21_blocking(app: &tauri::AppHandle, runtime_dir: &Path) -> Result
         .ok_or_else(|| "bin\\java.exe was not found inside the extracted archive.".to_string())?;
 
     let target = runtime_dir.join("jdk-21");
-    let _ = fs::remove_dir_all(&target);
+    let backup = runtime_dir.join("jdk-21.old");
+    let _ = fs::remove_dir_all(&backup);
+    let moved_existing = target.exists() && fs::rename(&target, &backup).is_ok();
+    if target.exists() && !moved_existing {
+        let _ = fs::remove_dir_all(&target);
+    }
     let mut rename_err = None;
     for attempt in 0..10 {
         match fs::rename(&jdk_src, &target) {
@@ -1689,7 +1769,13 @@ fn install_java21_blocking(app: &tauri::AppHandle, runtime_dir: &Path) -> Result
         }
     }
     if let Some(e) = rename_err {
+        if moved_existing && !target.exists() {
+            let _ = fs::rename(&backup, &target);
+        }
         return Err(format!("Failed to move JDK 21 into runtime directory: {e}"));
+    }
+    if moved_existing {
+        let _ = fs::remove_dir_all(&backup);
     }
 
     let ver_line = fs::read_to_string(target.join("release"))
@@ -1815,7 +1901,7 @@ fn prepare_loader_environment(
 
     let java_home_opt = if loader == LoaderKind::Forge {
         Some(
-            discover_java21_home_with_runtime(&state.paths.runtime_dir)
+            discover_java_for_loader(Some(&state.paths.runtime_dir), &active_ver, loader)
                 .map(|(h, _)| h)
                 .ok_or_else(|| {
                     finish_running_session(&state.running);
@@ -1907,20 +1993,21 @@ fn launch_client(
         }
     }
 
+    let active_loader = state
+        .config
+        .lock()
+        .map(|c| c.mod_loader)
+        .unwrap_or(LoaderKind::Vanilla);
+    let active_loader_name = loader_display_name(active_loader);
     let initial_session = RunningSessionDto {
         pid: std::process::id(),
         kind: "launch".to_string(),
-        label: "Minecraft (Vanilla)".to_string(),
+        label: format!("Minecraft ({active_loader_name})"),
     };
     begin_running_session(&state.running, initial_session)?;
     let mut reservation = SessionReservation {
         running: Some(&state.running),
     };
-
-    let (java_home, _) = discover_java21_home_with_runtime(&state.paths.runtime_dir).ok_or_else(|| {
-        "Java 21 runtime was not found. Use 'Install Java 21' on the Play screen to install it."
-            .to_string()
-    })?;
 
     let (config_snapshot, label, quick_sp, quick_mp) = {
         let mut config = state
@@ -1931,6 +2018,7 @@ fn launch_client(
             config.mc_version = normalize_mc_version(requested_ver);
         }
         let ver = config.mc_version.clone();
+        let l_name = loader_display_name(config.mod_loader);
 
         match input.mode.as_str() {
             "singleplayer" => {
@@ -1969,7 +2057,7 @@ fn launch_client(
                 config.save(&state.paths.config_file)?;
                 (
                     config.clone(),
-                    format!("Minecraft {ver} (Vanilla)"),
+                    format!("Minecraft {ver} ({l_name})"),
                     None,
                     None,
                 )
@@ -1978,14 +2066,32 @@ fn launch_client(
         }
     };
 
+    let (java_home, _) = discover_java_for_loader(
+        Some(&state.paths.runtime_dir),
+        &config_snapshot.mc_version,
+        config_snapshot.mod_loader,
+    )
+    .ok_or_else(|| {
+        "Java 21 runtime was not found. Use 'Install Java 21' on the Play screen to install it."
+            .to_string()
+    })?;
+
+    if config_snapshot.mod_loader == LoaderKind::Forge {
+        let p_dir = forge_profile_dir(&state.vanilla_dir, &config_snapshot.mc_version);
+        if p_dir.is_dir() {
+            sync_profile_shared_files(&p_dir, &state.run_dir);
+        }
+    }
+
     let skin_img = load_active_skin_image(config_snapshot.skin_file.as_deref());
     let skin_is_slim = resolve_skin_is_slim(config_snapshot.skin_model, &skin_img);
     let skin_png_bytes = load_active_skin_png_bytes(config_snapshot.skin_file.as_deref());
-    let player_uuid = write_basalt_skin_resource_pack(
+    let player_uuid = write_basalt_skin_resource_pack_for(
         &state.run_dir,
         &config_snapshot.username,
         &skin_png_bytes,
         skin_is_slim,
+        Some(&config_snapshot.mc_version),
     )?;
 
     let pack_entry = format!("file/{BASALT_SKIN_PACK_NAME}");
@@ -2269,6 +2375,11 @@ fn main() {
                 let _ = win.set_title("Basalt — Minecraft Launcher (Unofficial)");
             }
             Ok(())
+        })
+        .on_window_event(|_window, event| {
+            if matches!(event, tauri::WindowEvent::Destroyed) {
+                shutdown_discord_rpc();
+            }
         })
         .run(tauri::generate_context!());
 

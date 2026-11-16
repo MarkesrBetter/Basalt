@@ -276,7 +276,7 @@ impl AppPaths {
         {
             proj.data_local_dir().to_path_buf()
         } else {
-            PathBuf::from("basalt_data")
+            std::env::temp_dir().join("Basalt").join("data")
         };
         let config_file = root_dir.join("config.toml");
         let skins_dir = root_dir.join("skins");
@@ -326,7 +326,14 @@ impl AppConfig {
     pub fn load(path: &Path) -> Self {
         match fs::read_to_string(path) {
             Ok(text) => {
-                let mut cfg: Self = toml::from_str(&text).unwrap_or_default();
+                let mut cfg: Self = match toml::from_str(&text) {
+                    Ok(parsed) => parsed,
+                    Err(_) => {
+                        let bak = path.with_extension("toml.bak");
+                        let _ = fs::copy(path, &bak);
+                        Self::default()
+                    }
+                };
                 cfg.sanitize();
                 // Migrate pre-v1 configs so desktop starts windowed & quiet while Console Mode activates sound/fullscreen cleanly.
                 if cfg.config_version == 0 {
@@ -350,7 +357,12 @@ impl AppConfig {
         }
         let body =
             toml::to_string_pretty(self).map_err(|e| format!("Failed to serialize settings: {e}"))?;
-        fs::write(path, body).map_err(|e| format!("Failed to write settings file: {e}"))?;
+        let tmp = path.with_extension("toml.tmp");
+        fs::write(&tmp, &body).map_err(|e| format!("Failed to write temporary settings file: {e}"))?;
+        if fs::rename(&tmp, path).is_err() {
+            fs::write(path, &body).map_err(|e| format!("Failed to write settings file: {e}"))?;
+            let _ = fs::remove_file(&tmp);
+        }
         Ok(())
     }
 }

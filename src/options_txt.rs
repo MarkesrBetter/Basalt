@@ -36,7 +36,10 @@ pub fn sync_minecraft_options_with_pack(
         .map_err(|e| format!("Failed to create Minecraft run directory: {e}"))?;
 
     let options_path = run_dir.join("options.txt");
-    let existing = fs::read_to_string(&options_path).unwrap_or_default();
+    let existing = match fs::read(&options_path) {
+        Ok(raw) => String::from_utf8_lossy(&raw).into_owned(),
+        Err(_) => String::new(),
+    };
 
     let fov_val = format!("{:.4}", fov_degrees_to_options_value(gfx.fov_degrees));
     let sens = if gfx.mouse_sensitivity.is_finite() {

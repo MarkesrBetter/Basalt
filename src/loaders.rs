@@ -10,11 +10,12 @@ use crate::config::LoaderKind;
 use crate::protocol::local_player_uuid_dashed;
 use crate::vanilla::{
     DownloadTask, MojangLibDownloads, MojangRule, MojangVersionManifest, VanillaLaunchConfig,
-    append_minecraft_game_args, build_jvm_base_args, check_file_size_and_sha1, client_jar_path_for,
+    append_minecraft_game_args, build_jvm_base_args, check_file_size_and_sha1,
+    check_vanilla_assets_ready_for, check_vanilla_client_ready_for, client_jar_path_for,
     curl_fetch_bytes_with_ua, current_mojang_arch, current_mojang_os_name, download_batch_with_curl,
-    hide_window, is_library_allowed_for_target, native_classifier_for_library,
-    spawn_java_client, summarize_process_failure, version_json_path_for,
-    ensure_vanilla_version_ready_with_threads, load_cached_version_manifest_for,
+    ensure_vanilla_version_ready_with_threads, hide_window, is_library_allowed_for_target,
+    load_cached_version_manifest_for, native_classifier_for_library, spawn_java_client,
+    summarize_process_failure,
 };
 
 const BASALT_HTTP_UA: &str = "Basalt-Launcher/0.3.0 (https://github.com/Markesrrr/Basalt)";
@@ -86,6 +87,8 @@ pub struct OverlayVersionManifest {
     pub id: String,
     #[serde(default)]
     pub inherits_from: Option<String>,
+    #[serde(default)]
+    pub jar: Option<String>,
     pub main_class: String,
     #[serde(default)]
     pub arguments: Option<VersionArguments>,
@@ -209,49 +212,87 @@ pub fn sync_profile_shared_files(source_dir: &Path, dest_dir: &Path) {
     }
 }
 
+fn migrate_dir_non_destructively(src_dir: &Path, dst_dir: &Path) -> Result<(), String> {
+    let entries = fs::read_dir(src_dir)
+        .map_err(|e| format!("Failed to read existing folder {}: {e}", src_dir.display()))?;
+    for entry in entries.flatten() {
+        let src_item = entry.path();
+        let name = entry.file_name();
+        let dst_item = dst_dir.join(&name);
+        if src_item.is_dir() {
+            fs::create_dir_all(&dst_item)
+                .map_err(|e| format!("Failed to create target subdir {}: {e}", dst_item.display()))?;
+            migrate_dir_non_destructively(&src_item, &dst_item)?;
+            let _ = fs::remove_dir(&src_item);
+        } else if !dst_item.exists() {
+            if fs::rename(&src_item, &dst_item).is_err() {
+                fs::copy(&src_item, &dst_item).map_err(|e| {
+                    format!("Failed to migrate {} to {}: {e}", src_item.display(), dst_item.display())
+                })?;
+                let _ = fs::remove_file(&src_item);
+            }
+        } else {
+            // Preserve existing destination without destroying source collision
+            let alt_name = format!("{}.forge-migrated", name.to_string_lossy());
+            let alt_dst = dst_dir.join(alt_name);
+            let _ = fs::rename(&src_item, &alt_dst).or_else(|_| fs::copy(&src_item, &alt_dst).map(|_| ()));
+            let _ = fs::remove_file(&src_item);
+        }
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn is_windows_reparse_point(meta: &fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt;
+    const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x0400;
+    meta.file_type().is_symlink() || (meta.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT) != 0
+}
+
 #[cfg(windows)]
 fn create_dir_link_if_needed(target: &Path, link: &Path) -> Result<(), String> {
     if let Ok(meta) = fs::symlink_metadata(link) {
-        if meta.file_type().is_symlink() {
-            return Ok(());
-        }
-        // Check if existing directory is empty so an aborted previous run can be converted into a junction.
-        if meta.is_dir() {
-            let is_empty = fs::read_dir(link)
-                .map(|mut d| d.next().is_none())
-                .unwrap_or(false);
-            if !is_empty {
-                // Already populated or already an active NTFS junction pointing to shared data.
+        if is_windows_reparse_point(&meta) {
+            if fs::read_dir(link).is_ok() {
                 return Ok(());
             }
-            let _ = fs::remove_dir(link);
+            // Dangling junction (target moved/deleted) — remove and recreate.
+            let _ = fs::remove_dir(link).or_else(|_| fs::remove_file(link));
+        } else if meta.is_dir() {
+            migrate_dir_non_destructively(link, target)?;
+            fs::remove_dir_all(link).map_err(|e| {
+                format!("Failed to replace real folder {} with shared link: {e}", link.display())
+            })?;
         } else {
-            return Ok(());
+            return Err(format!(
+                "Cannot link shared folder {}: a regular file exists at that path",
+                link.display()
+            ));
         }
     }
 
-    let mut cmd = Command::new("cmd");
+    // Use PowerShell with env vars so special shell characters (`&`, `(`, `)`, `%`, spaces, Unicode) are never misinterpreted.
+    let mut cmd = Command::new("powershell.exe");
     hide_window(&mut cmd);
-    let out = cmd
-        .args([
-            "/C",
-            "mklink",
-            "/J",
-            &link.to_string_lossy(),
-            &target.to_string_lossy(),
-        ])
-        .output()
-        .map_err(|e| format!("Failed to execute mklink /J: {e}"))?;
-    if !out.status.success() {
-        let stderr = String::from_utf8_lossy(&out.stderr);
-        let stdout = String::from_utf8_lossy(&out.stdout);
-        return Err(format!(
-            "Failed to link shared folder {}: {} {}",
-            link.display(),
-            stdout.trim(),
-            stderr.trim()
-        ));
+    cmd.args([
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "New-Item -ItemType Junction -Path $env:BASALT_JLINK -Target $env:BASALT_JTARGET -Force | Out-Null",
+    ])
+    .env("BASALT_JLINK", link)
+    .env("BASALT_JTARGET", target);
+
+    let ok = cmd.output().is_ok_and(|out| out.status.success());
+    if ok {
+        return Ok(());
     }
+
+    // Graceful non-NTFS / FAT32 / exFAT / UNC fallback: copy existing shared files without failing Forge launch.
+    fs::create_dir_all(link).map_err(|e| {
+        format!("Failed to create fallback shared folder {}: {e}", link.display())
+    })?;
+    let _ = migrate_dir_non_destructively(target, link);
     Ok(())
 }
 
@@ -306,6 +347,46 @@ pub fn inspect_loader_environment(
     }
 }
 
+fn parse_version_segments(s: &str) -> Vec<u64> {
+    s.split(['.', '-', '_', '+'])
+        .filter_map(|part| part.parse::<u64>().ok())
+        .collect()
+}
+
+fn fabric_loader_supports_mods_folder(loader_ver: &str) -> bool {
+    let segs = parse_version_segments(loader_ver);
+    let maj = segs.first().copied().unwrap_or(0);
+    let min = segs.get(1).copied().unwrap_or(0);
+    (maj, min) >= (0, 15)
+}
+
+fn overlay_libraries_present(vanilla_dir: &Path, overlay: &OverlayVersionManifest) -> bool {
+    let os_name = current_mojang_os_name();
+    let arch = current_mojang_arch();
+    for lib in &overlay.libraries {
+        if !is_library_allowed_for_target(&lib.name, &lib.rules, os_name, arch) {
+            continue;
+        }
+        let rel = if let Some(ref downloads) = lib.downloads
+            && let Some(ref art) = downloads.artifact
+            && let Some(ref p) = art.path
+        {
+            p.clone()
+        } else if let Ok(p) = maven_coord_to_rel_path(&lib.name) {
+            p
+        } else {
+            return false;
+        };
+        let path = vanilla_dir
+            .join("libraries")
+            .join(rel.replace('/', std::path::MAIN_SEPARATOR_STR));
+        if !path.is_file() || fs::metadata(&path).is_ok_and(|m| m.len() == 0) {
+            return false;
+        }
+    }
+    true
+}
+
 pub fn find_cached_loader_manifest(
     vanilla_dir: &Path,
     mc_version: &str,
@@ -316,14 +397,17 @@ pub fn find_cached_loader_manifest(
     let mut matches = Vec::new();
     for entry in entries.flatten() {
         let dir_name = entry.file_name().to_string_lossy().into_owned();
-        let is_match = match loader {
-            LoaderKind::Fabric => {
-                dir_name.starts_with("fabric-loader-") && dir_name.ends_with(&format!("-{mc_version}"))
-            }
-            LoaderKind::Forge => dir_name.starts_with(&format!("{mc_version}-forge-")),
-            LoaderKind::Vanilla => false,
+        let loader_ver_part = match loader {
+            LoaderKind::Fabric => dir_name
+                .strip_prefix("fabric-loader-")
+                .and_then(|rest| rest.strip_suffix(&format!("-{mc_version}"))),
+            LoaderKind::Forge => dir_name.strip_prefix(&format!("{mc_version}-forge-")),
+            LoaderKind::Vanilla => None,
         };
-        if !is_match {
+        let Some(ver_str) = loader_ver_part else {
+            continue;
+        };
+        if loader == LoaderKind::Fabric && !fabric_loader_supports_mods_folder(ver_str) {
             continue;
         }
         let json_path = entry.path().join(format!("{dir_name}.json"));
@@ -331,11 +415,14 @@ pub fn find_cached_loader_manifest(
             && let Ok(parsed) = serde_json::from_str::<OverlayVersionManifest>(&raw)
             && parsed.inherits_from.as_deref() == Some(mc_version)
         {
-            matches.push((dir_name, parsed));
+            if loader == LoaderKind::Forge && !overlay_libraries_present(vanilla_dir, &parsed) {
+                continue;
+            }
+            matches.push((parse_version_segments(ver_str), dir_name, parsed));
         }
     }
-    matches.sort_by(|a, b| b.0.cmp(&a.0));
-    matches.into_iter().next()
+    matches.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| b.1.cmp(&a.1)));
+    matches.into_iter().next().map(|(_, id, manifest)| (id, manifest))
 }
 
 /// Ensures both the base Vanilla version and Fabric loader libraries/profile are downloaded and cached.
@@ -349,8 +436,8 @@ where
     F: FnMut(&str, bool),
 {
     let vanilla_manifest = if let Some(cached) = load_cached_version_manifest_for(vanilla_dir, mc_version)
-        && version_json_path_for(vanilla_dir, mc_version).is_file()
-        && client_jar_path_for(vanilla_dir, mc_version).is_file()
+        && check_vanilla_client_ready_for(vanilla_dir, mc_version)
+        && check_vanilla_assets_ready_for(vanilla_dir, mc_version)
     {
         cached
     } else {
@@ -375,7 +462,8 @@ where
             .map_err(|e| format!("Failed to parse Fabric loader list for {mc_version}: {e}"))?;
         let chosen = loaders
             .iter()
-            .find(|entry| entry.loader.stable)
+            .find(|entry| entry.loader.stable && fabric_loader_supports_mods_folder(&entry.loader.version))
+            .or_else(|| loaders.iter().find(|entry| entry.loader.stable))
             .or_else(|| loaders.first())
             .ok_or_else(|| format!("No Fabric loader builds available for Minecraft {mc_version}"))?;
 
@@ -401,6 +489,21 @@ where
     Ok((vanilla_manifest, profile_manifest))
 }
 
+fn is_valid_jar_zip(path: &Path) -> bool {
+    let Ok(mut f) = fs::File::open(path) else {
+        return false;
+    };
+    let Ok(meta) = f.metadata() else {
+        return false;
+    };
+    if meta.len() < 10_000 {
+        return false;
+    }
+    let mut magic = [0u8; 4];
+    use std::io::Read;
+    f.read_exact(&mut magic).is_ok() && &magic == b"PK\x03\x04"
+}
+
 /// Ensures both the base Vanilla version and recommended/latest Forge client are installed and ready.
 pub fn ensure_forge_version_ready<F>(
     vanilla_dir: &Path,
@@ -413,8 +516,8 @@ where
     F: FnMut(&str, bool),
 {
     let vanilla_manifest = if let Some(cached) = load_cached_version_manifest_for(vanilla_dir, mc_version)
-        && version_json_path_for(vanilla_dir, mc_version).is_file()
-        && client_jar_path_for(vanilla_dir, mc_version).is_file()
+        && check_vanilla_client_ready_for(vanilla_dir, mc_version)
+        && check_vanilla_assets_ready_for(vanilla_dir, mc_version)
     {
         cached
     } else {
@@ -442,7 +545,11 @@ where
         .get(&format!("{mc_version}-recommended"))
         .or_else(|| promos.promos.get(&format!("{mc_version}-latest")))
         .cloned()
-        .ok_or_else(|| format!("No Forge build published for Minecraft {mc_version}"))?;
+        .ok_or_else(|| {
+            format!(
+                "Minecraft Forge has no published build for {mc_version}. Select Vanilla or Fabric for {mc_version} instead."
+            )
+        })?;
 
     let launcher_profiles = vanilla_dir.join("launcher_profiles.json");
     if !launcher_profiles.is_file() {
@@ -455,7 +562,8 @@ where
     let installer_url =
         format!("{FORGE_MAVEN_BASE}/net/minecraftforge/forge/{slug}/{installer_name}");
     let installer_path = vanilla_dir.join("cache").join("installers").join(&installer_name);
-    if !installer_path.is_file() {
+    if !is_valid_jar_zip(&installer_path) {
+        let _ = fs::remove_file(&installer_path);
         on_log(&format!("Downloading Forge {forge_ver} installer..."), false);
         let task = DownloadTask {
             url: installer_url,
@@ -469,6 +577,12 @@ where
             &vanilla_dir.join("cache").join("tmp"),
             1,
         )?;
+        if !is_valid_jar_zip(&installer_path) {
+            let _ = fs::remove_file(&installer_path);
+            return Err(format!(
+                "Downloaded Forge installer ({installer_name}) is not a valid JAR archive (possible proxy or captive portal response)."
+            ));
+        }
     }
 
     on_log(
@@ -476,8 +590,22 @@ where
         false,
     );
     let java_bin = java_home.join("bin").join(crate::vanilla::java_executable_name());
+    if !java_bin.is_file() {
+        return Err(format!(
+            "Java executable was not found at {} for Forge setup",
+            java_bin.display()
+        ));
+    }
     let mut cmd = Command::new(&java_bin);
     hide_window(&mut cmd);
+    for key in [
+        "_JAVA_OPTIONS",
+        "JAVA_TOOL_OPTIONS",
+        "JAVA_OPTS",
+        "GRADLE_OPTS",
+    ] {
+        cmd.env_remove(key);
+    }
     let out = cmd
         .current_dir(vanilla_dir)
         .arg("-jar")
@@ -641,7 +769,7 @@ pub fn build_modded_launch_args(
         args.push(format!("-Dfabric.modsFolder={}", mods_dir.display()));
     }
 
-    let cp_entries = collect_merged_classpath(vanilla_dir, vanilla_manifest, overlay)?;
+    let cp_entries = collect_merged_classpath(vanilla_dir, loader, vanilla_manifest, overlay)?;
     let cp_sep = if cfg!(windows) { ";" } else { ":" };
     let classpath = cp_entries.join(cp_sep);
     let vars = build_placeholder_map(vanilla_dir, game_dir, vanilla_manifest, overlay, cfg, &classpath);
@@ -715,6 +843,7 @@ fn append_dedup_game_args(
 
 fn collect_merged_classpath(
     vanilla_dir: &Path,
+    loader: LoaderKind,
     vanilla_manifest: &MojangVersionManifest,
     overlay: &OverlayVersionManifest,
 ) -> Result<Vec<String>, String> {
@@ -765,15 +894,33 @@ fn collect_merged_classpath(
             && let Some(ref art) = downloads.artifact
             && let Some(ref p) = art.path
         {
-            p.clone()
+            Some(p.clone())
+        } else if let Some(ref downloads) = lib.downloads
+            && !downloads.classifiers.is_empty()
+        {
+            let classifier_key = match os_name {
+                "windows" => ["natives-windows", "natives-windows-64"]
+                    .into_iter()
+                    .find_map(|k| downloads.classifiers.get(k)),
+                "osx" => downloads.classifiers.get("natives-macos").or_else(|| downloads.classifiers.get("natives-osx")),
+                _ => downloads.classifiers.get("natives-linux"),
+            };
+            classifier_key.and_then(|c| c.path.clone())
         } else {
-            maven_coord_to_rel_path(&lib.name)?
+            Some(maven_coord_to_rel_path(&lib.name)?)
+        };
+        let Some(rel_path) = rel else {
+            continue;
         };
         let full_path = vanilla_dir
             .join("libraries")
-            .join(rel.replace('/', std::path::MAIN_SEPARATOR_STR));
+            .join(rel_path.replace('/', std::path::MAIN_SEPARATOR_STR));
         if !full_path.is_file() {
-            continue;
+            return Err(format!(
+                "Missing required loader library {} ({}). Re-run loader setup.",
+                lib.name,
+                full_path.display()
+            ));
         }
         let key = maven_group_artifact_key(&lib.name);
         if !by_key.contains_key(&key) {
@@ -786,11 +933,24 @@ fn collect_merged_classpath(
         .into_iter()
         .filter_map(|k| by_key.remove(&k))
         .collect();
-    entries.push(
-        client_jar_path_for(vanilla_dir, &vanilla_manifest.id)
-            .to_string_lossy()
-            .into_owned(),
-    );
+
+    // Modern Forge (1.17+ BootstrapLauncher) remaps and loads the Minecraft client via its own
+    // module/library artifacts and excludes ${version_name}.jar via -DignoreList; adding raw Vanilla
+    // <mc>.jar on -cp causes JPMS duplicate module ResolutionException crashes.
+    let forge_supplies_remapped_client = loader == LoaderKind::Forge
+        && overlay.arguments.is_some()
+        && overlay.jar.as_deref() != Some(vanilla_manifest.id.as_str())
+        && overlay
+            .libraries
+            .iter()
+            .any(|l| l.name.starts_with("net.minecraft:client:") || l.name.starts_with("net.minecraftforge:forge:"));
+    if !forge_supplies_remapped_client {
+        entries.push(
+            client_jar_path_for(vanilla_dir, &vanilla_manifest.id)
+                .to_string_lossy()
+                .into_owned(),
+        );
+    }
     Ok(entries)
 }
 

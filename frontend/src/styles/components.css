@@ -1477,7 +1477,7 @@ dialog p {
 
 .toast {
   position: fixed;
-  top: calc(var(--win-titlebar-h) + 3.85rem);
+  top: calc(var(--titlebar-h) + 1rem);
   right: 1.4rem;
   z-index: 45;
   max-width: min(25rem, calc(100vw - 2.8rem));
@@ -2466,7 +2466,7 @@ dialog p {
   min-height: 2.38rem;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 880px) {
   .field-row-3 {
     grid-template-columns: 1fr;
   }
@@ -2532,7 +2532,7 @@ dialog p {
   max-width: 100%;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 880px) {
   .play-tuning-strip {
     grid-template-columns: 1fr;
   }
@@ -3107,9 +3107,9 @@ dialog p {
   font-size: 0.79rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--kin-dur-fast) var(--kin-ease-out),
-    color var(--kin-dur-fast) var(--kin-ease-out),
-    transform var(--kin-dur-fast) var(--kin-ease-out);
+  transition: background var(--kin-hover) var(--kin-ease-control),
+    color var(--kin-hover) var(--kin-ease-control),
+    transform var(--kin-hover) var(--kin-ease-control);
 }
 
 .loader-pill:hover:not(:disabled):not(.active) {
@@ -3170,9 +3170,9 @@ dialog p {
   font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--kin-dur-fast) var(--kin-ease-out),
-    color var(--kin-dur-fast) var(--kin-ease-out),
-    transform var(--kin-dur-fast) var(--kin-ease-out);
+  transition: background var(--kin-hover) var(--kin-ease-control),
+    color var(--kin-hover) var(--kin-ease-control),
+    transform var(--kin-hover) var(--kin-ease-control);
 }
 
 .lib-tab:hover:not(.active),
@@ -3297,8 +3297,8 @@ dialog p {
   border-radius: var(--radius-md);
   background: var(--bg-surface);
   box-shadow: inset 0 1px 0 var(--edge-highlight), var(--shadow-surface);
-  transition: border-color var(--kin-dur-fast) var(--kin-ease-out),
-    background var(--kin-dur-fast) var(--kin-ease-out);
+  transition: border-color var(--kin-hover) var(--kin-ease-control),
+    background var(--kin-hover) var(--kin-ease-control);
 }
 
 .lib-card:hover {
@@ -3431,8 +3431,8 @@ dialog p {
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
   background: var(--bg-surface);
-  transition: opacity var(--kin-dur-fast) var(--kin-ease-out),
-    border-color var(--kin-dur-fast) var(--kin-ease-out);
+  transition: opacity var(--kin-hover) var(--kin-ease-control),
+    border-color var(--kin-hover) var(--kin-ease-control);
 }
 
 .lib-installed-row.is-disabled {
