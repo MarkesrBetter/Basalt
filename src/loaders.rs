@@ -17,7 +17,7 @@ use crate::vanilla::{
     ensure_vanilla_version_ready_with_threads, load_cached_version_manifest_for,
 };
 
-const BASALT_HTTP_UA: &str = "Basalt-Launcher/0.3.0 (https://github.com/markesr/basalt)";
+const BASALT_HTTP_UA: &str = "Basalt-Launcher/0.3.0 (https://github.com/Markesrrr/Basalt)";
 const FABRIC_META_BASE: &str = "https://meta.fabricmc.net/v2";
 const FORGE_PROMOTIONS_URL: &str =
     "https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json";

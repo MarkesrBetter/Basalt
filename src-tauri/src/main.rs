@@ -2266,7 +2266,7 @@ fn main() {
         ])
         .setup(|app| {
             if let Some(win) = app.get_webview_window("main") {
-                let _ = win.set_title("Basalt - Minecraft 1.21.4 Vanilla Launcher");
+                let _ = win.set_title("Basalt — Minecraft Launcher (Unofficial)");
             }
             Ok(())
         })

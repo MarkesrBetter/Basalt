@@ -472,6 +472,10 @@ export const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     "system.installJavaBtn": "Auto-Install Java 21 (Temurin)",
     "system.rescanJavaBtn": "Rescan Java 21",
     "system.openJavaBtn": "Adoptium JDK 21 Page",
+    "system.legalTitle": "Legal, licenses & attribution",
+    "system.legalDisclaimer": "NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT. Basalt never bundles copyrighted Mojang, Modrinth, or OptiFine files and never bypasses Microsoft authentication.",
+    "system.legalAttribution": "Open-source (MIT) · Powered by Rust & Tauri 2 · Dynamic APIs: Mojang Studios, Modrinth v2, FabricMC, Minecraft Forge, Eclipse Adoptium Temurin · Zero analytics or telemetry.",
+    "system.legalBtn": "Licenses & Privacy on GitHub",
 
     "servers.title": "Local servers",
     "servers.note": "Queries and joins offline-mode (online-mode=false) servers. Servers requiring EncryptionRequest are never bypassed.",
@@ -929,6 +933,10 @@ export const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     "system.installJavaBtn": "Otomatik Java 21 Kur (Temurin)",
     "system.rescanJavaBtn": "Java 21 Tekrar Tara",
     "system.openJavaBtn": "Adoptium JDK 21 Sayfası",
+    "system.legalTitle": "Yasal bildirim, lisanslar ve kaynakça",
+    "system.legalDisclaimer": "RESMİ BİR MINECRAFT ÜRÜNÜ DEĞİLDİR. MOJANG VEYA MICROSOFT TARAFINDAN ONAYLANMAMIŞTIR VE İLİŞKİLİ DEĞİLDİR. Basalt telifli Mojang, Modrinth veya OptiFine dosyaları içermez ve Microsoft doğrulamasını asla atlatmaz.",
+    "system.legalAttribution": "Açık kaynak (MIT) · Rust & Tauri 2 · Dinamik API'ler: Mojang Studios, Modrinth v2, FabricMC, Minecraft Forge, Eclipse Adoptium Temurin · Sıfır telemetri ve izleme.",
+    "system.legalBtn": "GitHub'da Lisanslar ve Gizlilik",
 
     "servers.title": "Yerel sunucular",
     "servers.note": "Çevrimdışı (online-mode=false) sunucuları sorgular ve bağlanır. EncryptionRequest isteyen resmi sunucular atlatılmaz.",
@@ -1386,6 +1394,10 @@ export const TRANSLATIONS: Record<UiLanguage, Record<string, string>> = {
     "system.installJavaBtn": "Java 21 installieren (Temurin)",
     "system.rescanJavaBtn": "Java 21 neu prüfen",
     "system.openJavaBtn": "Adoptium-JDK-21-Seite",
+    "system.legalTitle": "Rechtliches, Lizenzen & Hinweise",
+    "system.legalDisclaimer": "KEIN OFFIZIELLES MINECRAFT-PRODUKT. NICHT VON MOJANG ODER MICROSOFT GENEHMIGT ODER MIT IHNEN VERBUNDEN. Basalt bündelt keine urheberrechtlich geschützten Mojang-, Modrinth- oder OptiFine-Dateien und umgeht niemals Microsoft-Anmeldungen.",
+    "system.legalAttribution": "Open-Source (MIT) · Rust & Tauri 2 · Dynamische APIs: Mojang Studios, Modrinth v2, FabricMC, Minecraft Forge, Eclipse Adoptium Temurin · Keine Telemetrie oder Tracking.",
+    "system.legalBtn": "Lizenzen & Datenschutz auf GitHub",
 
     "servers.title": "Lokale Server",
     "servers.note": "Fragt Offline-Server (online-mode=false) ab und verbindet. Server mit EncryptionRequest werden niemals umgangen.",

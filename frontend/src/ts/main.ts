@@ -3720,7 +3720,7 @@ function wireEvents(): void {
     });
   });
 
-  for (const id of ["btn-rail-github", "btn-settings-github", "btn-general-github"]) {
+  for (const id of ["btn-rail-github", "btn-settings-github", "btn-general-github", "btn-legal-github"]) {
     document.getElementById(id)?.addEventListener("click", () => {
       void handleOpenGithubPage();
     });

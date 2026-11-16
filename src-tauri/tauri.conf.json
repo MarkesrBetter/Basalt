@@ -27,9 +27,9 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "publisher": "Basalt Client Project",
-    "copyright": "Basalt Launcher",
-    "shortDescription": "Minecraft 1.21.4 Vanilla Desktop Launcher",
+    "publisher": "Basalt Contributors",
+    "copyright": "Copyright (c) 2026 Basalt Contributors (MIT License)",
+    "shortDescription": "Unofficial open-source Minecraft launcher for Windows (Vanilla, Fabric, Forge)",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

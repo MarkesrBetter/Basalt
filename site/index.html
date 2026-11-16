@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Basalt — Pure Vanilla Minecraft 1.21.4 Launcher for Windows</title>
+  <title>Basalt — Unofficial Minecraft Launcher (Vanilla, Fabric, Forge &amp; Modrinth)</title>
   <meta
     name="description"
-    content="Single-file Windows desktop launcher for Vanilla Minecraft 1.21.4. Automatic Java 21 setup, hardware-calibrated JVM & options.txt, local PNG skins, and Quick Play."
+    content="Open-source Windows desktop launcher for Minecraft Java 1.21.4–1.16.5 with isolated Vanilla, Fabric &amp; Forge profiles, built-in Modrinth v2 library, 1-click shader kits, automatic Java 21 setup, and zero telemetry."
   />
   <meta name="color-scheme" content="dark light" />
   <meta name="theme-color" content="#111316" />
@@ -875,13 +875,14 @@
           <polygon points="28,9.5 28,22.5 16,29 16,16" fill="#292f38" />
         </svg>
         <span>BASALT</span>
-        <span class="brand-badge">1.21.4</span>
+        <span class="brand-badge">v0.3.0</span>
       </a>
 
       <nav class="header-nav" aria-label="Primary navigation">
         <a href="#features" data-i18n="nav.features">Features</a>
         <a href="#specs" data-i18n="nav.specs">Specifications</a>
         <a href="#download" data-i18n="nav.download">Download &amp; Verify</a>
+        <a href="#legal" data-i18n="nav.legal">Legal &amp; Privacy</a>
         <a href="https://github.com/Markesrrr/Basalt" target="_blank" rel="noopener noreferrer">GitHub</a>
       </nav>
 
@@ -895,7 +896,7 @@
         <a
           class="btn btn-primary btn-sm"
           id="header-download-cta"
-          href="https://github.com/Markesrrr/Basalt/releases/latest/download/basalt.exe"
+          href="https://github.com/Markesrrr/Basalt/releases/download/v0.3.0/basalt.exe"
           download="basalt.exe"
         >
           <svg class="ico" aria-hidden="true"><use href="#ico-download" /></svg>
@@ -912,22 +913,22 @@
         <div>
           <p class="kicker">
             <span class="kicker-dot" aria-hidden="true"></span>
-            <span data-i18n="hero.kicker">Pure Vanilla Minecraft 1.21.4 · Windows x64</span>
+            <span data-i18n="hero.kicker">Minecraft Java 1.21.4 – 1.16.5 · Vanilla, Fabric &amp; Forge · Windows x64</span>
           </p>
-          <h1 data-i18n="hero.h1">Clean, direct Vanilla 1.21.4 launcher without bloat.</h1>
+          <h1 data-i18n="hero.h1">Clean, open-source Minecraft launcher with Modrinth &amp; isolated loaders.</h1>
           <p class="hero-lead" data-i18n="hero.lead">
-            Basalt is a single-binary Windows launcher built in Rust and Tauri 2. It runs official Minecraft 1.21.4 directly through Java 21, calibrates JVM memory and options.txt to your hardware, and loads local PNG skins cleanly.
+            Basalt is a portable Windows launcher built in Rust and Tauri 2. It runs Minecraft 1.21.4 down to 1.16.5 across isolated Vanilla, Fabric, and Forge profiles, browses Modrinth with 1-click shader kits, and verifies every file locally.
           </p>
 
           <div class="cta-row">
             <a
               class="btn btn-primary"
               id="hero-download-cta"
-              href="https://github.com/Markesrrr/Basalt/releases/latest/download/basalt.exe"
+              href="https://github.com/Markesrrr/Basalt/releases/download/v0.3.0/basalt.exe"
               download="basalt.exe"
             >
               <svg class="ico" aria-hidden="true"><use href="#ico-download" /></svg>
-              <span id="hero-cta-label" data-i18n="hero.downloadBtn">Download basalt.exe (13.84 MB)</span>
+              <span id="hero-cta-label" data-i18n="hero.downloadBtn">Download basalt.exe (14.53 MB)</span>
             </a>
             <a
               class="btn btn-secondary"
@@ -943,49 +944,53 @@
           <div class="hero-pills">
             <div class="stat-pill">
               <span data-i18n="hero.stat1Label">Binary Size</span>
-              <strong id="hero-fact-size">13.84 MB · Single EXE</strong>
+              <strong id="hero-fact-size">14.53 MB · Single EXE</strong>
             </div>
             <div class="stat-pill">
-              <span data-i18n="hero.stat2Label">Target Client</span>
-              <strong>Vanilla 1.21.4 – 1.16.5</strong>
+              <span data-i18n="hero.stat2Label">Loaders &amp; Mods</span>
+              <strong data-i18n="hero.stat2Val">Vanilla · Fabric · Forge</strong>
             </div>
             <div class="stat-pill">
               <span data-i18n="hero.stat3Label">Java Runtime</span>
               <strong data-i18n="hero.stat3Val">Auto Temurin 21</strong>
             </div>
           </div>
+          <p style="margin:14px 0 0;font-size:12px;color:var(--text-subtle)" data-i18n="hero.disclaimer">
+            Unofficial open-source project (MIT). NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.
+          </p>
         </div>
 
         <!-- Clean Desktop UI Preview Card -->
         <div class="preview-window" aria-label="Basalt desktop interface preview">
           <div class="pw-titlebar">
-            <span>BASALT · 1.21.4</span>
+            <span>BASALT · v0.3.0 PRE-RELEASE</span>
             <div class="pw-dots" aria-hidden="true"><span></span><span></span><span></span></div>
           </div>
           <div class="pw-body">
             <div class="pw-rail">
               <div class="pw-nav">
                 <div class="pw-tab active" data-i18n="pw.navPlay">Play</div>
+                <div class="pw-tab" data-i18n="pw.navLibrary">Library &amp; Mods</div>
                 <div class="pw-tab" data-i18n="pw.navWorlds">Saved Worlds</div>
                 <div class="pw-tab" data-i18n="pw.navProfile">Profile &amp; Skin</div>
                 <div class="pw-tab" data-i18n="pw.navSystem">Settings &amp; Servers</div>
               </div>
               <div class="pw-status">
                 <span class="pw-led" aria-hidden="true"></span>
-                <span data-i18n="pw.ready">Vanilla 1.21.4 ready</span>
+                <span data-i18n="pw.ready">Fabric 1.21.4 ready</span>
               </div>
             </div>
 
             <div class="pw-main">
               <div class="pw-hero-card">
                 <div class="pw-art">
-                  <small>MINECRAFT 1.21.4</small>
-                  <strong data-i18n="pw.targetTitle">Minecraft Title Screen</strong>
+                  <small>MINECRAFT 1.21.4 · FABRIC</small>
+                  <strong data-i18n="pw.targetTitle">Isolated Loader &amp; Modrinth Kit</strong>
                 </div>
                 <div class="pw-form">
                   <div class="pw-field">
-                    <span data-i18n="pw.quickEntry">Quick entry</span>
-                    <div class="pw-input" data-i18n="pw.quickVal">Survival World (Quick Play)</div>
+                    <span data-i18n="pw.quickEntry">Mod Loader</span>
+                    <div class="pw-input" data-i18n="pw.quickVal">Vanilla · Fabric · Forge</div>
                   </div>
                   <div class="pw-field">
                     <span data-i18n="pw.playerName">Player name (offline)</span>
@@ -1005,12 +1010,12 @@
                   <strong>4096 MB (ZGC)</strong>
                 </div>
                 <div class="pw-spec-box">
-                  <small>RENDER</small>
-                  <strong>12 chunks</strong>
+                  <small>MODRINTH</small>
+                  <strong data-i18n="pw.modrinthReady">v2 Catalog</strong>
                 </div>
                 <div class="pw-spec-box">
                   <small>CACHE</small>
-                  <strong data-i18n="pw.cacheReady">SHA-1 Verified</strong>
+                  <strong data-i18n="pw.cacheReady">SHA-1 / 256</strong>
                 </div>
               </div>
             </div>
@@ -1024,9 +1029,9 @@
       <div class="wrap">
         <div class="section-head">
           <p class="kicker"><span class="kicker-dot" aria-hidden="true"></span><span data-i18n="feat.kicker">Core Capabilities</span></p>
-          <h2 data-i18n="feat.h2">Everything needed to run Vanilla 1.21.4 cleanly.</h2>
+          <h2 data-i18n="feat.h2">Everything needed for Vanilla, Fabric, and Forge cleanly isolated.</h2>
           <p data-i18n="feat.lead">
-            Designed around a calm, single-focus workflow without mod-loader conflicts, background bloat, or complicated setup steps.
+            Designed around clean per-loader mod isolation, built-in Modrinth v2 discovery, and cryptographic verification without bloat.
           </p>
         </div>
 
@@ -1034,33 +1039,33 @@
           <article class="card">
             <div class="card-head">
               <span class="card-icon"><svg class="ico" aria-hidden="true"><use href="#ico-play" /></svg></span>
-              <span class="card-tag">java.exe · Direct</span>
+              <span class="card-tag">Vanilla · Fabric · Forge</span>
             </div>
-            <h3 data-i18n="feat.c1Title">Pure Official Vanilla 1.21.4</h3>
+            <h3 data-i18n="feat.c1Title">Isolated Loader Profiles</h3>
             <p data-i18n="feat.c1Body">
-              Downloads and SHA-1 verifies the official Mojang 1.21.4 client JAR, libraries, and asset index, launching directly without Fabric or Forge overhead.
+              Switches seamlessly between Vanilla, Fabric, and Forge across 1.21.4–1.16.5 with isolated mods/ folders and shared saves, shaderpacks, resourcepacks, and options.txt.
             </p>
           </article>
 
           <article class="card">
             <div class="card-head">
               <span class="card-icon"><svg class="ico" aria-hidden="true"><use href="#ico-box" /></svg></span>
-              <span class="card-tag">Temurin JDK 21</span>
+              <span class="card-tag">Modrinth v2 API</span>
             </div>
-            <h3 data-i18n="feat.c2Title">Automatic Java 21 Setup</h3>
+            <h3 data-i18n="feat.c2Title">Modrinth Library &amp; Shader Kits</h3>
             <p data-i18n="feat.c2Body">
-              If Java 21 is missing on the PC, Basalt downloads Eclipse Temurin 21 via Windows curl.exe, verifies its SHA-256 hash, and installs it locally without admin rights.
+              Browse Mods, Shaders, and Resource Packs directly, install 1-click Fabric (Sodium+Iris+Lithium) or Forge (Embeddium+Oculus) kits, or import local OptiFine .jar/.zip files.
             </p>
           </article>
 
           <article class="card">
             <div class="card-head">
               <span class="card-icon"><svg class="ico" aria-hidden="true"><use href="#ico-cpu" /></svg></span>
-              <span class="card-tag">G1GC / ZGC</span>
+              <span class="card-tag">Temurin 21 · ZGC</span>
             </div>
-            <h3 data-i18n="feat.c3Title">Hardware-Calibrated Settings</h3>
+            <h3 data-i18n="feat.c3Title">Auto Java 21 &amp; Hardware Tuning</h3>
             <p data-i18n="feat.c3Body">
-              Detects CPU cores, RAM, and DirectX 12 GPU tier on startup to configure -Xmx heap allocation, garbage collector flags, and options.txt render distance.
+              Installs verified Eclipse Temurin 21 without admin rights and reads CPU, RAM, and DirectX 12 GPU tier to calibrate -Xmx heap, G1GC/ZGC flags, and options.txt.
             </p>
           </article>
 
@@ -1071,7 +1076,7 @@
             </div>
             <h3 data-i18n="feat.c4Title">Local PNG Skins (Slim &amp; Classic)</h3>
             <p data-i18n="feat.c4Body">
-              Imports any 64×64 or legacy 64×32 PNG skin with Slim (3 px) or Classic (4 px) arms and packages it into a native Vanilla resource pack on launch.
+              Imports any 64×64 or legacy 64×32 PNG skin with Slim (3 px) or Classic (4 px) arms, previews in 3D, and packages it into a native Vanilla resource pack on launch.
             </p>
           </article>
 
@@ -1089,11 +1094,11 @@
           <article class="card">
             <div class="card-head">
               <span class="card-icon"><svg class="ico" aria-hidden="true"><use href="#ico-shield" /></svg></span>
-              <span class="card-tag">ASCII-Safe Cache</span>
+              <span class="card-tag">SHA-1 / 256 / 512</span>
             </div>
-            <h3 data-i18n="feat.c6Title">Portable &amp; Path-Safe on Any PC</h3>
+            <h3 data-i18n="feat.c6Title">Path-Safe &amp; Hash-Verified</h3>
             <p data-i18n="feat.c6Body">
-              Automatically routes runtime caches to an ASCII-safe directory when the Windows username contains spaces or non-ASCII characters, preventing JVM launch errors.
+              Verifies Mojang, Temurin, and Modrinth files cryptographically before execution and auto-routes caches into ASCII-safe paths on Windows PCs with special characters.
             </p>
           </article>
         </div>
@@ -1107,7 +1112,7 @@
           <p class="kicker"><span class="kicker-dot" aria-hidden="true"></span><span data-i18n="specs.kicker">Architecture &amp; Profiles</span></p>
           <h2 data-i18n="specs.h2">Technical specifications and hardware presets.</h2>
           <p data-i18n="specs.lead">
-            Every file is verified cryptographically in pure Rust before execution, and custom keybinds in options.txt are always preserved.
+            Every downloaded runtime and mod file is verified cryptographically before execution, and custom keybinds in options.txt are always preserved.
           </p>
         </div>
 
@@ -1119,8 +1124,8 @@
             </div>
             <div class="kv-list">
               <div class="kv-item">
-                <span data-i18n="specs.kClient">Target Client</span>
-                <strong>Minecraft Java 1.21.4 (Vanilla)</strong>
+                <span data-i18n="specs.kClient">Supported Versions</span>
+                <strong>Minecraft Java 1.21.4 – 1.16.5 (Vanilla / Fabric / Forge)</strong>
               </div>
               <div class="kv-item">
                 <span data-i18n="specs.kProto">Network Protocol</span>
@@ -1132,7 +1137,7 @@
               </div>
               <div class="kv-item">
                 <span data-i18n="specs.kHash">Integrity Checks</span>
-                <strong>FIPS 180-4 SHA-1 &amp; SHA-256</strong>
+                <strong>SHA-1 · SHA-256 · SHA-512</strong>
               </div>
               <div class="kv-item">
                 <span data-i18n="specs.kLang">Interface Languages</span>
@@ -1201,7 +1206,7 @@
       <div class="wrap">
         <div class="section-head">
           <p class="kicker"><span class="kicker-dot" aria-hidden="true"></span><span data-i18n="dl.kicker">Release &amp; Checksum</span></p>
-          <h2 data-i18n="dl.h2">Download Basalt v0.2.0 (Pre-release) for Windows.</h2>
+          <h2 data-i18n="dl.h2">Download Basalt v0.3.0 (Pre-release) for Windows.</h2>
           <p data-i18n="dl.lead">
             Portable single-file executable and ZIP bundle. Verify the downloaded binary against the SHA-256 digest below.
           </p>
@@ -1210,18 +1215,18 @@
         <div class="cards-grid-2">
           <article class="card">
             <div class="card-head">
-              <h3 id="dl-card-title">basalt.exe · v0.2.0</h3>
-              <span class="card-tag" id="download-meta-size">13.85 MB (14,518,784 B)</span>
+              <h3 id="dl-card-title">basalt.exe · v0.3.0 (Pre-release)</h3>
+              <span class="card-tag" id="download-meta-size">14.53 MB (15,236,096 B)</span>
             </div>
             <p data-i18n="dl.desc">
-              Runs on 64-bit Windows 10 and Windows 11 with Microsoft Edge WebView2 Runtime. Official Minecraft files are cached locally on first launch.
+              Runs on 64-bit Windows 10 and Windows 11 with Microsoft Edge WebView2 Runtime. Official Minecraft, Fabric, Forge, and Modrinth files are fetched dynamically on your device.
             </p>
 
             <div class="cta-row" style="margin: 8px 0">
               <a
                 class="btn btn-primary"
                 id="primary-release-btn"
-                href="https://github.com/Markesrrr/Basalt/releases/latest/download/basalt.exe"
+                href="https://github.com/Markesrrr/Basalt/releases/download/v0.3.0/basalt.exe"
                 download="basalt.exe"
               >
                 <svg class="ico" aria-hidden="true"><use href="#ico-download" /></svg>
@@ -1230,8 +1235,8 @@
               <a
                 class="btn btn-secondary"
                 id="zip-release-btn"
-                href="https://github.com/Markesrrr/Basalt/releases/download/v0.2.0/basalt-v0.2.0-windows-x64.zip"
-                download="basalt-v0.2.0-windows-x64.zip"
+                href="https://github.com/Markesrrr/Basalt/releases/download/v0.3.0/basalt-v0.3.0-windows-x64.zip"
+                download="basalt-v0.3.0-windows-x64.zip"
               >
                 <span data-i18n="dl.zipBtn">Download .zip</span>
               </a>
@@ -1251,7 +1256,7 @@
                 <span data-i18n="dl.shaLabel">SHA-256 Checksum</span>
                 <button type="button" class="copy-btn" id="copy-sha-btn" data-i18n="dl.copySha">Copy SHA-256</button>
               </div>
-              <p class="hash-code" id="sha-value">2d66dafc74912aa34ac22380c02f723a77afa2c602802f2c202925e29c2a8969</p>
+              <p class="hash-code" id="sha-value">06ddf61a711f0a9bc0e492cf5a20f18037b0d45aa9a3ee544ae293e54415b308</p>
             </div>
 
             <div class="hash-box">
@@ -1273,9 +1278,9 @@
               </p>
             </article>
             <article class="faq-card">
-              <h3 data-i18n="faq.q2">Why does Basalt launch pure Vanilla instead of Fabric?</h3>
+              <h3 data-i18n="faq.q2">How do Fabric, Forge, and OptiFine stay separated?</h3>
               <p data-i18n="faq.a2">
-                Launching official Vanilla 1.21.4 directly via java.exe eliminates Mixin/loader classpath conflicts and Gradle daemon overhead, starting the game faster and reliably on every machine.
+                Basalt keeps separate per-version mods folders for Fabric and Forge so loader JARs never conflict, while sharing saves/, shaderpacks/, resourcepacks/, screenshots/, and options.txt cleanly.
               </p>
             </article>
             <article class="faq-card">
@@ -1285,12 +1290,73 @@
               </p>
             </article>
             <article class="faq-card">
-              <h3 data-i18n="faq.q4">Which servers are supported?</h3>
+              <h3 data-i18n="faq.q4">Why does Windows SmartScreen appear on pre-release builds?</h3>
               <p data-i18n="faq.a4">
-                Singleplayer worlds and local/LAN development servers running with online-mode=false. Servers requesting Microsoft EncryptionRequest are never bypassed.
+                Open-source pre-releases compiled by GitHub Actions are not yet signed with a paid Authenticode certificate. Always verify SHA256SUMS.txt on GitHub Releases before running.
               </p>
             </article>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LEGAL, PRIVACY & ATTRIBUTION SECTION -->
+    <section class="section" id="legal">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="kicker"><span class="kicker-dot" aria-hidden="true"></span><span data-i18n="legal.kicker">Compliance &amp; Transparency</span></p>
+          <h2 data-i18n="legal.h2">Legal notices, third-party licenses, and privacy.</h2>
+          <p data-i18n="legal.lead">
+            Clear boundaries on Mojang EULA compliance, upstream API attribution, open-source licensing, and zero-telemetry privacy.
+          </p>
+        </div>
+
+        <div class="cards-grid-2">
+          <article class="card">
+            <div class="card-head">
+              <h3 data-i18n="legal.c1Title">Mojang EULA &amp; Trademark Disclaimer</h3>
+              <span class="card-tag">EULA Scope</span>
+            </div>
+            <p data-i18n="legal.c1Body">
+              NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT. Minecraft is a trademark of Mojang Synergies AB. Basalt never bundles copyrighted game JARs or assets and never bypasses Microsoft account authentication (singleplayer &amp; online-mode=false development servers only).
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <h3 data-i18n="legal.c2Title">Third-Party APIs &amp; Ecosystem Attribution</h3>
+              <span class="card-tag">Attribution</span>
+            </div>
+            <p data-i18n="legal.c2Body">
+              Dynamic catalog and runtime integrations use Mojang Piston Meta, Modrinth API v2 (respecting mod &amp; shader creator licenses), FabricMC, Minecraft Forge, Eclipse Adoptium Temurin, Tauri 2, and optional local Discord IPC. OptiFine is never bundled or redistributed; users import locally downloaded files.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <h3 data-i18n="legal.c3Title">Zero-Telemetry Privacy Policy</h3>
+              <span class="card-tag">Zero Tracking</span>
+            </div>
+            <p data-i18n="legal.c3Body">
+              Basalt collects zero usage analytics, zero advertising identifiers, and zero tracking cookies. Settings, saves, and libraries stay locally in your Windows AppData folder. This website only queries GitHub's public Releases API to show current checksums and download links.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <h3 data-i18n="legal.c4Title">MIT License, Warranty &amp; Notices</h3>
+              <span class="card-tag">MIT · AS IS</span>
+            </div>
+            <p data-i18n="legal.c4Body">
+              Basalt source code and original assets are licensed under the MIT License ("AS IS", without warranty of any kind). Open-source Rust &amp; npm dependency notices (MIT, Apache-2.0, BSD, ISC, Zlib, Unicode-3.0, MPL-2.0) are published in THIRD_PARTY_LICENSES.md.
+            </p>
+            <div class="cta-row" style="margin-top:4px">
+              <a class="btn btn-secondary btn-sm" href="https://github.com/Markesrrr/Basalt/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT LICENSE</a>
+              <a class="btn btn-secondary btn-sm" href="https://github.com/Markesrrr/Basalt/blob/main/THIRD_PARTY_LICENSES.md" target="_blank" rel="noopener noreferrer">3rd-Party Licenses</a>
+              <a class="btn btn-secondary btn-sm" href="https://github.com/Markesrrr/Basalt/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer" data-i18n="legal.privacyLink">Privacy Policy</a>
+              <a class="btn btn-secondary btn-sm" href="https://github.com/Markesrrr/Basalt/blob/main/SECURITY.md" target="_blank" rel="noopener noreferrer" data-i18n="legal.securityLink">Security &amp; Hashes</a>
+            </div>
+          </article>
         </div>
       </div>
     </section>
@@ -1299,11 +1365,14 @@
   <footer class="site-footer">
     <div class="wrap footer-inner">
       <div data-i18n-html="footer.project">
-        <strong>Basalt</strong> · Open-Source Minecraft 1.21.4 Vanilla Launcher for Windows (MIT License) ·
-        <a href="https://github.com/Markesrrr/Basalt" target="_blank" rel="noopener noreferrer">GitHub Repository (Markesrrr/Basalt)</a>
+        <strong>Basalt</strong> · Open-Source Unofficial Minecraft Launcher for Windows (MIT License) ·
+        <a href="https://github.com/Markesrrr/Basalt" target="_blank" rel="noopener noreferrer">GitHub</a> ·
+        <a href="https://github.com/Markesrrr/Basalt/blob/main/THIRD_PARTY_LICENSES.md" target="_blank" rel="noopener noreferrer">Third-Party Licenses</a> ·
+        <a href="https://github.com/Markesrrr/Basalt/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer">Privacy</a> ·
+        <a href="https://github.com/Markesrrr/Basalt/blob/main/SECURITY.md" target="_blank" rel="noopener noreferrer">Security</a>
       </div>
       <div data-i18n="footer.legal">
-        NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT. Official game binaries and assets are never embedded in the executable; they are cached locally from official Mojang endpoints on first launch.
+        NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT. Official game binaries, loaders, mods, and assets are never embedded in the executable; they are fetched dynamically from upstream sources with cryptographic verification.
       </div>
     </div>
   </footer>
@@ -1313,59 +1382,64 @@
       "use strict";
 
       const DEFAULT_GITHUB_REPO = "Markesrrr/Basalt";
-      let liveExeSha256 = "53d7b3890865fda4ec439a2a1e449bcb1cc117d2d01636702becda03aebf4527";
-      let liveExeSizeMb = "13.85 MB";
-      let liveExeSizeDisplay = "13.85 MB (14,518,784 B)";
+      let liveExeSha256 = "06ddf61a711f0a9bc0e492cf5a20f18037b0d45aa9a3ee544ae293e54415b308";
+      let liveExeSizeMb = "14.53 MB";
+      let liveExeSizeDisplay = "14.53 MB (15,236,096 B)";
 
       const I18N = {
         en: {
-          title: "Basalt — Pure Vanilla Minecraft 1.21.4 Launcher for Windows",
+          title: "Basalt — Unofficial Minecraft Launcher (Vanilla, Fabric, Forge & Modrinth)",
           text: {
             "nav.features": "Features",
             "nav.specs": "Specifications",
             "nav.download": "Download & Verify",
+            "nav.legal": "Legal & Privacy",
             "header.themeBtn": "Light / Dark",
             "header.download": "Download",
-            "hero.kicker": "Pure Vanilla Minecraft 1.21.4 – 1.16.5 · Windows x64",
-            "hero.h1": "Clean, direct Vanilla Minecraft launcher without bloat.",
-            "hero.lead": "Basalt is a single-binary Windows launcher built in Rust and Tauri 2. It runs official Minecraft 1.21.4 down to 1.16.5 directly through Java 21, calibrates JVM memory and options.txt to your hardware, and loads local PNG skins cleanly.",
-            "hero.downloadBtn": "Download basalt.exe (13.84 MB)",
+            "hero.kicker": "Minecraft Java 1.21.4 – 1.16.5 · Vanilla, Fabric & Forge · Windows x64",
+            "hero.h1": "Clean, open-source Minecraft launcher with Modrinth & isolated loaders.",
+            "hero.lead": "Basalt is a portable Windows launcher built in Rust and Tauri 2. It runs Minecraft 1.21.4 down to 1.16.5 across isolated Vanilla, Fabric, and Forge profiles, browses Modrinth with 1-click shader kits, and verifies every file locally.",
+            "hero.downloadBtn": "Download basalt.exe (14.53 MB)",
             "hero.githubBtn": "View Source on GitHub",
             "hero.stat1Label": "Binary Size",
-            "hero.stat2Label": "Target Client",
+            "hero.stat2Label": "Loaders & Mods",
+            "hero.stat2Val": "Vanilla · Fabric · Forge",
             "hero.stat3Label": "Java Runtime",
             "hero.stat3Val": "Auto Temurin 21",
+            "hero.disclaimer": "Unofficial open-source project (MIT). NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.",
             "pw.navPlay": "Play",
+            "pw.navLibrary": "Library & Mods",
             "pw.navWorlds": "Saved Worlds",
             "pw.navProfile": "Profile & Skin",
             "pw.navSystem": "Settings & Servers",
-            "pw.ready": "Vanilla 1.21.4 ready",
-            "pw.targetTitle": "Minecraft Title Screen",
-            "pw.quickEntry": "Quick entry",
-            "pw.quickVal": "Survival World (Quick Play)",
+            "pw.ready": "Fabric 1.21.4 ready",
+            "pw.targetTitle": "Isolated Loader & Modrinth Kit",
+            "pw.quickEntry": "Mod Loader",
+            "pw.quickVal": "Vanilla · Fabric · Forge",
             "pw.playerName": "Player name (offline)",
             "pw.launchBtn": "Launch Minecraft",
-            "pw.cacheReady": "SHA-1 Verified",
+            "pw.modrinthReady": "v2 Catalog",
+            "pw.cacheReady": "SHA-1 / 256",
             "feat.kicker": "Core Capabilities",
-            "feat.h2": "Everything needed to run Vanilla 1.21.4 cleanly.",
-            "feat.lead": "Designed around a calm, single-focus workflow without mod-loader conflicts, background bloat, or complicated setup steps.",
-            "feat.c1Title": "Pure Official Vanilla 1.21.4",
-            "feat.c1Body": "Downloads and SHA-1 verifies the official Mojang 1.21.4 client JAR, libraries, and asset index, launching directly without Fabric or Forge overhead.",
-            "feat.c2Title": "Automatic Java 21 Setup",
-            "feat.c2Body": "If Java 21 is missing on the PC, Basalt downloads Eclipse Temurin 21 via Windows curl.exe, verifies its SHA-256 hash, and installs it locally without admin rights.",
-            "feat.c3Title": "Hardware-Calibrated Settings",
-            "feat.c3Body": "Detects CPU cores, RAM, and DirectX 12 GPU tier on startup to configure -Xmx heap allocation, garbage collector flags, and options.txt render distance.",
+            "feat.h2": "Everything needed for Vanilla, Fabric, and Forge cleanly isolated.",
+            "feat.lead": "Designed around clean per-loader mod isolation, built-in Modrinth v2 discovery, and cryptographic verification without bloat.",
+            "feat.c1Title": "Isolated Loader Profiles",
+            "feat.c1Body": "Switches seamlessly between Vanilla, Fabric, and Forge across 1.21.4–1.16.5 with isolated mods/ folders and shared saves, shaderpacks, resourcepacks, and options.txt.",
+            "feat.c2Title": "Modrinth Library & Shader Kits",
+            "feat.c2Body": "Browse Mods, Shaders, and Resource Packs directly, install 1-click Fabric (Sodium+Iris+Lithium) or Forge (Embeddium+Oculus) kits, or import local OptiFine .jar/.zip files.",
+            "feat.c3Title": "Auto Java 21 & Hardware Tuning",
+            "feat.c3Body": "Installs verified Eclipse Temurin 21 without admin rights and reads CPU, RAM, and DirectX 12 GPU tier to calibrate -Xmx heap, G1GC/ZGC flags, and options.txt.",
             "feat.c4Title": "Local PNG Skins (Slim & Classic)",
-            "feat.c4Body": "Imports any 64×64 or legacy 64×32 PNG skin with Slim (3 px) or Classic (4 px) arms and packages it into a native Vanilla resource pack on launch.",
+            "feat.c4Body": "Imports any 64×64 or legacy 64×32 PNG skin with Slim (3 px) or Classic (4 px) arms, previews in 3D, and packages it into a native Vanilla resource pack on launch.",
             "feat.c5Title": "Worlds & Local Server Quick Play",
             "feat.c5Body": "Manage singleplayer saves, ping local offline-mode (online-mode=false) development servers via Protocol 769 SLP, and jump straight in with Quick Play.",
-            "feat.c6Title": "Portable & Path-Safe on Any PC",
-            "feat.c6Body": "Automatically routes runtime caches to an ASCII-safe directory when the Windows username contains spaces or non-ASCII characters, preventing JVM launch errors.",
+            "feat.c6Title": "Path-Safe & Hash-Verified",
+            "feat.c6Body": "Verifies Mojang, Temurin, and Modrinth files cryptographically before execution and auto-routes caches into ASCII-safe paths on Windows PCs with special characters.",
             "specs.kicker": "Architecture & Profiles",
             "specs.h2": "Technical specifications and hardware presets.",
-            "specs.lead": "Every file is verified cryptographically in pure Rust before execution, and custom keybinds in options.txt are always preserved.",
+            "specs.lead": "Every downloaded runtime and mod file is verified cryptographically before execution, and custom keybinds in options.txt are always preserved.",
             "specs.leftTitle": "Runtime & Security Architecture",
-            "specs.kClient": "Target Client",
+            "specs.kClient": "Supported Versions",
             "specs.kProto": "Network Protocol",
             "specs.kJava": "Java Runtime",
             "specs.kHash": "Integrity Checks",
@@ -1377,9 +1451,9 @@
             "specs.thRam": "JVM Heap",
             "specs.thChunks": "Render",
             "dl.kicker": "Release & Checksum",
-            "dl.h2": "Download Basalt v0.2.0 (Pre-release) for Windows.",
+            "dl.h2": "Download Basalt v0.3.0 (Pre-release) for Windows.",
             "dl.lead": "Portable single-file executable and ZIP bundle. Verify the downloaded binary against the SHA-256 digest below.",
-            "dl.desc": "Runs on 64-bit Windows 10 and Windows 11 with Microsoft Edge WebView2 Runtime. Official Minecraft files are cached locally on first launch.",
+            "dl.desc": "Runs on 64-bit Windows 10 and Windows 11 with Microsoft Edge WebView2 Runtime. Official Minecraft, Fabric, Forge, and Modrinth files are fetched dynamically on your device.",
             "dl.primaryBtn": "Download basalt.exe",
             "dl.zipBtn": "Download .zip",
             "dl.notesBtn": "GitHub Releases",
@@ -1389,68 +1463,86 @@
             "dl.copyPs": "Copy Command",
             "faq.q1": "What happens if Java 21 is not installed on another PC?",
             "faq.a1": "Click \"Auto-Install Java 21\" inside Basalt. It downloads official Eclipse Temurin 21, checks the SHA-256 hash, and extracts it into Basalt's runtime folder without needing administrator permissions.",
-            "faq.q2": "Why does Basalt launch pure Vanilla instead of Fabric?",
-            "faq.a2": "Launching official Vanilla 1.21.4 directly via java.exe eliminates Mixin/loader classpath conflicts and Gradle daemon overhead, starting the game faster and reliably on every machine.",
+            "faq.q2": "How do Fabric, Forge, and OptiFine stay separated?",
+            "faq.a2": "Basalt keeps separate per-version mods folders for Fabric and Forge so loader JARs never conflict, while sharing saves/, shaderpacks/, resourcepacks/, screenshots/, and options.txt cleanly.",
             "faq.q3": "How do offline PNG skins work without mods?",
             "faq.a3": "Basalt validates your 64×64 or 64×32 PNG skin, aligns the offline player UUID with your chosen Slim (3 px) or Classic (4 px) arm model, and writes a native Vanilla resource pack (basalt_skin.zip).",
-            "faq.q4": "Which servers are supported?",
-            "faq.a4": "Singleplayer worlds and local/LAN development servers running with online-mode=false. Servers requesting Microsoft EncryptionRequest are never bypassed.",
-            "footer.legal": "NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT. Official game binaries and assets are never embedded in the executable; they are cached locally from official Mojang endpoints on first launch."
+            "faq.q4": "Why does Windows SmartScreen appear on pre-release builds?",
+            "faq.a4": "Open-source pre-releases compiled by GitHub Actions are not yet signed with a paid Authenticode certificate. Always verify SHA256SUMS.txt on GitHub Releases before running.",
+            "legal.kicker": "Compliance & Transparency",
+            "legal.h2": "Legal notices, third-party licenses, and privacy.",
+            "legal.lead": "Clear boundaries on Mojang EULA compliance, upstream API attribution, open-source licensing, and zero-telemetry privacy.",
+            "legal.c1Title": "Mojang EULA & Trademark Disclaimer",
+            "legal.c1Body": "NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT. Minecraft is a trademark of Mojang Synergies AB. Basalt never bundles copyrighted game JARs or assets and never bypasses Microsoft account authentication (singleplayer & online-mode=false development servers only).",
+            "legal.c2Title": "Third-Party APIs & Ecosystem Attribution",
+            "legal.c2Body": "Dynamic catalog and runtime integrations use Mojang Piston Meta, Modrinth API v2 (respecting mod & shader creator licenses), FabricMC, Minecraft Forge, Eclipse Adoptium Temurin, Tauri 2, and optional local Discord IPC. OptiFine is never bundled or redistributed; users import locally downloaded files.",
+            "legal.c3Title": "Zero-Telemetry Privacy Policy",
+            "legal.c3Body": "Basalt collects zero usage analytics, zero advertising identifiers, and zero tracking cookies. Settings, saves, and libraries stay locally in your Windows AppData folder. This website only queries GitHub's public Releases API to show current checksums and download links.",
+            "legal.c4Title": "MIT License, Warranty & Notices",
+            "legal.c4Body": "Basalt source code and original assets are licensed under the MIT License (\"AS IS\", without warranty of any kind). Open-source Rust & npm dependency notices (MIT, Apache-2.0, BSD, ISC, Zlib, Unicode-3.0, MPL-2.0) are published in THIRD_PARTY_LICENSES.md.",
+            "legal.privacyLink": "Privacy Policy",
+            "legal.securityLink": "Security & Hashes",
+            "footer.legal": "NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT. Official game binaries, loaders, mods, and assets are never embedded in the executable; they are fetched dynamically from upstream sources with cryptographic verification."
           },
           html: {
-            "footer.project": "<strong>Basalt</strong> · Open-Source Minecraft 1.21.4 Vanilla Launcher for Windows (MIT License) · <a href=\"https://github.com/Markesrrr/Basalt\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub Repository (Markesrrr/Basalt)</a>"
+            "footer.project": "<strong>Basalt</strong> · Open-Source Unofficial Minecraft Launcher for Windows (MIT License) · <a href=\"https://github.com/Markesrrr/Basalt\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · <a href=\"https://github.com/Markesrrr/Basalt/blob/main/THIRD_PARTY_LICENSES.md\" target=\"_blank\" rel=\"noopener noreferrer\">Third-Party Licenses</a> · <a href=\"https://github.com/Markesrrr/Basalt/blob/main/PRIVACY.md\" target=\"_blank\" rel=\"noopener noreferrer\">Privacy</a> · <a href=\"https://github.com/Markesrrr/Basalt/blob/main/SECURITY.md\" target=\"_blank\" rel=\"noopener noreferrer\">Security</a>"
           },
           copyShaOk: "SHA-256 checksum copied to clipboard.",
           copyPsOk: "PowerShell command copied to clipboard."
         },
         tr: {
-          title: "Basalt — Windows için Saf Vanilla Minecraft 1.21.4 Başlatıcısı",
+          title: "Basalt — Resmi Olmayan Minecraft Başlatıcısı (Vanilla, Fabric, Forge & Modrinth)",
           text: {
             "nav.features": "Özellikler",
             "nav.specs": "Teknik Özellikler",
             "nav.download": "İndir ve Doğrula",
+            "nav.legal": "Yasal ve Gizlilik",
             "header.themeBtn": "Açık / Koyu",
             "header.download": "İndir",
-            "hero.kicker": "Saf Vanilla Minecraft 1.21.4 · Windows x64",
-            "hero.h1": "Karmaşadan uzak, doğrudan Vanilla 1.21.4 başlatıcısı.",
-            "hero.lead": "Basalt; Rust ve Tauri 2 ile geliştirilmiş tek dosyalı bir Windows başlatıcısıdır. Resmi Minecraft 1.21.4'ü doğrudan Java 21 ile açar, JVM belleğini ve options.txt ayarlarını donanımına göre kalibre eder, yerel PNG skinleri modsuz yükler.",
-            "hero.downloadBtn": "basalt.exe İndir (13.84 MB)",
+            "hero.kicker": "Minecraft Java 1.21.4 – 1.16.5 · Vanilla, Fabric & Forge · Windows x64",
+            "hero.h1": "Modrinth ve izole loader profilli sade, açık kaynak Minecraft başlatıcısı.",
+            "hero.lead": "Basalt; Rust ve Tauri 2 ile geliştirilmiş taşınabilir bir Windows başlatıcısıdır. Minecraft 1.21.4 – 1.16.5 sürümlerini izole Vanilla, Fabric ve Forge profilleriyle çalıştırır, Modrinth kütüphanesi ve tek tık shader paketleri sunar, her dosyayı kriptografik olarak doğrular.",
+            "hero.downloadBtn": "basalt.exe İndir (14.53 MB)",
             "hero.githubBtn": "GitHub Kaynak Kodu",
             "hero.stat1Label": "Dosya Boyutu",
-            "hero.stat2Label": "Hedef İstemci",
+            "hero.stat2Label": "Yükleyiciler ve Modlar",
+            "hero.stat2Val": "Vanilla · Fabric · Forge",
             "hero.stat3Label": "Java Çalışma Zamanı",
             "hero.stat3Val": "Otomatik Temurin 21",
+            "hero.disclaimer": "Resmi olmayan açık kaynak proje (MIT). RESMİ BİR MINECRAFT ÜRÜNÜ DEĞİLDİR. MOJANG VEYA MICROSOFT TARAFINDAN ONAYLANMAMIŞTIR.",
             "pw.navPlay": "Oyna",
+            "pw.navLibrary": "Kütüphane ve Modlar",
             "pw.navWorlds": "Kayıtlı Dünyalar",
             "pw.navProfile": "Profil ve Skin",
             "pw.navSystem": "Ayarlar ve Sunucular",
-            "pw.ready": "Vanilla 1.21.4 hazır",
-            "pw.targetTitle": "Minecraft Ana Menü",
-            "pw.quickEntry": "Hızlı giriş",
-            "pw.quickVal": "Hayatta Kalma Dünyası (Quick Play)",
+            "pw.ready": "Fabric 1.21.4 hazır",
+            "pw.targetTitle": "İzole Loader ve Modrinth Kiti",
+            "pw.quickEntry": "Mod Yükleyici",
+            "pw.quickVal": "Vanilla · Fabric · Forge",
             "pw.playerName": "Oyuncu adı (çevrimdışı)",
             "pw.launchBtn": "Minecraft'ı Başlat",
-            "pw.cacheReady": "SHA-1 Doğrulandı",
+            "pw.modrinthReady": "v2 Katalog",
+            "pw.cacheReady": "SHA-1 / 256",
             "feat.kicker": "Temel Özellikler",
-            "feat.h2": "Saf Vanilla 1.21.4'ü sorunsuz çalıştırmak için gereken her şey.",
-            "feat.lead": "Mod yükleyici çakışmaları, arka plan şişkinliği veya karmaşık ayar ekranları olmadan tek odaklı ve sade bir akış sunar.",
-            "feat.c1Title": "Saf Resmi Vanilla 1.21.4",
-            "feat.c1Body": "Resmi Mojang 1.21.4 istemci JAR dosyasını, kütüphaneleri ve varlık dizinini SHA-1 doğrulamasıyla indirir; Fabric veya Forge katmanı olmadan doğrudan başlatır.",
-            "feat.c2Title": "Otomatik Java 21 Kurulumu",
-            "feat.c2Body": "Bilgisayarda Java 21 yoksa Basalt, Windows curl.exe ile resmi Eclipse Temurin 21 paketini indirir, SHA-256 özetini doğrular ve yönetici izni istemeden yerel olarak kurar.",
-            "feat.c3Title": "Donanıma Göre Otomatik Kalibrasyon",
-            "feat.c3Body": "Açılışta işlemci çekirdeklerini, RAM miktarını ve DirectX 12 GPU sınıfını algılayarak -Xmx bellek sınırını, GC bayraklarını ve options.txt görüş mesafesini ayarlar.",
+            "feat.h2": "Vanilla, Fabric ve Forge için izole ve sorunsuz kurulum.",
+            "feat.lead": "Her mod yükleyici için ayrı klasör izolasyonu, yerleşik Modrinth v2 araması ve şişkinlik olmadan kriptografik doğrulama sunar.",
+            "feat.c1Title": "İzole Loader Profilleri",
+            "feat.c1Body": "1.21.4–1.16.5 arasında Vanilla, Fabric ve Forge profillerini ayrı mods/ klasörleriyle izole eder; saves, shaderpacks, resourcepacks ve options.txt dosyalarını ortak paylaşır.",
+            "feat.c2Title": "Modrinth Kütüphanesi ve Shader Kitleri",
+            "feat.c2Body": "Mod, Shader ve Kaynak Paketi arayın, tek tıkla Fabric (Sodium+Iris+Lithium) veya Forge (Embeddium+Oculus) kitleri kurun, yerel OptiFine .jar/.zip dosyalarını içe aktarın.",
+            "feat.c3Title": "Otomatik Java 21 ve Donanım Kalibrasyonu",
+            "feat.c3Body": "Yönetici izni olmadan doğrulanmış Eclipse Temurin 21 kurar; CPU, RAM ve DirectX 12 GPU sınıfına göre -Xmx, G1GC/ZGC ve options.txt ayarlarını optimize eder.",
             "feat.c4Title": "Yerel PNG Skin (Slim ve Klasik)",
-            "feat.c4Body": "64×64 ve eski 64×32 PNG skinleri İnce (3 px) veya Klasik (4 px) kol modeliyle içe aktarır ve başlatma sırasında yerel Vanilla kaynak paketi olarak yükler.",
+            "feat.c4Body": "64×64 ve eski 64×32 PNG skinleri İnce (3 px) veya Klasik (4 px) kol modeliyle içe aktarır, 3D önizler ve başlatmada yerel Vanilla kaynak paketi olarak yükler.",
             "feat.c5Title": "Dünyalar ve Yerel Sunucu Quick Play",
-            "feat.c5Body": "Tek oyunculu kayıtları yönetin, yerel çevrimdışı (online-mode=false) sunucuları Protokol 769 SLP ile sorgulayın ve Quick Play ile doğrudan bağlanın.",
-            "feat.c6Title": "Her Bilgisayarda Boşluksuz Güvenli Dizin",
-            "feat.c6Body": "Windows kullanıcı adında boşluk veya Türkçe karakter olduğunda çalışma önbelleğini otomatik olarak ASCII-güvenli dizine yönlendirir; JVM sınıf yolu hatalarını önler.",
+            "feat.c5Body": "Tek oyunculu kayıtları yönetin, yerel çevrimdışı (online-mode=false) geliştirme sunucularını Protokol 769 SLP ile sorgulayın ve Quick Play ile doğrudan bağlanın.",
+            "feat.c6Title": "Bozulmaz Dizin ve Özet Doğrulama",
+            "feat.c6Body": "Mojang, Temurin ve Modrinth dosyalarını çalıştırmadan önce kriptografik özetle doğrular; Windows kullanıcı adında boşluk/Türkçe karakter varsa ASCII-güvenli önbellek kullanır.",
             "specs.kicker": "Mimari ve Profiller",
             "specs.h2": "Teknik özellikler ve otomatik donanım profilleri.",
-            "specs.lead": "Tüm dosyalar çalıştırılmadan önce saf Rust içinde kriptografik olarak doğrulanır ve options.txt içindeki özel tuş atamaları korunur.",
+            "specs.lead": "İndirilen tüm çalışma zamanı ve mod dosyaları çalıştırılmadan önce doğrulanır; options.txt içindeki özel tuş atamaları korunur.",
             "specs.leftTitle": "Çalışma Zamanı ve Güvenlik Mimarisi",
-            "specs.kClient": "Hedef İstemci",
+            "specs.kClient": "Desteklenen Sürümler",
             "specs.kProto": "Ağ Protokolü",
             "specs.kJava": "Java Ortamı",
             "specs.kHash": "Bütünlük Doğrulaması",
@@ -1462,9 +1554,9 @@
             "specs.thRam": "JVM Bellek",
             "specs.thChunks": "Görüş",
             "dl.kicker": "Sürüm ve Doğrulama",
-            "dl.h2": "Windows için Basalt v0.2.0 (Ön Sürüm) İndirin.",
+            "dl.h2": "Windows için Basalt v0.3.0 (Ön Sürüm) İndirin.",
             "dl.lead": "Tek dosyalı taşınabilir uygulama ve ZIP paketi. İndirdiğiniz dosyayı aşağıdaki SHA-256 özetiyle doğrulayabilirsiniz.",
-            "dl.desc": "Microsoft Edge WebView2 bulunan 64-bit Windows 10 ve Windows 11 sistemlerde doğrudan çalışır. Resmi oyun dosyaları ilk açılışta yerel önbelleğe indirilir.",
+            "dl.desc": "Microsoft Edge WebView2 bulunan 64-bit Windows 10 ve Windows 11 sistemlerde doğrudan çalışır. Resmi Minecraft, Fabric, Forge ve Modrinth dosyaları cihazınızda dinamik olarak indirilir.",
             "dl.primaryBtn": "basalt.exe İndir",
             "dl.zipBtn": ".zip İndir",
             "dl.notesBtn": "GitHub Sürümleri",
@@ -1474,68 +1566,86 @@
             "dl.copyPs": "Komutu Kopyala",
             "faq.q1": "Başka bir bilgisayarda Java 21 kurulu değilse ne olur?",
             "faq.a1": "Uygulama içindeki \"Otomatik Java 21 Kur\" butonuna tıklamanız yeterlidir. Resmi Eclipse Temurin 21 paketini indirir, SHA-256 ile doğrular ve yönetici izni gerekmeden yerel klasöre kurar.",
-            "faq.q2": "Neden Fabric yerine doğrudan saf Vanilla açılıyor?",
-            "faq.a2": "Resmi Vanilla 1.21.4'ü doğrudan java.exe ile başlatmak Mixin/mod yükleyici çakışmalarını ve Gradle arka plan yükünü tamamen ortadan kaldırır; her bilgisayarda hızlı ve hatasız açılır.",
+            "faq.q2": "Fabric, Forge ve OptiFine birbirini nasıl bozmuyor?",
+            "faq.a2": "Basalt her sürüm için Fabric ve Forge mods klasörlerini tamamen izole tutar; saves/, shaderpacks/, resourcepacks/, screenshots/ ve options.txt klasörlerini ise çakışma olmadan paylaşır.",
             "faq.q3": "Mod olmadan yerel PNG skin nasıl çalışıyor?",
             "faq.a3": "Basalt 64×64 veya 64×32 PNG skininizi doğrular, çevrimdışı oyuncu UUID'sini seçtiğiniz Slim (3 px) veya Klasik (4 px) kol modeline hizalar ve yerel basalt_skin.zip kaynak paketini oluşturur.",
-            "faq.q4": "Hangi sunucular destekleniyor?",
-            "faq.a4": "Tek oyunculu dünyalar ve online-mode=false olarak çalışan yerel/LAN geliştirme sunucuları desteklenir. Microsoft doğrulaması isteyen sunucular asla atlatılmaz.",
-            "footer.legal": "RESMİ BİR MINECRAFT ÜRÜNÜ DEĞİLDİR. MOJANG VEYA MICROSOFT TARAFINDAN ONAYLANMAMIŞTIR. Resmi oyun dosyaları çalıştırılabilir dosyaya gömülmez; ilk açılışta resmi Mojang sunucularından yerel önbelleğe indirilir."
+            "faq.q4": "Ön sürümlerde neden Windows SmartScreen uyarısı çıkabiliyor?",
+            "faq.a4": "GitHub Actions tarafından derlenen açık kaynak ön sürümler henüz ücretli Authenticode kod imzasıyla imzalanmamıştır. Çalıştırmadan önce GitHub Releases üzerindeki SHA256SUMS.txt ile doğrulama yapın.",
+            "legal.kicker": "Uyumluluk ve Şeffaflık",
+            "legal.h2": "Yasal bildirimler, üçüncü taraf lisansları ve gizlilik.",
+            "legal.lead": "Mojang EULA uyumluluğu, API atıfları, açık kaynak lisansları ve sıfır telemetri gizlilik politikası hakkında net bilgiler.",
+            "legal.c1Title": "Mojang EULA ve Marka Bildirimi",
+            "legal.c1Body": "RESMİ BİR MINECRAFT ÜRÜNÜ DEĞİLDİR. MOJANG VEYA MICROSOFT TARAFINDAN ONAYLANMAMIŞTIR VE İLİŞKİLİ DEĞİLDİR. Minecraft, Mojang Synergies AB'nin ticari markasıdır. Basalt telifli oyun dosyalarını paketlemez ve Microsoft doğrulamasını asla atlatmaz (yalnızca tek oyunculu ve online-mode=false geliştirme sunucuları).",
+            "legal.c2Title": "Üçüncü Taraf API'ler ve Ekosistem Atıfları",
+            "legal.c2Body": "Dinamik entegrasyonlarda Mojang Piston Meta, Modrinth API v2 (mod ve shader üretici lisanslarına saygılı), FabricMC, Minecraft Forge, Eclipse Adoptium Temurin, Tauri 2 ve isteğe bağlı yerel Discord IPC kullanılır. OptiFine paketlenmez veya yeniden dağıtılmaz; kullanıcı yerel indirdiği dosyayı içe aktarır.",
+            "legal.c3Title": "Sıfır Telemetri ve Gizlilik Politikası",
+            "legal.c3Body": "Basalt kullanım analitiği, reklam kimliği veya izleme çerezi toplamaz. Ayarlar, dünyalar ve modlar yalnızca Windows AppData klasörünüzde tutulur. Bu web sayfası yalnızca güncel SHA-256 ve indirme bağlantısı için herkese açık GitHub Releases API'sini okur.",
+            "legal.c4Title": "MIT Lisansı, Garanti ve Bildirimler",
+            "legal.c4Body": "Basalt kaynak kodu ve özgün varlıkları MIT Lisansı altındadır (\"OLDUĞU GİBİ\", hiçbir garanti olmaksızın sunulur). Rust ve npm bağımlılık bildirimleri (MIT, Apache-2.0, BSD, ISC, Zlib, Unicode-3.0, MPL-2.0) THIRD_PARTY_LICENSES.md dosyasında yer alır.",
+            "legal.privacyLink": "Gizlilik Politikası",
+            "legal.securityLink": "Güvenlik ve Özetler",
+            "footer.legal": "RESMİ BİR MINECRAFT ÜRÜNÜ DEĞİLDİR. MOJANG VEYA MICROSOFT TARAFINDAN ONAYLANMAMIŞTIR. Resmi oyun dosyaları, mod yükleyiciler ve modlar yürütülebilir dosyaya gömülmez; kullanıcı cihazında kriptografik doğrulama ile kaynak sunuculardan alınır."
           },
           html: {
-            "footer.project": "<strong>Basalt</strong> · Windows için Açık Kaynak Minecraft 1.21.4 Vanilla Başlatıcısı (MIT Lisansı) · <a href=\"https://github.com/Markesrrr/Basalt\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub Deposu (Markesrrr/Basalt)</a>"
+            "footer.project": "<strong>Basalt</strong> · Windows için Açık Kaynak Resmi Olmayan Minecraft Başlatıcısı (MIT Lisansı) · <a href=\"https://github.com/Markesrrr/Basalt\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · <a href=\"https://github.com/Markesrrr/Basalt/blob/main/THIRD_PARTY_LICENSES.md\" target=\"_blank\" rel=\"noopener noreferrer\">3. Taraf Lisansları</a> · <a href=\"https://github.com/Markesrrr/Basalt/blob/main/PRIVACY.md\" target=\"_blank\" rel=\"noopener noreferrer\">Gizlilik</a> · <a href=\"https://github.com/Markesrrr/Basalt/blob/main/SECURITY.md\" target=\"_blank\" rel=\"noopener noreferrer\">Güvenlik</a>"
           },
           copyShaOk: "SHA-256 kodu panoya kopyalandı.",
           copyPsOk: "PowerShell komutu panoya kopyalandı."
         },
         de: {
-          title: "Basalt — Reiner Vanilla Minecraft 1.21.4 Launcher für Windows",
+          title: "Basalt — Inoffizieller Minecraft-Launcher (Vanilla, Fabric, Forge & Modrinth)",
           text: {
             "nav.features": "Funktionen",
             "nav.specs": "Spezifikationen",
             "nav.download": "Download & Prüfen",
+            "nav.legal": "Rechtliches & Datenschutz",
             "header.themeBtn": "Hell / Dunkel",
             "header.download": "Download",
-            "hero.kicker": "Reines Vanilla Minecraft 1.21.4 · Windows x64",
-            "hero.h1": "Übersichtlicher, direkter Vanilla-1.21.4-Launcher ohne Ballast.",
-            "hero.lead": "Basalt ist ein kompakter Einzeldatei-Launcher für Windows auf Basis von Rust und Tauri 2. Er startet das offizielle Minecraft 1.21.4 direkt über Java 21, stimmt JVM-Speicher sowie options.txt auf deine Hardware ab und bindet lokale PNG-Skins sauber ein.",
-            "hero.downloadBtn": "basalt.exe herunterladen (13.84 MB)",
+            "hero.kicker": "Minecraft Java 1.21.4 – 1.16.5 · Vanilla, Fabric & Forge · Windows x64",
+            "hero.h1": "Schlanker Open-Source-Minecraft-Launcher mit Modrinth & isolierten Loadern.",
+            "hero.lead": "Basalt ist ein portabler Windows-Launcher auf Basis von Rust und Tauri 2. Er startet Minecraft 1.21.4 bis 1.16.5 in isolierten Vanilla-, Fabric- und Forge-Profilen, integriert Modrinth mit 1-Klick-Shader-Kits und prüft jede Datei lokal.",
+            "hero.downloadBtn": "basalt.exe herunterladen (14.53 MB)",
             "hero.githubBtn": "Quellcode auf GitHub",
             "hero.stat1Label": "Dateigröße",
-            "hero.stat2Label": "Ziel-Client",
+            "hero.stat2Label": "Loader & Mods",
+            "hero.stat2Val": "Vanilla · Fabric · Forge",
             "hero.stat3Label": "Java-Laufzeit",
             "hero.stat3Val": "Auto Temurin 21",
+            "hero.disclaimer": "Inoffizielles Open-Source-Projekt (MIT). KEIN OFFIZIELLES MINECRAFT-PRODUKT. NICHT VON MOJANG ODER MICROSOFT GENEHMIGT ODER MIT IHNEN VERBUNDEN.",
             "pw.navPlay": "Spielen",
+            "pw.navLibrary": "Bibliothek & Mods",
             "pw.navWorlds": "Gespeicherte Welten",
             "pw.navProfile": "Profil & Skin",
             "pw.navSystem": "Einstellungen & Server",
-            "pw.ready": "Vanilla 1.21.4 bereit",
-            "pw.targetTitle": "Minecraft-Hauptmenü",
-            "pw.quickEntry": "Schnelleinstieg",
-            "pw.quickVal": "Survival-Welt (Quick Play)",
+            "pw.ready": "Fabric 1.21.4 bereit",
+            "pw.targetTitle": "Isolierter Loader & Modrinth-Kit",
+            "pw.quickEntry": "Mod-Loader",
+            "pw.quickVal": "Vanilla · Fabric · Forge",
             "pw.playerName": "Spielername (offline)",
             "pw.launchBtn": "Minecraft starten",
-            "pw.cacheReady": "SHA-1 geprüft",
+            "pw.modrinthReady": "v2 Katalog",
+            "pw.cacheReady": "SHA-1 / 256",
             "feat.kicker": "Kernfunktionen",
-            "feat.h2": "Alles Nötige für einen sauberen Start von Vanilla 1.21.4.",
-            "feat.lead": "Konzipiert für einen ruhigen, fokussierten Arbeitsablauf ohne Mod-Loader-Konflikte oder überladene Einstellungsmenüs.",
-            "feat.c1Title": "Reines offizielles Vanilla 1.21.4",
-            "feat.c1Body": "Lädt und prüft per SHA-1 die offizielle Mojang-1.21.4-Client-JAR, Bibliotheken und Assets und startet direkt ohne Fabric- oder Forge-Overhead.",
-            "feat.c2Title": "Automatische Java-21-Einrichtung",
-            "feat.c2Body": "Fehlt Java 21 auf dem PC, lädt Basalt Eclipse Temurin 21 über curl.exe herunter, prüft den SHA-256-Hash und richtet es lokal ohne Adminrechte ein.",
-            "feat.c3Title": "Hardware-kalibrierte Einstellungen",
-            "feat.c3Body": "Erkennt beim Start CPU-Kerne, RAM und DirectX-12-GPU-Klasse, um -Xmx-Heap, GC-Flags und Sichtweite in der options.txt optimal abzustimmen.",
+            "feat.h2": "Alles für Vanilla, Fabric und Forge sauber getrennt.",
+            "feat.lead": "Konzipiert für saubere Mod-Isolation pro Loader, direkten Modrinth-v2-Katalog und kryptografische Verifizierung ohne Ballast.",
+            "feat.c1Title": "Isolierte Loader-Profile",
+            "feat.c1Body": "Wechselt nahtlos zwischen Vanilla, Fabric und Forge für 1.21.4–1.16.5 mit eigenen mods/-Ordnern und gemeinsam genutzten saves, shaderpacks, resourcepacks und options.txt.",
+            "feat.c2Title": "Modrinth-Bibliothek & Shader-Kits",
+            "feat.c2Body": "Durchsuche Mods, Shader und Ressourcenpakete direkt, installiere 1-Klick-Kits für Fabric (Sodium+Iris+Lithium) oder Forge (Embeddium+Oculus) oder importiere eigene OptiFine-.jar/.zip-Dateien.",
+            "feat.c3Title": "Auto-Java 21 & Hardware-Kalibrierung",
+            "feat.c3Body": "Installiert geprüftes Eclipse Temurin 21 ohne Adminrechte und stimmt anhand von CPU, RAM und DirectX-12-GPU -Xmx-Heap, G1GC/ZGC und options.txt ab.",
             "feat.c4Title": "Lokale PNG-Skins (Slim & Classic)",
-            "feat.c4Body": "Importiert 64×64- und klassische 64×32-PNG-Skins mit Slim- (3 px) oder Classic-Armen (4 px) und packt sie beim Start als natives Vanilla-Ressourcenpaket.",
+            "feat.c4Body": "Importiert 64×64- und klassische 64×32-PNG-Skins mit Slim- (3 px) oder Classic-Armen (4 px), zeigt sie in 3D und erstellt beim Start ein natives Vanilla-Ressourcenpaket.",
             "feat.c5Title": "Welten & Lokale Server Quick Play",
             "feat.c5Body": "Einzelspieler-Welten verwalten, lokale Offline-Server (online-mode=false) per Protokoll-769-SLP anpingen und direkt per Quick Play beitreten.",
-            "feat.c6Title": "Portabel & Pfadsicher auf jedem PC",
-            "feat.c6Body": "Leitet Laufzeit-Caches bei Windows-Benutzernamen mit Leerzeichen oder Sonderzeichen automatisch in ein ASCII-sicheres Verzeichnis.",
+            "feat.c6Title": "Pfadsicher & Hash-geprüft",
+            "feat.c6Body": "Prüft Mojang-, Temurin- und Modrinth-Dateien kryptografisch vor der Ausführung und nutzt bei Sonderzeichen im Windows-Benutzernamen automatisch ASCII-sichere Pfade.",
             "specs.kicker": "Architektur & Profile",
             "specs.h2": "Technische Daten und Hardware-Profile.",
-            "specs.lead": "Jede Datei wird vor dem Start kryptografisch in Rust geprüft; eigene Tastenbelegungen in der options.txt bleiben erhalten.",
+            "specs.lead": "Jede Laufzeit- und Mod-Datei wird vor dem Start kryptografisch geprüft; eigene Tastenbelegungen in der options.txt bleiben erhalten.",
             "specs.leftTitle": "Laufzeit- & Sicherheitsarchitektur",
-            "specs.kClient": "Ziel-Client",
+            "specs.kClient": "Unterstützte Versionen",
             "specs.kProto": "Netzwerkprotokoll",
             "specs.kJava": "Java-Laufzeit",
             "specs.kHash": "Integritätsprüfung",
@@ -1547,9 +1657,9 @@
             "specs.thRam": "JVM-Speicher",
             "specs.thChunks": "Sichtweite",
             "dl.kicker": "Release & Prüfsumme",
-            "dl.h2": "Basalt v0.2.0 (Pre-Release) für Windows herunterladen.",
+            "dl.h2": "Basalt v0.3.0 (Pre-Release) für Windows herunterladen.",
             "dl.lead": "Portable Einzeldatei und ZIP-Archiv. Überprüfe die heruntergeladene Datei anhand des untenstehenden SHA-256-Werts.",
-            "dl.desc": "Läuft auf 64-Bit Windows 10 und Windows 11 mit Microsoft Edge WebView2 Runtime. Offizielle Spieldateien werden beim ersten Start lokal zwischengespeichert.",
+            "dl.desc": "Läuft auf 64-Bit Windows 10 und Windows 11 mit Microsoft Edge WebView2 Runtime. Offizielle Minecraft-, Fabric-, Forge- und Modrinth-Dateien werden dynamisch auf deinem Gerät geladen.",
             "dl.primaryBtn": "basalt.exe herunterladen",
             "dl.zipBtn": ".zip herunterladen",
             "dl.notesBtn": "GitHub Releases",
@@ -1559,16 +1669,29 @@
             "dl.copyPs": "Befehl kopieren",
             "faq.q1": "Was passiert, wenn auf einem PC kein Java 21 installiert ist?",
             "faq.a1": "Klicke in Basalt auf \"Java 21 installieren\". Es lädt das offizielle Eclipse Temurin 21 herunter, prüft den SHA-256-Hash und entpackt es ohne Adminrechte.",
-            "faq.q2": "Warum startet Basalt reines Vanilla statt Fabric?",
-            "faq.a2": "Der direkte Start von Vanilla 1.21.4 über java.exe verhindert Mixin-/Klassenpfad-Konflikte sowie Gradle-Daemon-Abbrüche und startet zuverlässig auf jedem PC.",
+            "faq.q2": "Wie bleiben Fabric, Forge und OptiFine sauber getrennt?",
+            "faq.a2": "Basalt führt getrennte mods/-Ordner pro Version für Fabric und Forge ohne Konflikte, während saves/, shaderpacks/, resourcepacks/, screenshots/ und options.txt sauber geteilt werden.",
             "faq.q3": "Wie funktionieren Offline-PNG-Skins ohne Mods?",
             "faq.a3": "Basalt prüft deinen 64×64- oder 64×32-PNG-Skin, richtet die Offline-UUID auf das gewählte Slim- oder Classic-Armmodell aus und erzeugt ein Vanilla-Ressourcenpaket (basalt_skin.zip).",
-            "faq.q4": "Welche Server werden unterstützt?",
-            "faq.a4": "Einzelspieler-Welten sowie lokale Entwicklungsserver mit online-mode=false. Die offizielle Microsoft-Anmeldung wird niemals umgangen.",
-            "footer.legal": "KEIN OFFIZIELLES MINECRAFT-PRODUKT. NICHT VON MOJANG ODER MICROSOFT GENEHMIGT ODER MIT IHNEN VERBUNDEN. Offizielle Spieldateien sind nicht in der Programmdatei enthalten, sondern werden beim ersten Start lokal zwischengespeichert."
+            "faq.q4": "Warum erscheint bei Pre-Releases Windows SmartScreen?",
+            "faq.a4": "Von GitHub Actions kompilierte Open-Source-Pre-Releases besitzen noch kein kostenpflichtiges Authenticode-Zertifikat. Vergleiche vor dem Start immer die SHA256SUMS.txt auf GitHub Releases.",
+            "legal.kicker": "Rechtliches & Transparenz",
+            "legal.h2": "Rechtliche Hinweise, Drittanbieter-Lizenzen und Datenschutz.",
+            "legal.lead": "Klare Angaben zur Mojang-EULA, API-Quellenangaben, Open-Source-Lizenzen und vollständiger Telemetriefreiheit.",
+            "legal.c1Title": "Mojang-EULA & Markenhinweis",
+            "legal.c1Body": "KEIN OFFIZIELLES MINECRAFT-PRODUKT. NICHT VON MOJANG ODER MICROSOFT GENEHMIGT ODER MIT IHNEN VERBUNDEN. Minecraft ist eine Marke von Mojang Synergies AB. Basalt bündelt keine urheberrechtlich geschützten Spiel-JARs oder Assets und umgeht niemals die Microsoft-Anmeldung (nur Einzelspieler & online-mode=false Entwicklungsserver).",
+            "legal.c2Title": "Drittanbieter-APIs & Danksagung",
+            "legal.c2Body": "Dynamische Integrationen nutzen Mojang Piston Meta, Modrinth API v2 (unter Achtung der Mod-/Shader-Lizenzen), FabricMC, Minecraft Forge, Eclipse Adoptium Temurin, Tauri 2 und optionales lokales Discord IPC. OptiFine wird niemals gebündelt oder weiterverbreitet; Nutzer importieren lokal geladene Dateien.",
+            "legal.c3Title": "Datenschutz ohne Telemetrie",
+            "legal.c3Body": "Basalt erhebt keine Nutzungsstatistiken, Werbe-IDs oder Tracking-Cookies. Einstellungen, Welten und Bibliotheken bleiben lokal im Windows-AppData-Ordner. Diese Website ruft ausschließlich die öffentliche GitHub-Releases-API für Prüfsummen und Download-Links ab.",
+            "legal.c4Title": "MIT-Lizenz, Gewährleistung & Hinweise",
+            "legal.c4Body": "Quellcode und eigene Assets von Basalt stehen unter der MIT-Lizenz (\"OHNE MÄNGELGEWÄHR\", ohne Gewährleistung). Drittanbieter-Hinweise für Rust & npm (MIT, Apache-2.0, BSD, ISC, Zlib, Unicode-3.0, MPL-2.0) stehen in THIRD_PARTY_LICENSES.md.",
+            "legal.privacyLink": "Datenschutz",
+            "legal.securityLink": "Sicherheit & Hashes",
+            "footer.legal": "KEIN OFFIZIELLES MINECRAFT-PRODUKT. NICHT VON MOJANG ODER MICROSOFT GENEHMIGT ODER MIT IHNEN VERBUNDEN. Offizielle Spieldateien, Loader, Mods und Assets sind nicht in der Programmdatei enthalten, sondern werden bei Bedarf kryptografisch geprüft geladen."
           },
           html: {
-            "footer.project": "<strong>Basalt</strong> · Open-Source Minecraft 1.21.4 Vanilla Launcher für Windows (MIT-Lizenz) · <a href=\"https://github.com/Markesrrr/Basalt\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub-Repository (Markesrrr/Basalt)</a>"
+            "footer.project": "<strong>Basalt</strong> · Inoffizieller Open-Source-Minecraft-Launcher für Windows (MIT-Lizenz) · <a href=\"https://github.com/Markesrrr/Basalt\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · <a href=\"https://github.com/Markesrrr/Basalt/blob/main/THIRD_PARTY_LICENSES.md\" target=\"_blank\" rel=\"noopener noreferrer\">Drittanbieter-Lizenzen</a> · <a href=\"https://github.com/Markesrrr/Basalt/blob/main/PRIVACY.md\" target=\"_blank\" rel=\"noopener noreferrer\">Datenschutz</a> · <a href=\"https://github.com/Markesrrr/Basalt/blob/main/SECURITY.md\" target=\"_blank\" rel=\"noopener noreferrer\">Sicherheit</a>"
           },
           copyShaOk: "SHA-256-Prüfsumme in die Zwischenablage kopiert.",
           copyPsOk: "PowerShell-Befehl in die Zwischenablage kopiert."
@@ -1641,8 +1764,8 @@
         copyText(document.getElementById("ps-verify-cmd").textContent, I18N[activeLang].copyPsOk);
       });
 
-      const directUrl = "https://github.com/" + DEFAULT_GITHUB_REPO + "/releases/download/v0.2.0/basalt.exe";
-      const zipFallbackUrl = "https://github.com/" + DEFAULT_GITHUB_REPO + "/releases/download/v0.2.0/basalt-v0.2.0-windows-x64.zip";
+      const directUrl = "https://github.com/" + DEFAULT_GITHUB_REPO + "/releases/download/v0.3.0/basalt.exe";
+      const zipFallbackUrl = "https://github.com/" + DEFAULT_GITHUB_REPO + "/releases/download/v0.3.0/basalt-v0.3.0-windows-x64.zip";
       const releasesUrl = "https://github.com/" + DEFAULT_GITHUB_REPO + "/releases";
       document.getElementById("header-download-cta").href = directUrl;
       document.getElementById("hero-download-cta").href = directUrl;
