@@ -98,6 +98,7 @@ jobs:
 
           $isPre = ("$tag" -match '^v0\.') -or ("$tag" -match '-') -or ("${{ inputs.prerelease }}" -eq "true")
           $preLabel = if ($isPre) { "Pre-release" } else { "Release" }
+          $title = if ($isPre) { "Basalt $tag (Pre-release)" } else { "Basalt $tag" }
           $highlights = if ($tag -like 'v0.3*') {
             @(
               "- **Isolated Vanilla / Fabric / Forge Loader Profiles:** Separate per-version ``mods/`` folders (``loader_mods/fabric/<ver>`` via ``-Dfabric.modsFolder`` and ``profiles/forge/<ver>/mods`` via Forge BootstrapLauncher) while seamlessly sharing ``saves/``, ``shaderpacks/``, ``resourcepacks/``, ``screenshots/``, ``options.txt``, and ``servers.dat``"
@@ -134,25 +135,27 @@ jobs:
             "``````"
           ) -join "`n"
           $notes | Out-File -FilePath "dist-release/RELEASE_NOTES.md" -Encoding utf8
+          $isPreStr = if ($isPre) { "true" } else { "false" }
+          $makeLatestStr = if ($isPre) { "false" } else { "true" }
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "zip_name=$zipName" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "is_pre=$isPre" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "title=$title" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "is_pre=$isPreStr" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "make_latest=$makeLatestStr" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Publish or update GitHub Release
-        shell: pwsh
+        uses: softprops/action-gh-release@v3
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          $tag = "${{ steps.meta.outputs.tag }}"
-          $zipOut = "dist-release/${{ steps.meta.outputs.zip_name }}"
-          $isPre = "${{ steps.meta.outputs.is_pre }}" -eq "True"
-          $title = if ($isPre) { "Basalt $tag (Pre-release)" } else { "Basalt $tag" }
-          $flags = if ($isPre) { @("--prerelease") } else { @("--latest") }
-
-          gh release view $tag *> $null
-          if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag dist-release/basalt.exe $zipOut dist-release/SHA256SUMS.txt --clobber
-            gh release edit $tag --title $title --notes-file dist-release/RELEASE_NOTES.md @flags
-          } else {
-            gh release create $tag dist-release/basalt.exe $zipOut dist-release/SHA256SUMS.txt --title $title --notes-file dist-release/RELEASE_NOTES.md @flags --target "${{ github.sha }}"
-          }
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.title }}
+          body_path: dist-release/RELEASE_NOTES.md
+          prerelease: ${{ steps.meta.outputs.is_pre }}
+          make_latest: ${{ steps.meta.outputs.make_latest }}
+          target_commitish: ${{ github.sha }}
+          fail_on_unmatched_files: true
+          files: |
+            dist-release/basalt.exe
+            dist-release/${{ steps.meta.outputs.zip_name }}
+            dist-release/SHA256SUMS.txt
