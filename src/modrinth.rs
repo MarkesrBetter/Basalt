@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::config::LoaderKind;
 use crate::vanilla::{DownloadTask, curl_fetch_bytes_with_ua, download_batch_with_curl};
 
-const BASALT_HTTP_UA: &str = "Basalt-Launcher/0.3.0 (https://github.com/Markesrrr/Basalt)";
+const BASALT_HTTP_UA: &str = "Basalt-Launcher/0.3.1 (https://github.com/Markesrrr/Basalt)";
 const MODRINTH_API_BASE: &str = "https://api.modrinth.com/v2";
 const MANIFEST_INDEX_FILE: &str = ".basalt-manifest.json";
 const MAX_DEP_DEPTH: usize = 8;

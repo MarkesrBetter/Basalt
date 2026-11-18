@@ -18,7 +18,7 @@ use crate::vanilla::{
     summarize_process_failure,
 };
 
-const BASALT_HTTP_UA: &str = "Basalt-Launcher/0.3.0 (https://github.com/Markesrrr/Basalt)";
+const BASALT_HTTP_UA: &str = "Basalt-Launcher/0.3.1 (https://github.com/Markesrrr/Basalt)";
 const FABRIC_META_BASE: &str = "https://meta.fabricmc.net/v2";
 const FORGE_PROMOTIONS_URL: &str =
     "https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json";
